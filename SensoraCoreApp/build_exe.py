@@ -17,7 +17,13 @@ def check_dependencies():
     
     for package in required_packages:
         try:
-            __import__(package.lower() if package != 'PySide6' else 'PySide6')
+            # Handle special import cases
+            if package == 'PySide6':
+                __import__('PySide6')
+            elif package == 'pyinstaller':
+                __import__('PyInstaller')
+            else:
+                __import__(package.lower())
             print(f"✅ {package}")
         except ImportError:
             missing_packages.append(package)
@@ -26,27 +32,53 @@ def check_dependencies():
     if missing_packages:
         print(f"\n⚠️  Faltan dependencias: {', '.join(missing_packages)}")
         print("Instalando dependencias faltantes...")
-        subprocess.run([sys.executable, "-m", "pip", "install"] + missing_packages)
+        result = subprocess.run([sys.executable, "-m", "pip", "install"] + missing_packages)
+        
+        # Verificar nuevamente después de la instalación
+        print("\n🔍 Verificando dependencias nuevamente...")
+        still_missing = []
+        for package in missing_packages:
+            try:
+                if package == 'PySide6':
+                    __import__('PySide6')
+                elif package == 'pyinstaller':
+                    __import__('PyInstaller')
+                else:
+                    __import__(package.lower())
+                print(f"✅ {package} (instalado)")
+            except ImportError:
+                still_missing.append(package)
+                print(f"❌ {package} (aún falta)")
+        
+        return len(still_missing) == 0
     
-    return len(missing_packages) == 0
+    return True
 
 def build_executable():
     """Genera el ejecutable usando PyInstaller"""
     print("\n🔨 Generando ejecutable...")
     
-    # Comando PyInstaller
+    # Comando PyInstaller base
     cmd = [
         "pyinstaller",
         "--onefile",                    # Un solo archivo ejecutable
         "--windowed",                   # Sin ventana de consola
         "--name=SensoraCore",           # Nombre del ejecutable
-        "--icon=icon.ico",              # Icono (si existe)
         "--add-data=ui;ui",             # Incluir carpeta ui
         "--hidden-import=PySide6.QtCore",
         "--hidden-import=PySide6.QtWidgets",
         "--hidden-import=matplotlib.backends.backend_qt5agg",
+        "--hidden-import=matplotlib.backends.backend_tkagg",
+        "--collect-all=matplotlib",
         "main.py"
     ]
+    
+    # Agregar icono si existe
+    if os.path.exists("icon.ico"):
+        cmd.insert(-1, "--icon=icon.ico")
+        print("🎨 Icono encontrado, agregándolo al ejecutable")
+    else:
+        print("⚠️  Icono no encontrado, continuando sin icono")
     
     # Ejecutar PyInstaller
     try:
