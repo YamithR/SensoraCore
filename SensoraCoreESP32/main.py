@@ -1,8 +1,8 @@
 # main.py para ESP32 (MicroPython) - Versión con Brazo Ángulo
 # Lee potenciómetros, sensor capacitivo y controla LED por WiFi
-import network
+import network # type: ignore
 import socket
-from machine import Pin, ADC
+from machine import Pin, ADC # type: ignore
 import time
 
 # Configuración WiFi (ajusta en wifi_config.py)
@@ -54,8 +54,8 @@ def angulo_simple_loop(client):
     try:
         while current_mode == 'ANGULO_SIMPLE' and continuous_client == client:
             lectura = pot.read()
-            # Mapea de 0-4095 a 0-270 grados (rango típico de potenciómetro)
-            angulo = int((lectura * 270) / 4095)
+            # Mapea de 0-4095 a -135 a +135 grados
+            angulo = int(((lectura * 270) / 4095) - 135)
             msg = f"POT:{lectura},ANG:{angulo}\n"
             try:
                 client.send(msg.encode())

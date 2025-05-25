@@ -49,7 +49,7 @@
 - [x] Lectura de potenciómetro en GPIO 32
 - [x] Control del LED integrado
 - [x] Modo continuo para transmisión de datos
-- [x] Mapeo correcto de ángulos (0-270°)
+- [x] Mapeo correcto de ángulos (-135° <> 135°)
 - [x] Manejo de comandos por protocolo
 
 ### 📡 Comunicación

@@ -9,8 +9,8 @@ ESP32_PORT = 8080  # Puerto de comunicación
 CONNECTION_TIMEOUT = 3  # Timeout de conexión en segundos
 
 # Configuración de gráficas
-MAX_GRAPH_POINTS = 100  # Máximo número de puntos en la gráfica
-GRAPH_UPDATE_INTERVAL = 100  # Intervalo de actualización en ms
+MAX_GRAPH_POINTS = 200  # Máximo número de puntos en la gráfica
+GRAPH_UPDATE_INTERVAL = 50  # Intervalo de actualización en ms
 GRAPH_COLORS = {
     'angulo': 'blue',
     'distancia': 'red',

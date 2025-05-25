@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
           # Variables para gráfica con optimización de memoria
         self.angulos = []
         self.lecturas = []
-        self.max_points = 50  # Reducido de 100 a 50 para mejor rendimiento
+        self.max_points = 200  # Máximo de puntos en la gráfica
         
         # Timer para optimizar actualizaciones de gráfica
         self.graph_update_timer = QTimer()

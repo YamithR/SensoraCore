@@ -1,15 +1,15 @@
 # main.py para ESP32 (MicroPython) - Versión con Brazo Ángulo
 # Lee potenciómetros, sensor capacitivo y controla LED por WiFi
-import network
+import network # type: ignore
 import socket
-from machine import Pin, ADC
+from machine import Pin, ADC # type: ignore
 import time
 
 # Configuración WiFi (ajusta en wifi_config.py)
 try:
     from wifi_config import SSID, PASSWORD
 except ImportError:
-    SSID = 'CanelaYMaya'
+    SSID = 'CANELA Y MAYA 5G'
     PASSWORD = 'CanelayMayaEner0'
 
 led = Pin(2, Pin.OUT)
