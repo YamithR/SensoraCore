@@ -783,10 +783,10 @@ SOFTWARE.
 - **[OpenPyXL](https://openpyxl.readthedocs.io)**: Generación de archivos Excel
 
 #### 🤝 Contribuidores
-- **Equipo de Desarrollo**: [Nombres de desarrolladores]
-- **Supervisión Académica**: [Nombres de supervisores]
-- **Testing y Validación**: [Nombres de testers]
-- **Documentación**: [Nombres de documentadores]
+- **Equipo de Desarrollo**: Yamith Romero
+- **Supervisión Académica**: Saul Pérez & Carlos Diaz
+- **Testing y Validación**: Yamith Romero
+- **Documentación**: Yamith Romero & Elian Ruidiaz
 
 #### 🎯 Objetivos del Proyecto
 1. **Educación STEM**: Facilitar el aprendizaje de conceptos de sensores y automatización
@@ -799,9 +799,8 @@ SOFTWARE.
 ## 📞 Contacto y Soporte
 
 ### 🌐 Enlaces del Proyecto
-- **Repositorio**: [URL del repositorio]
-- **Documentación**: [URL de documentación extendida]
-- **Issues**: [URL para reportar problemas]
+- **Repositorio**: https://github.com/YamithR/SensoraCore
+- **Issues**: Mail : yamithromero@hotmail.com
 - **Discusiones**: [URL del foro de la comunidad]
 
 ### 📧 Contacto
@@ -821,4 +820,3 @@ Para reportar bugs o solicitar funcionalidades:
 **Versión**: Alpha 0.2  
 **Estado**: Funcional con interfaces digital/analógica unificada  
 **Última actualización**: Mayo 25, 2025  
-**Próxima versión**: Alpha 0.3 (Estimada: Julio 2025)

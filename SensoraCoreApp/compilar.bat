@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 echo.
 echo ========================================
 echo    SensoraCore - Compilador Automático
@@ -25,22 +26,35 @@ echo ========================================
 echo           Compilación Terminada
 echo ========================================
 echo.
-if exist "dist\SensoraCore.exe" (
-    echo ✅ Ejecutable creado exitosamente en: dist\SensoraCore.exe
-    echo ✅ Tamaño: 
-    dir dist\SensoraCore.exe | find "SensoraCore.exe"
+if exist "dist\*.exe" (
+    echo ✅ Ejecutable(s) encontrado(s) en la carpeta 'dist':
     echo.
+    for %%f in (dist\*.exe) do (
+        echo 📁 %%~nxf
+        echo    Tamaño: 
+        dir "%%f" | find ".exe" | for /f "tokens=3" %%s in ('findstr /r /c:"[0-9]"') do echo    %%s bytes
+        echo    Fecha: 
+        dir "%%f" | find ".exe" | for /f "tokens=1,2" %%d in ('findstr /r /c:"[0-9]"') do echo    %%d %%e
+        echo.
+    )
     echo 📋 Instrucciones:
-    echo 1. El ejecutable está en la carpeta 'dist'
-    echo 2. Puedes copiarlo a cualquier computadora Windows
+    echo 1. El/Los ejecutable(s) están en la carpeta 'dist'
+    echo 2. Puedes copiarlo(s) a cualquier computadora Windows
     echo 3. No requiere instalación de Python ni dependencias
+    echo 4. Los archivos anteriores se mantienen (no se borran)
     echo.
     echo ¿Deseas abrir la carpeta 'dist'? (S/N)
     choice /c SN /n
     if !errorlevel!==1 explorer dist
 ) else (
-    echo ❌ Error: No se pudo crear el ejecutable
+    echo ❌ Error: No se encontraron ejecutables en la carpeta 'dist'
     echo Revisa los mensajes de error anteriores
+    echo.
+    echo Posibles causas:
+    echo - Faltan dependencias de Python
+    echo - Error en el código fuente
+    echo - Problemas de permisos
+    echo.
 )
 
 echo.

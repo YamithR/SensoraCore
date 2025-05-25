@@ -1,5 +1,4 @@
 # main_window.py para SensoraCore/ui
-# Optimización de imports para mejor rendimiento
 from PySide6.QtWidgets import (QMainWindow, QLabel, QVBoxLayout, QWidget, 
                                QPushButton, QLineEdit, QMessageBox, QGroupBox,
                                QHBoxLayout, QFileDialog, QScrollArea, QFrame,
@@ -330,83 +329,113 @@ class MainWindow(QMainWindow):
         
         # Configurar estilo de la aplicación
         self.setup_styles()
-        
-        # Crear la interfaz
+          # Crear la interfaz
         self.setup_ui()
-
+    
     def setup_styles(self):
         """Configura los estilos globales de la aplicación"""
         self.setStyleSheet("""
+            /* ======================== VENTANA PRINCIPAL ======================== */
+            /* Fondo general de toda la aplicación */
             QMainWindow {
-                background-color: #f8f9fa;
+                background-color: #f8f9fa;  /* Color de fondo: gris muy claro */
             }
+            
+            /* ======================== CAJAS DE GRUPO ======================== */
+            /* Estilo para todas las cajas de grupo (secciones) de la aplicación */
             QGroupBox {
-                font-weight: bold;
-                border: 2px solid #dee2e6;
-                border-radius: 8px;
-                margin-top: 1ex;
-                padding-top: 10px;
-                background-color: white;
+                font-weight: bold;              /* Texto en negrita */
+                border: 2px solid #dee2e6;     /* Borde gris claro de 2px */
+                border-radius: 8px;            /* Esquinas redondeadas */
+                margin-top: 1ex;               /* Margen superior para el título */
+                padding-top: 10px;             /* Espacio interno superior */
+                background-color: white;       /* Fondo blanco para las secciones */
             }
+            
+            /* Estilo específico para los títulos de las cajas de grupo */
             QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 8px 0 8px;
-                color: #495057;
-                background-color: white;
+                subcontrol-origin: margin;     /* Origen del título */
+                left: 10px;                    /* Posición izquierda del título */
+                padding: 0 8px 0 8px;         /* Espacio alrededor del título */
+                color: #495057;               /* Color del texto del título: gris oscuro */
+                background-color: white;       /* Fondo blanco para el título */
             }
+            
+            /* ======================== BOTONES ESTÁNDAR ======================== */
+            /* Estilo base para todos los botones de la aplicación */
             QPushButton {
-                border: 2px solid #007bff;
-                border-radius: 6px;
-                padding: 8px 16px;
-                background-color: #007bff;
-                color: black;
-                font-weight: bold;
-                min-height: 20px;
+                border: 2px solid #007bff;     /* Borde azul de 2px */
+                border-radius: 6px;            /* Esquinas redondeadas */
+                padding: 8px 16px;             /* Espacio interno: 8px arriba/abajo, 16px izq/der */
+                background-color: #007bff;     /* Fondo azul */
+                color: black;                  /* Texto negro */
+                font-weight: bold;             /* Texto en negrita */
+                min-height: 20px;             /* Altura mínima del botón */
             }
+            
+            /* Estilo cuando el mouse pasa por encima del botón */
             QPushButton:hover {
-                background-color: #0056b3;
-                border-color: #0056b3;
+                background-color: #0056b3;     /* Fondo azul más oscuro al pasar el mouse */
+                border-color: #0056b3;         /* Borde azul más oscuro */
             }
+            
+            /* Estilo cuando el botón está siendo presionado */
             QPushButton:pressed {
-                background-color: #004085;
+                background-color: #004085;     /* Fondo azul muy oscuro al presionar */
             }
+            
+            /* Estilo cuando el botón está deshabilitado */
             QPushButton:disabled {
-                background-color: #6c757d;
-                border-color: #6c757d;
-                color: #adb5bd;
+                background-color: #6c757d;     /* Fondo gris cuando está deshabilitado */
+                border-color: #6c757d;         /* Borde gris cuando está deshabilitado */
+                color: #adb5bd;               /* Texto gris claro cuando está deshabilitado */
             }
+            
+            /* ======================== CAMPOS DE TEXTO ======================== */
+            /* Estilo para todos los campos de entrada de texto */
             QLineEdit {
-                border: 2px solid #ced4da;
-                border-radius: 6px;
-                padding: 8px 12px;
-                font-size: 14px;
-                background-color: white;
-                color:black;
+                border: 2px solid #ced4da;     /* Borde gris claro de 2px */
+                border-radius: 6px;            /* Esquinas redondeadas */
+                padding: 8px 12px;             /* Espacio interno */
+                font-size: 14px;              /* Tamaño de fuente */
+                background-color: white;       /* Fondo blanco */
+                color: black;                  /* Texto negro */
             }
+            
+            /* Estilo cuando el campo de texto tiene foco (está activo) */
             QLineEdit:focus {
-                border-color: #007bff;
-                outline: none;
+                border-color: #007bff;         /* Borde azul cuando está activo */
+                outline: none;                 /* Sin contorno adicional */
             }
+            
+            /* ======================== LISTAS DE SENSORES ======================== */
+            /* Estilo para la lista de sensores disponibles */
             QListWidget {
-                border: 1px solid #dee2e6;
-                border-radius: 6px;
-                background-color: white;
-                alternate-background-color: #f8f9fa;
+                border: 1px solid #dee2e6;     /* Borde gris claro de 1px */
+                border-radius: 6px;            /* Esquinas redondeadas */
+                background-color: white;       /* Fondo blanco */
+                alternate-background-color: #f8f9fa;  /* Color alternativo para filas */
             }
+            
+            /* Estilo para cada elemento de la lista de sensores */
             QListWidget::item {
-                padding: 12px;
-                border-bottom: 1px solid #e9ecef;
-                color: black;
+                padding: 12px;                 /* Espacio interno de cada elemento */
+                border-bottom: 1px solid #e9ecef;  /* Línea separadora entre elementos */
+                color: black;                  /* Texto negro */
             }
+            
+            /* Estilo cuando el mouse pasa por encima de un elemento de la lista */
             QListWidget::item:hover {
-                background-color: #7db9f9;
+                background-color: #7db9f9;     /* Fondo azul claro al pasar el mouse */
             }
+            
+            /* Estilo cuando un elemento de la lista está seleccionado */
             QListWidget::item:selected {
-                background-color: #007bff;
-                color: black;
+                background-color: #007bff;     /* Fondo azul cuando está seleccionado */
+                color: black;                  /* Texto negro */
             }
         """)
+
 
     def setup_ui(self):
         """Configura la interfaz de usuario"""
@@ -696,46 +725,50 @@ class MainWindow(QMainWindow):
         # Grupo de controles
         controls_group = QGroupBox("Controles")
         controls_layout = QVBoxLayout(controls_group)
-        
-        # Estado del sensor
+          # ==================== ETIQUETA DE ESTADO DEL SENSOR ==================== 
+        # Muestra lectura ADC y ángulo calculado en tiempo real
         self.angulo_label = QLabel("Lectura: -- | Ángulo: --")
         self.angulo_label.setStyleSheet("""
-            font-size: 16px;
-            font-weight: bold;
-            color: #495057;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            border: 2px solid #dee2e6;
+            font-size: 16px;               /* Tamaño de fuente: 16px para que sea visible */
+            font-weight: bold;             /* Texto en negrita para destacar */
+            color: #495057;               /* Color gris oscuro para buena legibilidad */
+            padding: 10px;                /* Espacio interno: 10px en todos los lados */
+            background-color: #f8f9fa;    /* Fondo gris muy claro */
+            border-radius: 6px;           /* Esquinas redondeadas para apariencia moderna */
+            border: 2px solid #dee2e6;    /* Borde gris claro de 2px */
         """)
         controls_layout.addWidget(self.angulo_label)
         
-        # Botones de control
+        # ==================== BOTONES DE CONTROL PRINCIPAL ==================== 
         buttons_layout = QHBoxLayout()
         
+        # BOTÓN INICIAR - Color verde para indicar acción positiva
         self.start_btn = QPushButton("▶️ Iniciar Monitoreo")
         self.start_btn.clicked.connect(self.toggle_angulo_monitoring)
         self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
         buttons_layout.addWidget(self.start_btn)
         
+        # BOTÓN DETENER - Color rojo para indicar acción de parada
         self.stop_btn = QPushButton("⏹️ Detener")
         self.stop_btn.clicked.connect(self.stop_angulo_monitoring)
-        self.stop_btn.setEnabled(False)
+        self.stop_btn.setEnabled(False)  # Inicialmente deshabilitado
         self.stop_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; }")
         buttons_layout.addWidget(self.stop_btn)
         
         controls_layout.addLayout(buttons_layout)
         
-        # Botones de acciones
+        # ==================== BOTONES DE ACCIONES SECUNDARIAS ==================== 
         actions_layout = QHBoxLayout()
         
+        # BOTÓN LIMPIAR - Para borrar datos de la gráfica
         self.clear_btn = QPushButton("🗑️ Limpiar Gráfica")
         self.clear_btn.clicked.connect(self.clear_graph)
         actions_layout.addWidget(self.clear_btn)
         
+        # BOTÓN EXPORTAR - Para guardar datos en Excel
         self.export_btn = QPushButton("📊 Exportar Excel")
         self.export_btn.clicked.connect(self.export_to_excel)
-        self.export_btn.setEnabled(False)
+        self.export_btn.setEnabled(False)  # Se habilita solo cuando hay datos
         actions_layout.addWidget(self.export_btn)
         
         controls_layout.addLayout(actions_layout)
@@ -867,63 +900,73 @@ class MainWindow(QMainWindow):
         controls_group = QGroupBox("Controles")
         controls_layout = QVBoxLayout(controls_group)
         
-        # Estado de los sensores - 3 ángulos + sensor capacitivo
+        # ==================== ESTADO DE SENSORES MÚLTIPLES ====================
+        # Muestra el estado de los 3 potenciómetros del brazo robótico en tiempo real
         self.brazo_labels = {}
         for i in range(1, 4):
             label = QLabel(f"Potenciómetro {i}: Lectura: -- | Ángulo: --°")
+            # ESTILO PARA ETIQUETAS DE ESTADO DE POTENCIÓMETROS
             label.setStyleSheet("""
-                font-size: 14px;
-                font-weight: bold;
-                color: #495057;
-                padding: 8px;
-                background-color: #f8f9fa;
-                border-radius: 6px;
-                border: 2px solid #dee2e6;
-                margin: 2px;
+                font-size: 14px;               /* Tamaño de fuente legible */
+                font-weight: bold;              /* Texto en negrita para destacar */
+                color: #495057;                 /* Color gris oscuro para el texto */
+                padding: 8px;                   /* Espaciado interno de 8px */
+                background-color: #f8f9fa;      /* Fondo gris muy claro */
+                border-radius: 6px;             /* Esquinas redondeadas de 6px */
+                border: 2px solid #dee2e6;      /* Borde gris claro de 2px */
+                margin: 2px;                    /* Margen externo pequeño */
             """)
             self.brazo_labels[f'pot{i}'] = label
             controls_layout.addWidget(label)
         
-        # Estado del sensor capacitivo
+        # ==================== ESTADO DEL SENSOR CAPACITIVO ====================
+        # Muestra el estado digital (True/False) del sensor capacitivo del brazo
         self.capacitive_label = QLabel("Sensor Capacitivo: --")
+        # ESTILO PARA ETIQUETA DE SENSOR CAPACITIVO
         self.capacitive_label.setStyleSheet("""
-            font-size: 14px;
-            font-weight: bold;
-            color: #495057;
-            padding: 8px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            border: 2px solid #dee2e6;
-            margin: 2px;
+            font-size: 14px;               /* Tamaño de fuente consistente con otros sensores */
+            font-weight: bold;              /* Texto en negrita */
+            color: #495057;                 /* Color gris oscuro */
+            padding: 8px;                   /* Espaciado interno */
+            background-color: #f8f9fa;      /* Fondo gris claro igual que potenciómetros */
+            border-radius: 6px;             /* Esquinas redondeadas */
+            border: 2px solid #dee2e6;      /* Borde gris claro */
+            margin: 2px;                    /* Margen pequeño */
         """)
         controls_layout.addWidget(self.capacitive_label)
         
-        # Botones de control
+        # ==================== BOTONES DE CONTROL PARA BRAZO ROBÓTICO ====================
         buttons_layout = QHBoxLayout()
         
+        # BOTÓN INICIAR MONITOREO - Verde para acción positiva
         self.brazo_start_btn = QPushButton("▶️ Iniciar Monitoreo")
         self.brazo_start_btn.clicked.connect(self.toggle_brazo_monitoring)
+        # ESTILO: Color verde (#28a745) para indicar acción de inicio
         self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
         buttons_layout.addWidget(self.brazo_start_btn)
         
+        # BOTÓN DETENER - Rojo para acción de parada
         self.brazo_stop_btn = QPushButton("⏹️ Detener")
         self.brazo_stop_btn.clicked.connect(self.stop_brazo_monitoring)
-        self.brazo_stop_btn.setEnabled(False)
+        self.brazo_stop_btn.setEnabled(False)  # Inicialmente deshabilitado
+        # ESTILO: Color rojo (#dc3545) para indicar acción de detención
         self.brazo_stop_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; }")
         buttons_layout.addWidget(self.brazo_stop_btn)
         
         controls_layout.addLayout(buttons_layout)
         
-        # Botones de acciones
+        # ==================== BOTONES DE ACCIONES SECUNDARIAS ==================== 
         actions_layout = QHBoxLayout()
         
+        # BOTÓN LIMPIAR GRÁFICA - Para borrar datos del brazo robótico
         self.brazo_clear_btn = QPushButton("🗑️ Limpiar Gráfica")
         self.brazo_clear_btn.clicked.connect(self.clear_brazo_graph)
         actions_layout.addWidget(self.brazo_clear_btn)
         
+        # BOTÓN EXPORTAR - Para guardar datos en Excel (3 potenciómetros + capacitivo)
         self.brazo_export_btn = QPushButton("📊 Exportar Excel")
         self.brazo_export_btn.clicked.connect(self.export_brazo_to_excel)
-        self.brazo_export_btn.setEnabled(False)
+        self.brazo_export_btn.setEnabled(False)  # Se habilita solo cuando hay datos
         actions_layout.addWidget(self.brazo_export_btn)
         
         controls_layout.addLayout(actions_layout)
@@ -989,19 +1032,19 @@ class MainWindow(QMainWindow):
         sensor_widget = QWidget()
         layout = QVBoxLayout(sensor_widget)
         layout.setSpacing(20)
-        
-        # Título del sensor
+          # ==================== TÍTULO DEL SENSOR IR DIGITAL ====================
         title = QLabel("📡 Sensor Infrarrojo Digital (IR)")
+        # ESTILO PARA TÍTULO - Gradiente rojo temático del sensor IR
         title.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
+            font-size: 24px;                   /* Tamaño grande para título principal */
+            font-weight: bold;                  /* Texto en negrita */
+            color: #2c3e50;                     /* Color base (se sobrescribe) */
             background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, 
-                                      stop: 0 #e74c3c, stop: 1 #c0392b);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+                                      stop: 0 #e74c3c, stop: 1 #c0392b);  /* Gradiente rojo IR */
+            color: white;                       /* Texto blanco sobre fondo rojo */
+            padding: 15px;                      /* Espaciado interno generoso */
+            border-radius: 10px;                /* Esquinas muy redondeadas */
+            margin-bottom: 10px;                /* Margen inferior */
         """)
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
@@ -1047,14 +1090,16 @@ class MainWindow(QMainWindow):
         • Pull-up interno: Activo<br>
         • Detección: Presencia/Ausencia
         </div>
-        """
+        """        # ==================== DIAGRAMA DE CONEXIÓN IR ====================
         connection_diagram.setText(connection_text)
         connection_diagram.setWordWrap(True)
+        # ESTILO PARA DIAGRAMA - Marco rojo temático del sensor IR
         connection_diagram.setStyleSheet("""
-            background-color: #ffffff;
-            border: 2px solid #e74c3c;
-            border-radius: 8px;
-            padding: 15px;
+            background-color: #ffffff;         /* Fondo blanco para legibilidad */
+            border: 2px solid #e74c3c;         /* Borde rojo tema IR */
+            border-radius: 8px;                /* Esquinas redondeadas */
+            padding: 15px;                     /* Espaciado interno */
+            color: black;                      /* Texto negro sobre fondo blanco */
         """)
         left_layout.addWidget(connection_diagram)
         left_panel.setMaximumWidth(400)
@@ -1067,17 +1112,19 @@ class MainWindow(QMainWindow):
         # Estado actual
         status_group = QGroupBox("🔍 Estado Actual")
         status_layout = QVBoxLayout(status_group)
-        
+          # ==================== ESTADO DIGITAL DEL SENSOR IR ====================
+        # Etiqueta que muestra DETECCIÓN (verde) o SIN DETECCIÓN (rojo)
         self.distancia_ir_status = QLabel("🔴 SIN DETECCIÓN")
+        # ESTILO PARA ESTADO DIGITAL - Indicador visual grande y claro
         self.distancia_ir_status.setStyleSheet("""
-            font-size: 28px;
-            font-weight: bold;
-            color: #dc3545;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            border: 3px solid #dc3545;
-            text-align: center;
+            font-size: 28px;                   /* Tamaño grande para máxima visibilidad */
+            font-weight: bold;                  /* Texto en negrita */
+            color: #dc3545;                     /* Color rojo para estado 'sin detección' */
+            padding: 20px;                      /* Espaciado interno generoso */
+            background-color: #f8f9fa;          /* Fondo gris muy claro */
+            border-radius: 12px;                /* Esquinas muy redondeadas */
+            border: 3px solid #dc3545;          /* Borde rojo grueso para énfasis */
+            text-align: center;                 /* Texto centrado */
         """)
         self.distancia_ir_status.setAlignment(Qt.AlignCenter)
         status_layout.addWidget(self.distancia_ir_status)
@@ -1088,15 +1135,17 @@ class MainWindow(QMainWindow):
         controls_layout = QVBoxLayout(controls_group)
         
         buttons_layout = QHBoxLayout()
-        
+          # ==================== BOTÓN INICIAR MONITOREO IR ====================
         self.start_distancia_ir_btn = QPushButton("▶️ Iniciar Monitoreo")
         self.start_distancia_ir_btn.clicked.connect(self.toggle_distancia_ir_monitoring)
+        # ESTILO: Color rojo temático del sensor IR para consistencia visual
         self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #e74c3c; border-color: #e74c3c; color: white; padding: 10px; }")
         buttons_layout.addWidget(self.start_distancia_ir_btn)
-        
+          # BOTÓN DETENER - Rojo estándar para acción de parada
         self.stop_distancia_ir_btn = QPushButton("⏹️ Detener")
         self.stop_distancia_ir_btn.clicked.connect(self.stop_distancia_ir_monitoring)
-        self.stop_distancia_ir_btn.setEnabled(False)
+        self.stop_distancia_ir_btn.setEnabled(False)  # Inicialmente deshabilitado
+        # ESTILO: Color rojo para detener, ligeramente diferente al color temático
         self.stop_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; color: white; padding: 10px; }")
         buttons_layout.addWidget(self.stop_distancia_ir_btn)
         
@@ -1106,7 +1155,7 @@ class MainWindow(QMainWindow):
         # Información adicional
         info_group = QGroupBox("ℹ️ Información")
         info_layout = QVBoxLayout(info_group)
-        
+          # ==================== INFORMACIÓN DEL SENSOR IR ====================
         info_text = QLabel("""
         <b>Sensor IR Digital:</b><br>
         • Detección simple de presencia/ausencia<br>
@@ -1116,7 +1165,8 @@ class MainWindow(QMainWindow):
         • Respuesta rápida ON/OFF
         """)
         info_text.setWordWrap(True)
-        info_text.setStyleSheet("padding: 10px; background-color: #fff3cd; border-radius: 5px;")
+        # ESTILO PARA INFORMACIÓN - Fondo amarillo suave para destacar info importante
+        info_text.setStyleSheet("padding: 10px; background-color: #fff3cd; border-radius: 5px; color: #856404;")
         info_layout.addWidget(info_text)
         right_layout.addWidget(info_group)
         
@@ -1134,19 +1184,19 @@ class MainWindow(QMainWindow):
         sensor_widget = QWidget()
         layout = QVBoxLayout(sensor_widget)
         layout.setSpacing(20)
-        
-        # Título del sensor
+          # ==================== TÍTULO DEL SENSOR CAPACITIVO ====================
         title = QLabel("📡 Sensor Capacitivo Digital")
+        # ESTILO PARA TÍTULO - Gradiente azul temático del sensor capacitivo
         title.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
+            font-size: 24px;                   /* Tamaño grande para título principal */
+            font-weight: bold;                  /* Texto en negrita */
+            color: #2c3e50;                     /* Color base (se sobrescribe) */
             background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, 
-                                      stop: 0 #3498db, stop: 1 #2980b9);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+                                      stop: 0 #3498db, stop: 1 #2980b9);  /* Gradiente azul capacitivo */
+            color: white;                       /* Texto blanco sobre fondo azul */
+            padding: 15px;                      /* Espaciado interno generoso */
+            border-radius: 10px;                /* Esquinas muy redondeadas */
+            margin-bottom: 10px;                /* Margen inferior */
         """)
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
@@ -1192,14 +1242,16 @@ class MainWindow(QMainWindow):
         • Pull-up interno: Activo<br>
         • Detección: Presencia/Ausencia
         </div>
-        """
+        """        # ==================== DIAGRAMA DE CONEXIÓN CAPACITIVO ====================
         connection_diagram.setText(connection_text)
         connection_diagram.setWordWrap(True)
+        # ESTILO PARA DIAGRAMA - Marco azul temático del sensor capacitivo
         connection_diagram.setStyleSheet("""
-            background-color: #ffffff;
-            border: 2px solid #3498db;
-            border-radius: 8px;
-            padding: 15px;
+            background-color: #ffffff;         /* Fondo blanco para legibilidad */
+            border: 2px solid #3498db;         /* Borde azul tema capacitivo */
+            border-radius: 8px;                /* Esquinas redondeadas */
+            padding: 15px;                     /* Espaciado interno */
+            color: black;                      /* Texto negro sobre fondo blanco */
         """)
         left_layout.addWidget(connection_diagram)
         left_panel.setMaximumWidth(400)
@@ -1212,17 +1264,19 @@ class MainWindow(QMainWindow):
         # Estado actual
         status_group = QGroupBox("🔍 Estado Actual")
         status_layout = QVBoxLayout(status_group)
-        
+          # ==================== ESTADO DIGITAL DEL SENSOR CAPACITIVO ====================
+        # Etiqueta que muestra DETECCIÓN (verde) o SIN DETECCIÓN (rojo)
         self.distancia_cap_status = QLabel("🔴 SIN DETECCIÓN")
+        # ESTILO PARA ESTADO DIGITAL - Indicador visual grande y claro (idéntico al IR)
         self.distancia_cap_status.setStyleSheet("""
-            font-size: 28px;
-            font-weight: bold;
-            color: #dc3545;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            border: 3px solid #dc3545;
-            text-align: center;
+            font-size: 28px;                   /* Tamaño grande para máxima visibilidad */
+            font-weight: bold;                  /* Texto en negrita */
+            color: #dc3545;                     /* Color rojo para estado 'sin detección' */
+            padding: 20px;                      /* Espaciado interno generoso */
+            background-color: #f8f9fa;          /* Fondo gris muy claro */
+            border-radius: 12px;                /* Esquinas muy redondeadas */
+            border: 3px solid #dc3545;          /* Borde rojo grueso para énfasis */
+            text-align: center;                 /* Texto centrado */
         """)
         self.distancia_cap_status.setAlignment(Qt.AlignCenter)
         status_layout.addWidget(self.distancia_cap_status)
@@ -1233,38 +1287,27 @@ class MainWindow(QMainWindow):
         controls_layout = QVBoxLayout(controls_group)
         
         buttons_layout = QHBoxLayout()
-        
+          # ==================== BOTÓN INICIAR MONITOREO CAPACITIVO ====================
         self.start_distancia_cap_btn = QPushButton("▶️ Iniciar Monitoreo")
         self.start_distancia_cap_btn.clicked.connect(self.toggle_distancia_cap_monitoring)
+        # ESTILO: Color azul temático del sensor capacitivo para consistencia visual
         self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #3498db; border-color: #3498db; color: white; padding: 10px; }")
         buttons_layout.addWidget(self.start_distancia_cap_btn)
-        
+          # BOTÓN DETENER - Rojo estándar para acción de parada
         self.stop_distancia_cap_btn = QPushButton("⏹️ Detener")
         self.stop_distancia_cap_btn.clicked.connect(self.stop_distancia_cap_monitoring)
-        self.stop_distancia_cap_btn.setEnabled(False)
+        self.stop_distancia_cap_btn.setEnabled(False)  # Inicialmente deshabilitado
+        # ESTILO: Color rojo para detener, consistente con otros sensores
         self.stop_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; color: white; padding: 10px; }")
         buttons_layout.addWidget(self.stop_distancia_cap_btn)
         
         controls_layout.addLayout(buttons_layout)
-        
-        # Acciones adicionales
-        actions_layout = QHBoxLayout()
-        
-        self.clear_distancia_cap_btn = QPushButton("🗑️ Resetear Estado")
-        self.clear_distancia_cap_btn.clicked.connect(self.clear_distancia_cap_graph)
-        actions_layout.addWidget(self.clear_distancia_cap_btn)
-        
-        self.export_distancia_cap_btn = QPushButton("📊 Info Exportar")
-        self.export_distancia_cap_btn.clicked.connect(self.export_distancia_cap_to_excel)
-        actions_layout.addWidget(self.export_distancia_cap_btn)
-        
-        controls_layout.addLayout(actions_layout)
         right_layout.addWidget(controls_group)
         
         # Información adicional
         info_group = QGroupBox("ℹ️ Información")
         info_layout = QVBoxLayout(info_group)
-        
+          # ==================== INFORMACIÓN DEL SENSOR CAPACITIVO ====================
         info_text = QLabel("""
         <b>Sensor Capacitivo Digital:</b><br>
         • Detección simple de presencia/ausencia<br>
@@ -1274,7 +1317,8 @@ class MainWindow(QMainWindow):
         • Respuesta rápida ON/OFF
         """)
         info_text.setWordWrap(True)
-        info_text.setStyleSheet("padding: 10px; background-color: #d1ecf1; border-radius: 5px;")
+        # ESTILO PARA INFORMACIÓN - Fondo azul suave para destacar info del sensor capacitivo
+        info_text.setStyleSheet("padding: 10px; background-color: #d1ecf1; border-radius: 5px; color: black;")
         info_layout.addWidget(info_text)
         right_layout.addWidget(info_group)
         
@@ -1293,19 +1337,19 @@ class MainWindow(QMainWindow):
         sensor_widget = QWidget()
         layout = QVBoxLayout(sensor_widget)
         layout.setSpacing(20)
-        
-        # Título del sensor
+          # ==================== TÍTULO DEL SENSOR ULTRASÓNICO ====================
         title = QLabel("📏 Sensor Ultrasónico HC-SR04")
+        # ESTILO PARA TÍTULO - Gradiente verde azulado temático del sensor ultrasónico
         title.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-            color: #2c3e50;
+            font-size: 24px;                   /* Tamaño grande para título principal */
+            font-weight: bold;                  /* Texto en negrita */
+            color: #2c3e50;                     /* Color base (se sobrescribe) */
             background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, 
-                                      stop: 0 #17a2b8, stop: 1 #138496);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+                                      stop: 0 #17a2b8, stop: 1 #138496);  /* Gradiente cyan ultrasónico */
+            color: white;                       /* Texto blanco sobre fondo cyan */
+            padding: 15px;                      /* Espaciado interno generoso */
+            border-radius: 10px;                /* Esquinas muy redondeadas */
+            margin-bottom: 10px;                /* Margen inferior */
         """)
         title.setAlignment(Qt.AlignCenter)
         layout.addWidget(title)
@@ -1357,14 +1401,16 @@ class MainWindow(QMainWindow):
         • Precisión: ±3mm<br>
         • Frecuencia: 40kHz
         </div>
-        """
+        """        # ==================== DIAGRAMA DE CONEXIÓN ULTRASÓNICO ====================
         connection_diagram.setText(connection_text)
         connection_diagram.setWordWrap(True)
+        # ESTILO PARA DIAGRAMA - Marco cyan temático del sensor ultrasónico
         connection_diagram.setStyleSheet("""
-            background-color: #ffffff;
-            border: 2px solid #17a2b8;
-            border-radius: 8px;
-            padding: 15px;
+            background-color: #ffffff;         /* Fondo blanco para legibilidad */
+            border: 2px solid #17a2b8;         /* Borde cyan tema ultrasónico */
+            border-radius: 8px;                /* Esquinas redondeadas */
+            padding: 15px;                     /* Espaciado interno */
+            color: black;
         """)
         left_layout.addWidget(connection_diagram)
         left_panel.setMaximumWidth(400)
@@ -1377,16 +1423,18 @@ class MainWindow(QMainWindow):
         # Lecturas actuales
         readings_group = QGroupBox("📊 Lecturas Actuales")
         readings_layout = QVBoxLayout(readings_group)
-        
+          # ==================== LECTURAS DEL SENSOR ULTRASÓNICO ====================
+        # Etiqueta que muestra ADC, voltaje y distancia calculada en tiempo real
         self.distancia_ultra_label = QLabel("ADC: -- | Voltaje: -- V | Distancia: -- cm")
+        # ESTILO PARA LECTURAS - Color cyan temático con diseño destacado
         self.distancia_ultra_label.setStyleSheet("""
-            font-size: 18px;
-            font-weight: bold;
-            color: #17a2b8;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            border: 2px solid #17a2b8;
+            font-size: 18px;                   /* Tamaño de fuente grande para lecturas */
+            font-weight: bold;                  /* Texto en negrita */
+            color: #17a2b8;                     /* Color cyan tema ultrasónico */
+            padding: 15px;                      /* Espaciado interno generoso */
+            background-color: #f8f9fa;          /* Fondo gris muy claro */
+            border-radius: 8px;                 /* Esquinas redondeadas */
+            border: 2px solid #17a2b8;          /* Borde cyan para consistencia */
         """)
         readings_layout.addWidget(self.distancia_ultra_label)
         right_layout.addWidget(readings_group)
@@ -1396,15 +1444,18 @@ class MainWindow(QMainWindow):
         controls_layout = QVBoxLayout(controls_group)
         
         buttons_layout = QHBoxLayout()
-        
+          # ==================== BOTÓN INICIAR MONITOREO ULTRASÓNICO ====================
         self.start_distancia_ultra_btn = QPushButton("▶️ Iniciar Monitoreo")
         self.start_distancia_ultra_btn.clicked.connect(self.toggle_distancia_ultra_monitoring)
+        # ESTILO: Color cyan temático del sensor ultrasónico para consistencia visual
         self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #17a2b8; border-color: #17a2b8; color: white; padding: 10px; }")
         buttons_layout.addWidget(self.start_distancia_ultra_btn)
         
+        # BOTÓN DETENER - Rojo estándar para acción de parada
         self.stop_distancia_ultra_btn = QPushButton("⏹️ Detener")
         self.stop_distancia_ultra_btn.clicked.connect(self.stop_distancia_ultra_monitoring)
-        self.stop_distancia_ultra_btn.setEnabled(False)
+        self.stop_distancia_ultra_btn.setEnabled(False)  # Inicialmente deshabilitado
+        # ESTILO: Color rojo para detener, consistente con otros sensores
         self.stop_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; color: white; padding: 10px; }")
         buttons_layout.addWidget(self.stop_distancia_ultra_btn)
         
@@ -1412,14 +1463,16 @@ class MainWindow(QMainWindow):
         
         # Acciones adicionales
         actions_layout = QHBoxLayout()
-        
+          # ==================== BOTONES DE ACCIONES SECUNDARIAS ULTRASÓNICO ====================
+        # BOTÓN LIMPIAR GRÁFICA - Para borrar datos del sensor ultrasónico
         self.clear_distancia_ultra_btn = QPushButton("🗑️ Limpiar Gráfica")
         self.clear_distancia_ultra_btn.clicked.connect(self.clear_distancia_ultra_graph)
         actions_layout.addWidget(self.clear_distancia_ultra_btn)
         
+        # BOTÓN EXPORTAR - Para guardar datos en Excel (ADC, voltaje, distancia)
         self.export_distancia_ultra_btn = QPushButton("📊 Exportar Excel")
         self.export_distancia_ultra_btn.clicked.connect(self.export_distancia_ultra_to_excel)
-        self.export_distancia_ultra_btn.setEnabled(False)
+        self.export_distancia_ultra_btn.setEnabled(False)  # Se habilita solo cuando hay datos
         actions_layout.addWidget(self.export_distancia_ultra_btn)
         
         controls_layout.addLayout(actions_layout)
@@ -1428,7 +1481,7 @@ class MainWindow(QMainWindow):
         # Información adicional
         info_group = QGroupBox("ℹ️ Información")
         info_layout = QVBoxLayout(info_group)
-        
+          # ==================== INFORMACIÓN DEL SENSOR ULTRASÓNICO ====================
         info_text = QLabel("""
         <b>Sensor HC-SR04:</b><br>
         • Alta precisión en medición de distancia<br>
@@ -1438,7 +1491,8 @@ class MainWindow(QMainWindow):
         • Excelente para distancias largas
         """)
         info_text.setWordWrap(True)
-        info_text.setStyleSheet("padding: 10px; background-color: #d1ecf1; border-radius: 5px;")
+        # ESTILO PARA INFORMACIÓN - Fondo cyan suave para destacar info del sensor ultrasónico
+        info_text.setStyleSheet("padding: 10px; background-color: #d1ecf1; border-radius: 5px; color: black;")
         info_layout.addWidget(info_text)
         right_layout.addWidget(info_group)
         
@@ -1448,26 +1502,26 @@ class MainWindow(QMainWindow):
         # Gráfica
         graph_group = QGroupBox("📈 Gráfica en Tiempo Real")
         graph_layout = QVBoxLayout(graph_group)
-        
-        # Configurar matplotlib para sensor ultrasónico
+          # ==================== CONFIGURACIÓN GRÁFICA ULTRASÓNICA ====================
+        # Configurar matplotlib para sensor ultrasónico con tema cyan
         self.figure_ultra = Figure(figsize=(12, 6), dpi=100, facecolor='white')
         self.canvas_ultra = FigureCanvas(self.figure_ultra)
         self.ax_ultra = self.figure_ultra.add_subplot(111)
         
-        # Configuración de la gráfica
-        self.ax_ultra.set_title('Sensor Ultrasónico HC-SR04 - Tiempo Real', fontsize=14, fontweight='bold', color='#17a2b8')
-        self.ax_ultra.set_xlabel('Tiempo (s)', fontsize=12)
-        self.ax_ultra.set_ylabel('Distancia (cm)', fontsize=12)
-        self.ax_ultra.grid(True, alpha=0.3)
-        self.ax_ultra.set_facecolor('#f8f9fa')
+        # CONFIGURACIÓN DE ESTILO PARA GRÁFICA ULTRASÓNICA
+        self.ax_ultra.set_title('Sensor Ultrasónico HC-SR04 - Tiempo Real', fontsize=14, fontweight='bold', color='#17a2b8')  # Título cyan
+        self.ax_ultra.set_xlabel('Tiempo (s)', fontsize=12)        # Etiqueta eje X
+        self.ax_ultra.set_ylabel('Distancia (cm)', fontsize=12)    # Etiqueta eje Y
+        self.ax_ultra.grid(True, alpha=0.3)                        # Rejilla sutil
+        self.ax_ultra.set_facecolor('#f8f9fa')                     # Fondo gris claro
         
-        # Línea de la gráfica
+        # LÍNEA DE DATOS - Color cyan para consistencia temática
         self.line_ultra, = self.ax_ultra.plot([], [], 'c-', linewidth=2, label='Distancia Ultrasónica')
         self.ax_ultra.legend()
         
-        # Configurar límites iniciales
-        self.ax_ultra.set_xlim(0, 60)  # 60 segundos
-        self.ax_ultra.set_ylim(0, 400)   # 0-400 cm
+        # CONFIGURAR LÍMITES INICIALES
+        self.ax_ultra.set_xlim(0, 60)     # 60 segundos de visualización
+        self.ax_ultra.set_ylim(0, 400)    # Rango 0-400 cm (rango del HC-SR04)
         
         self.figure_ultra.tight_layout()
         graph_layout.addWidget(self.canvas_ultra)
@@ -2154,22 +2208,6 @@ class MainWindow(QMainWindow):
     
     def clear_distancia_cap_graph(self):
         """Resetea el estado del sensor de distancia capacitivo digital"""
-        # No hay gráficas que limpiar para sensores digitales
-        # Solo resetear el estado visual
-        if hasattr(self, 'distancia_cap_status'):
-            self.distancia_cap_status.setText("🔴 SIN DETECCIÓN")
-            self.distancia_cap_status.setStyleSheet("""
-                font-size: 28px;
-                font-weight: bold;
-                color: #dc3545;
-                padding: 20px;
-                background-color: #f8f9fa;
-                border-radius: 12px;
-                border: 3px solid #dc3545;
-                text-align: center;            """)
-
-    def export_distancia_cap_to_excel(self):
-        """Exporta los datos del sensor de distancia capacitivo digital a Excel"""
         # Para sensores digitales, no hay datos continuos que exportar
         # Solo exportamos el estado actual si está disponible
         QMessageBox.information(self, "Sensor Digital", 
