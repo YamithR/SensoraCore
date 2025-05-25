@@ -67,6 +67,63 @@ class AnguloSimpleThread(QThread):
         self.running = False
         self.wait()
 
+class BrazoAnguloThread(QThread):
+    data_received = Signal(int, int, int, int, int, int, bool)  # lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_cap
+    
+    def __init__(self, esp32_ip, port=8080):
+        super().__init__()
+        self.esp32_ip = esp32_ip
+        self.port = port
+        self.running = False
+        self.sock = None
+    
+    def run(self):
+        self.running = True
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(3)
+            self.sock.connect((self.esp32_ip, self.port))
+            self.sock.sendall(b'MODO:BRAZO_ANGULO')
+            self.sock.settimeout(1)
+            
+            while self.running:
+                try:
+                    data = self.sock.recv(128)
+                    if not data:
+                        break
+                    msg = data.decode(errors='ignore').strip()
+                    for line in msg.split('\n'):
+                        if line.startswith('POT1:'):
+                            try:
+                                # Parsear formato: POT1:val,ANG1:ang,POT2:val,ANG2:ang,POT3:val,ANG3:ang,SENSOR:state
+                                parts = line.split(',')
+                                lectura1 = int(parts[0].split(':')[1])
+                                angulo1 = int(parts[1].split(':')[1])
+                                lectura2 = int(parts[2].split(':')[1])
+                                angulo2 = int(parts[3].split(':')[1])
+                                lectura3 = int(parts[4].split(':')[1])
+                                angulo3 = int(parts[5].split(':')[1])
+                                sensor_estado = parts[6].split(':')[1] == 'True'
+                                
+                                self.data_received.emit(lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_estado)
+                            except:
+                                pass
+                except socket.timeout:
+                    continue
+        except Exception as e:
+            pass
+        finally:
+            if self.sock:
+                try:
+                    self.sock.sendall(b'STOP')
+                except:
+                    pass
+                self.sock.close()
+    
+    def stop(self):
+        self.running = False
+        self.wait()
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -77,6 +134,7 @@ class MainWindow(QMainWindow):
         # Variables de estado
         self.esp_client = None
         self.angulo_thread = None
+        self.brazo_thread = None
         self.is_connected = False
         self.is_monitoring = False
         
@@ -291,9 +349,8 @@ class MainWindow(QMainWindow):
             item = QListWidgetItem()
             item.setText(f"{icon_name}\n{description}")
             item.setData(Qt.UserRole, sensor_id)
-            
-            # Deshabilitar sensores no implementados
-            if sensor_id != "angulo_simple":
+              # Deshabilitar sensores no implementados
+            if sensor_id not in ["angulo_simple", "brazo_angulo"]:
                 item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
                 item.setText(f"{icon_name}\n{description}\n(Próximamente)")
                 item.setToolTip("Esta función será implementada en futuras versiones")
@@ -363,6 +420,8 @@ class MainWindow(QMainWindow):
         
         if sensor_id == "angulo_simple":
             self.show_angulo_simple_interface()
+        elif sensor_id == "brazo_angulo":
+            self.show_brazo_angulo_interface()
         else:
             QMessageBox.information(self, "Próximamente", 
                                   "Esta función será implementada en futuras versiones")
@@ -526,6 +585,434 @@ class MainWindow(QMainWindow):
         # Mostrar en el panel derecho
         self.sensor_details.setWidget(sensor_widget)
         self.sensor_details.setVisible(True)
+
+    def show_brazo_angulo_interface(self):
+        """Muestra la interfaz del sensor de brazo con múltiples ángulos"""
+        # Ocultar mensaje de bienvenida
+        self.welcome_widget.setVisible(False)
+        
+        # Crear interfaz específica del sensor
+        sensor_widget = QWidget()
+        layout = QVBoxLayout(sensor_widget)
+        layout.setSpacing(20)
+        
+        # Título del sensor
+        title = QLabel("🦾 Sensor de Brazo Ángulo")
+        title.setStyleSheet("""
+            font-size: 20px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        """)
+        layout.addWidget(title)
+        
+        # Descripción
+        description = QLabel("Monitorea 3 ángulos simultáneamente usando potenciómetros en GPIO 32, 33, 34 y sensor capacitivo en GPIO 25 del ESP32")
+        description.setStyleSheet("""
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 20px;
+        """)
+        description.setWordWrap(True)
+        layout.addWidget(description)
+        
+        # Diagrama de conexiones ESP32 para Brazo Ángulo
+        diagram_group = QGroupBox("🔌 Diagrama de Conexiones ESP32 - Brazo Ángulo")
+        diagram_layout = QVBoxLayout(diagram_group)
+        
+        diagram_text = QLabel("""
+<pre style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #495057;">
+┌─────────────────────────────────┐
+│  ESP32 DevKit V1               │
+│                                │
+│  3V3  ○ ←── Potenciómetros (+) │
+│  GND  ○ ←── Potenciómetros (-) │
+│  D32  ○ ←── Potenciómetro 1 (S) │
+│  D33  ○ ←── Potenciómetro 2 (S) │
+│  D34  ○ ←── Potenciómetro 3 (S) │
+│  D25  ○ ←── Sensor Capacitivo  │
+│                                │
+│  LED integrado: GPIO 2         │
+└─────────────────────────────────┘
+
+<b>3 Potenciómetros 10kΩ:</b>
+• Pin (+): Alimentación 3.3V (todos)
+• Pin (-): Tierra (GND) (todos)
+• Pin (S): Señales analógicas:
+  - Potenciómetro 1 → GPIO 32 (Base)
+  - Potenciómetro 2 → GPIO 33 (Articulación 1)  
+  - Potenciómetro 3 → GPIO 34 (Articulación 2)
+
+<b>Sensor Capacitivo:</b>
+• Señal digital → GPIO 25 (con pull-up interno)
+</pre>
+        """)
+        diagram_text.setWordWrap(True)
+        diagram_text.setStyleSheet("""
+            background-color: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 5px;
+        """)
+        diagram_layout.addWidget(diagram_text)
+        
+        # Nota importante
+        note_label = QLabel("💡 <b>Nota:</b> Este sensor simula un brazo robótico con 3 articulaciones. El sensor capacitivo simula el agarre.")
+        note_label.setStyleSheet("""
+            font-size: 13px;
+            color: #856404;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 5px;
+        """)
+        note_label.setWordWrap(True)
+        diagram_layout.addWidget(note_label)
+        
+        layout.addWidget(diagram_group)
+        
+        # Grupo de controles
+        controls_group = QGroupBox("Controles")
+        controls_layout = QVBoxLayout(controls_group)
+        
+        # Estado de los sensores - 3 ángulos + sensor capacitivo
+        self.brazo_labels = {}
+        for i in range(1, 4):
+            label = QLabel(f"Potenciómetro {i}: Lectura: -- | Ángulo: --°")
+            label.setStyleSheet("""
+                font-size: 14px;
+                font-weight: bold;
+                color: #495057;
+                padding: 8px;
+                background-color: #f8f9fa;
+                border-radius: 6px;
+                border: 2px solid #dee2e6;
+                margin: 2px;
+            """)
+            self.brazo_labels[f'pot{i}'] = label
+            controls_layout.addWidget(label)
+        
+        # Estado del sensor capacitivo
+        self.capacitive_label = QLabel("Sensor Capacitivo: --")
+        self.capacitive_label.setStyleSheet("""
+            font-size: 14px;
+            font-weight: bold;
+            color: #495057;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border: 2px solid #dee2e6;
+            margin: 2px;
+        """)
+        controls_layout.addWidget(self.capacitive_label)
+        
+        # Botones de control
+        buttons_layout = QHBoxLayout()
+        
+        self.brazo_start_btn = QPushButton("▶️ Iniciar Monitoreo")
+        self.brazo_start_btn.clicked.connect(self.toggle_brazo_monitoring)
+        self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
+        buttons_layout.addWidget(self.brazo_start_btn)
+        
+        self.brazo_stop_btn = QPushButton("⏹️ Detener")
+        self.brazo_stop_btn.clicked.connect(self.stop_brazo_monitoring)
+        self.brazo_stop_btn.setEnabled(False)
+        self.brazo_stop_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; }")
+        buttons_layout.addWidget(self.brazo_stop_btn)
+        
+        controls_layout.addLayout(buttons_layout)
+        
+        # Botones de acciones
+        actions_layout = QHBoxLayout()
+        
+        self.brazo_clear_btn = QPushButton("🗑️ Limpiar Gráfica")
+        self.brazo_clear_btn.clicked.connect(self.clear_brazo_graph)
+        actions_layout.addWidget(self.brazo_clear_btn)
+        
+        self.brazo_export_btn = QPushButton("📊 Exportar Excel")
+        self.brazo_export_btn.clicked.connect(self.export_brazo_to_excel)
+        self.brazo_export_btn.setEnabled(False)
+        actions_layout.addWidget(self.brazo_export_btn)
+        
+        controls_layout.addLayout(actions_layout)
+        layout.addWidget(controls_group)
+        
+        # Gráfica mejorada para múltiples canales
+        graph_group = QGroupBox("Gráfica en Tiempo Real - Múltiples Ángulos")
+        graph_layout = QVBoxLayout(graph_group)
+        
+        # Configurar matplotlib con colores mejorados para múltiples líneas
+        self.brazo_figure = Figure(figsize=(12, 8), dpi=100, facecolor='white')
+        self.brazo_canvas = FigureCanvas(self.brazo_figure)
+        self.brazo_ax = self.brazo_figure.add_subplot(111)
+        
+        # Mejorar colores y estilo del gráfico
+        self.brazo_ax.set_facecolor('#f8f9fa')
+        self.brazo_ax.grid(True, linestyle='--', alpha=0.7, color='#dee2e6')
+        self.brazo_ax.set_xlabel('Muestras', fontsize=12, fontweight='bold', color='#495057')
+        self.brazo_ax.set_ylabel('Ángulo (°)', fontsize=12, fontweight='bold', color='#495057')
+        self.brazo_ax.set_title('Monitoreo de Brazo Robótico - 3 Ángulos', fontsize=14, fontweight='bold', color='#007bff')
+        
+        # Líneas de datos con diferentes colores para cada potenciómetro
+        colors = ['#007bff', '#28a745', '#dc3545']  # Azul, Verde, Rojo
+        labels = ['Base (Pot 1)', 'Articulación 1 (Pot 2)', 'Articulación 2 (Pot 3)']
+        
+        self.brazo_lines = []
+        for i, (color, label) in enumerate(zip(colors, labels)):
+            line, = self.brazo_ax.plot([], [], 'o-', linewidth=3, markersize=4,
+                                     color=color, label=label,
+                                     markerfacecolor=color, 
+                                     markeredgecolor='white', markeredgewidth=1)
+            self.brazo_lines.append(line)
+        
+        # Agregar leyenda
+        self.brazo_ax.legend(loc='upper right', fontsize=10)
+        
+        # Configurar límites iniciales
+        self.brazo_ax.set_xlim(0, 100)
+        self.brazo_ax.set_ylim(-135, 135)  # Rango de -135° a +135°
+        
+        # Mejorar el layout del gráfico
+        self.brazo_figure.tight_layout(pad=2.0)
+        
+        graph_layout.addWidget(self.brazo_canvas)
+        layout.addWidget(graph_group)
+        
+        # Inicializar listas de datos para los 3 potenciómetros
+        self.brazo_angulos = [[], [], []]  # Listas para cada potenciómetro
+        self.brazo_lecturas = [[], [], []]
+        self.brazo_capacitive_states = []
+        self.brazo_max_points = 100
+        self.brazo_is_monitoring = False
+        
+        # Mostrar en el panel derecho
+        self.sensor_details.setWidget(sensor_widget)
+        self.sensor_details.setVisible(True)
+
+    def toggle_brazo_monitoring(self):
+        """Inicia o detiene el monitoreo del brazo ángulo"""
+        if not self.brazo_is_monitoring:
+            # Iniciar monitoreo
+            if not self.esp_client:
+                QMessageBox.warning(self, "Error", "Primero conecta al ESP32")
+                return
+                
+            ip = self.ip_input.text().strip()
+            self.brazo_thread = BrazoAnguloThread(ip)
+            self.brazo_thread.data_received.connect(self.update_brazo_data)
+            self.brazo_thread.start()
+            
+            # Limpiar gráfica al iniciar
+            for i in range(3):
+                self.brazo_angulos[i].clear()
+                self.brazo_lecturas[i].clear()
+                self.brazo_lines[i].set_data([], [])
+            self.brazo_capacitive_states.clear()
+            self.brazo_canvas.draw()
+            
+            # Actualizar UI
+            self.brazo_is_monitoring = True
+            self.brazo_start_btn.setText("⏸️ Pausar")
+            self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: #212529; }")
+            self.brazo_stop_btn.setEnabled(True)
+        else:
+            # Pausar monitoreo
+            if self.brazo_thread:
+                self.brazo_thread.stop()
+                self.brazo_thread = None
+            
+            self.brazo_is_monitoring = False
+            self.brazo_start_btn.setText("▶️ Continuar")
+            self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
+
+    def stop_brazo_monitoring(self):
+        """Detiene completamente el monitoreo del brazo"""
+        if self.brazo_thread:
+            self.brazo_thread.stop()
+            self.brazo_thread = None
+        
+        self.brazo_is_monitoring = False
+        self.brazo_start_btn.setText("▶️ Iniciar Monitoreo")
+        self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
+        self.brazo_stop_btn.setEnabled(False)
+        
+        # Resetear etiquetas
+        for i in range(1, 4):
+            self.brazo_labels[f'pot{i}'].setText(f"Potenciómetro {i}: Lectura: -- | Ángulo: --°")
+        self.capacitive_label.setText("Sensor Capacitivo: --")
+
+    def update_brazo_data(self, lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_cap):
+        """Actualiza los datos del sensor de brazo en tiempo real"""
+        # Actualizar etiquetas con datos en tiempo real
+        self.brazo_labels['pot1'].setText(f"Potenciómetro 1: Lectura: {lectura1} | Ángulo: {angulo1}°")
+        self.brazo_labels['pot2'].setText(f"Potenciómetro 2: Lectura: {lectura2} | Ángulo: {angulo2}°")
+        self.brazo_labels['pot3'].setText(f"Potenciómetro 3: Lectura: {lectura3} | Ángulo: {angulo3}°")
+        
+        # Actualizar estado del sensor capacitivo con colores
+        if sensor_cap:
+            self.capacitive_label.setText("🟢 Sensor Capacitivo: ACTIVADO (Agarrando)")
+            self.capacitive_label.setStyleSheet("""
+                font-size: 14px;
+                font-weight: bold;
+                color: #155724;
+                background-color: #d4edda;
+                border: 2px solid #c3e6cb;
+                padding: 8px;
+                border-radius: 6px;
+                margin: 2px;
+            """)
+        else:
+            self.capacitive_label.setText("🔴 Sensor Capacitivo: INACTIVO (Liberado)")
+            self.capacitive_label.setStyleSheet("""
+                font-size: 14px;
+                font-weight: bold;
+                color: #721c24;
+                background-color: #f8d7da;
+                border: 2px solid #f5c6cb;
+                padding: 8px;
+                border-radius: 6px;
+                margin: 2px;
+            """)
+        
+        # Agregar datos a las listas
+        angulos = [angulo1, angulo2, angulo3]
+        lecturas = [lectura1, lectura2, lectura3]
+        
+        for i in range(3):
+            self.brazo_lecturas[i].append(lecturas[i])
+            self.brazo_angulos[i].append(angulos[i])
+            
+            # Mantener solo los últimos puntos para mejor rendimiento
+            if len(self.brazo_angulos[i]) > self.brazo_max_points:
+                self.brazo_angulos[i] = self.brazo_angulos[i][-self.brazo_max_points:]
+                self.brazo_lecturas[i] = self.brazo_lecturas[i][-self.brazo_max_points:]
+        
+        self.brazo_capacitive_states.append(sensor_cap)
+        if len(self.brazo_capacitive_states) > self.brazo_max_points:
+            self.brazo_capacitive_states = self.brazo_capacitive_states[-self.brazo_max_points:]
+        
+        # Habilitar botón de exportar cuando hay datos
+        if len(self.brazo_angulos[0]) > 0:
+            self.brazo_export_btn.setEnabled(True)
+        
+        # Actualizar gráfica con múltiples líneas
+        max_len = max(len(self.brazo_angulos[i]) for i in range(3))
+        if max_len > 0:
+            for i in range(3):
+                if self.brazo_angulos[i]:
+                    x_data = range(len(self.brazo_angulos[i]))
+                    self.brazo_lines[i].set_data(x_data, self.brazo_angulos[i])
+            
+            # Ajustar límites dinámicamente
+            self.brazo_ax.set_xlim(0, max(self.brazo_max_points, max_len))
+            
+            # Encontrar rango de todos los ángulos
+            all_angles = []
+            for i in range(3):
+                all_angles.extend(self.brazo_angulos[i])
+            
+            if all_angles:
+                min_ang = min(all_angles)
+                max_ang = max(all_angles)
+                padding = max(10, (max_ang - min_ang) * 0.1)
+                self.brazo_ax.set_ylim(min_ang - padding, max_ang + padding)
+            
+            # Actualizar canvas
+            self.brazo_canvas.draw()
+
+    def clear_brazo_graph(self):
+        """Limpia la gráfica del brazo y reinicia los datos"""
+        # Limpiar todas las listas de datos
+        for i in range(3):
+            self.brazo_angulos[i].clear()
+            self.brazo_lecturas[i].clear()
+            self.brazo_lines[i].set_data([], [])
+        self.brazo_capacitive_states.clear()
+        
+        # Actualizar gráfica
+        self.brazo_canvas.draw()
+        
+        # Resetear etiquetas
+        for i in range(1, 4):
+            self.brazo_labels[f'pot{i}'].setText(f"Potenciómetro {i}: Lectura: -- | Ángulo: --°")
+        self.capacitive_label.setText("Sensor Capacitivo: --")
+        
+        # Deshabilitar botón de exportar
+        self.brazo_export_btn.setEnabled(False)
+        
+        QMessageBox.information(self, "Gráfica limpia", "Se han borrado todos los datos de la gráfica del brazo")
+
+    def export_brazo_to_excel(self):
+        """Exporta los datos del brazo a un archivo Excel"""
+        if not any(self.brazo_angulos[i] for i in range(3)):
+            QMessageBox.warning(self, "Sin datos", "No hay datos para exportar")
+            return
+            
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Guardar datos del brazo", f"datos_brazo_angulo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            "Excel files (*.xlsx)"
+        )
+        
+        if filename:
+            try:
+                # Crear un nuevo libro de trabajo
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Datos Brazo Ángulo"
+                
+                # Encabezados
+                headers = ['Muestra', 'Lectura_Pot1', 'Angulo_Pot1', 'Lectura_Pot2', 'Angulo_Pot2', 
+                          'Lectura_Pot3', 'Angulo_Pot3', 'Sensor_Capacitivo']
+                for col, header in enumerate(headers, 1):
+                    ws.cell(row=1, column=col, value=header)
+                
+                # Datos
+                max_len = max(len(self.brazo_angulos[i]) for i in range(3))
+                for row in range(max_len):
+                    ws.cell(row=row+2, column=1, value=row+1)  # Muestra
+                    
+                    for pot in range(3):
+                        if row < len(self.brazo_lecturas[pot]):
+                            ws.cell(row=row+2, column=2+pot*2, value=self.brazo_lecturas[pot][row])    # Lectura
+                            ws.cell(row=row+2, column=3+pot*2, value=self.brazo_angulos[pot][row])     # Ángulo
+                    
+                    # Sensor capacitivo
+                    if row < len(self.brazo_capacitive_states):
+                        ws.cell(row=row+2, column=8, value="ACTIVADO" if self.brazo_capacitive_states[row] else "INACTIVO")
+                
+                # Crear gráfica en Excel
+                chart = LineChart()
+                chart.title = "Ángulos del Brazo Robótico en Tiempo Real"
+                chart.style = 13
+                chart.x_axis.title = 'Muestras'
+                chart.y_axis.title = 'Ángulo (°)'
+                
+                # Agregar series para cada potenciómetro
+                colors = ['0066CC', '228B22', 'DC143C']  # Azul, Verde, Rojo
+                labels = ['Base (Pot 1)', 'Articulación 1 (Pot 2)', 'Articulación 2 (Pot 3)']
+                
+                for pot in range(3):
+                    data = Reference(ws, min_col=3+pot*2, min_row=1, max_row=max_len+1)
+                    series = chart.add_data(data, titles_from_data=True)
+                    series[0].graphicalProperties.line.solidFill = colors[pot]
+                    series[0].graphicalProperties.line.width = 25000
+                
+                # Configurar el eje X
+                cats = Reference(ws, min_col=1, min_row=2, max_row=max_len+1)
+                chart.set_categories(cats)
+                
+                # Posicionar la gráfica
+                ws.add_chart(chart, "J2")
+                
+                # Guardar archivo
+                wb.save(filename)
+                QMessageBox.information(self, "Exportación exitosa", 
+                                      f"Datos exportados correctamente a:\n{filename}")
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
 
     def toggle_angulo_monitoring(self):
         """Inicia o detiene el monitoreo de ángulo"""
@@ -802,4 +1289,6 @@ class MainWindow(QMainWindow):
         # Asegurar que se cierre el hilo al cerrar la ventana
         if self.angulo_thread:
             self.angulo_thread.stop()
+        if self.brazo_thread:
+            self.brazo_thread.stop()
         event.accept()
