@@ -1,7 +1,9 @@
-# SensoraCore - Ejecutable Portable
+# SensoraCore Alpha 0.1 - Ejecutable Portable
 
 ## 📋 Descripción
-SensoraCore.exe es la versión ejecutable portable de la aplicación SensoraCore para monitoreo de sensores ESP32.
+SensoraCore.exe es la versión ejecutable portable Alpha 0.1 de la aplicación SensoraCore para monitoreo de sensores ESP32.
+
+⚠️ **NOTA**: Esta es una versión Alpha preliminar. Pueden existir errores o funcionalidades incompletas.
 
 ## 🚀 Cómo usar
 
@@ -90,4 +92,4 @@ GND     ← Tierra (-)
 Para soporte técnico o reportar problemas, contacta al desarrollador del proyecto SensoraCore.
 
 ---
-**SensoraCore v1.0** - Sistema de Monitoreo de Sensores ESP32
+**SensoraCore Alpha 0.1** - Sistema de Monitoreo de Sensores ESP32 (Versión Preliminar)

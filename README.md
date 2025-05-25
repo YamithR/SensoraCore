@@ -1,6 +1,8 @@
-# SensoraCore
+# SensoraCore Alpha 0.1
 
 **Sistema de Monitoreo de Sensores WiFi ESP32 + PySide6** 🚀
+
+⚠️ **VERSIÓN ALPHA 0.1**: Esta es una versión preliminar en desarrollo. Algunas funcionalidades pueden estar incompletas o presentar errores.
 
 SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutando MicroPython con una aplicación de escritorio desarrollada en Python usando PySide6. El sistema permite leer datos de sensores en tiempo real a través de WiFi, visualizarlos gráficamente y exportar los datos a Excel.
 
@@ -219,5 +221,6 @@ Desarrollado como parte del proyecto de Módulos Didácticos para migrar funcion
 
 ---
 
-**Versión**: 1.0  
+**Versión**: Alpha 0.1  
+**Estado**: Desarrollo preliminar  
 **Última actualización**: Mayo 2025

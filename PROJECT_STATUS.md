@@ -1,4 +1,6 @@
-# 📊 Estado del Proyecto SensoraCore
+# 📊 Estado del Proyecto SensoraCore Alpha 0.1
+
+⚠️ **VERSIÓN ALPHA 0.1** - Estado de Desarrollo Preliminar
 
 ## ✅ COMPLETADO
 
@@ -121,5 +123,6 @@
 
 ---
 
-**Proyecto SensoraCore v1.0 - Estado: COMPLETADO** ✅  
-**Fecha: Mayo 2025**
+**Proyecto SensoraCore Alpha 0.1 - Estado: DESARROLLO PRELIMINAR** ⚠️  
+**Fecha: Mayo 2025**  
+**Nota**: Esta es una versión Alpha con funcionalidades básicas implementadas
