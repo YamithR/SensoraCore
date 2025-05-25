@@ -35,8 +35,10 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 ### ✅ Implementado
 - **Ángulo Simple (Potenciómetro)**: Lee un potenciómetro como sensor de ángulo (0-270°)
 
+### ✅ Implementado
+- **Brazo Ángulo**: Sensor multi-ángulo para brazo robótico (3 potenciómetros + sensor capacitivo)
+
 ### 🔄 Próximamente
-- **BrazoAngulo**: Sensor de ángulo para brazo robótico
 - **DistanciaIR**: Sensor de distancia infrarrojo
 - **DistanciaCap**: Sensor de distancia capacitivo
 - **DistanciaUltrasonido**: Sensor ultrasonico HC-SR04

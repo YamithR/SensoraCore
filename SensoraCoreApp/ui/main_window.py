@@ -1,15 +1,16 @@
 # main_window.py para SensoraCore/ui
+# Optimización de imports para mejor rendimiento
 from PySide6.QtWidgets import (QMainWindow, QLabel, QVBoxLayout, QWidget, 
                                QPushButton, QLineEdit, QMessageBox, QGroupBox,
                                QHBoxLayout, QFileDialog, QScrollArea, QFrame,
                                QListWidget, QListWidgetItem, QSplitter,
                                QGraphicsOpacityEffect)
-from PySide6.QtCore import QThread, Signal, Qt, QEasingCurve, QPropertyAnimation, QRect
+from PySide6.QtCore import QThread, Signal, Qt, QEasingCurve, QPropertyAnimation, QRect, QTimer
 from PySide6.QtGui import QFont, QPalette, QColor
 from network_client import ESP32Client
 import socket
 import matplotlib
-matplotlib.use('QtAgg')
+matplotlib.use('Qt5Agg')  # Optimización: usar Qt5Agg backend
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import openpyxl
@@ -137,11 +138,26 @@ class MainWindow(QMainWindow):
         self.brazo_thread = None
         self.is_connected = False
         self.is_monitoring = False
-        
-        # Variables para gráfica
+          # Variables para gráfica con optimización de memoria
         self.angulos = []
         self.lecturas = []
-        self.max_points = 100
+        self.max_points = 50  # Reducido de 100 a 50 para mejor rendimiento
+        
+        # Timer para optimizar actualizaciones de gráfica
+        self.graph_update_timer = QTimer()
+        self.graph_update_timer.timeout.connect(self.update_graph_display)
+        self.graph_update_timer.setInterval(100)  # Actualizar cada 100ms
+          # Variables para brazo con optimización
+        self.brazo_angulos = [[], [], []]
+        self.brazo_lecturas = [[], [], []]
+        self.brazo_capacitive_states = []
+        self.brazo_max_points = 50  # Reducido para mejor rendimiento
+        self.brazo_is_monitoring = False
+        
+        # Sistema de updates optimizado con timer
+        self.pending_updates = False
+        self.pending_simple_data = None
+        self.pending_brazo_data = None
         
         # Configurar estilo de la aplicación
         self.setup_styles()
@@ -786,13 +802,12 @@ class MainWindow(QMainWindow):
         self.brazo_capacitive_states = []
         self.brazo_max_points = 100
         self.brazo_is_monitoring = False
-        
-        # Mostrar en el panel derecho
+          # Mostrar en el panel derecho
         self.sensor_details.setWidget(sensor_widget)
         self.sensor_details.setVisible(True)
 
     def toggle_brazo_monitoring(self):
-        """Inicia o detiene el monitoreo del brazo ángulo"""
+        """Inicia o detiene el monitoreo del brazo ángulo - OPTIMIZADO"""
         if not self.brazo_is_monitoring:
             # Iniciar monitoreo
             if not self.esp_client:
@@ -812,6 +827,10 @@ class MainWindow(QMainWindow):
             self.brazo_capacitive_states.clear()
             self.brazo_canvas.draw()
             
+            # Iniciar timer para updates optimizados
+            if not self.graph_update_timer.isActive():
+                self.graph_update_timer.start()
+            
             # Actualizar UI
             self.brazo_is_monitoring = True
             self.brazo_start_btn.setText("⏸️ Pausar")
@@ -823,15 +842,23 @@ class MainWindow(QMainWindow):
                 self.brazo_thread.stop()
                 self.brazo_thread = None
             
+            # Detener timer si no hay más monitoreo activo
+            if not self.is_monitoring:
+                self.graph_update_timer.stop()
+            
             self.brazo_is_monitoring = False
             self.brazo_start_btn.setText("▶️ Continuar")
             self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
 
     def stop_brazo_monitoring(self):
-        """Detiene completamente el monitoreo del brazo"""
+        """Detiene completamente el monitoreo del brazo - OPTIMIZADO"""
         if self.brazo_thread:
             self.brazo_thread.stop()
             self.brazo_thread = None
+        
+        # Detener timer si no hay más monitoreo activo
+        if not self.is_monitoring:
+            self.graph_update_timer.stop()
         
         self.brazo_is_monitoring = False
         self.brazo_start_btn.setText("▶️ Iniciar Monitoreo")
@@ -887,8 +914,7 @@ class MainWindow(QMainWindow):
             # Mantener solo los últimos puntos para mejor rendimiento
             if len(self.brazo_angulos[i]) > self.brazo_max_points:
                 self.brazo_angulos[i] = self.brazo_angulos[i][-self.brazo_max_points:]
-                self.brazo_lecturas[i] = self.brazo_lecturas[i][-self.brazo_max_points:]
-        
+                self.brazo_lecturas[i] = self.brazo_lecturas[i][-self.brazo_max_points:]        
         self.brazo_capacitive_states.append(sensor_cap)
         if len(self.brazo_capacitive_states) > self.brazo_max_points:
             self.brazo_capacitive_states = self.brazo_capacitive_states[-self.brazo_max_points:]
@@ -897,30 +923,13 @@ class MainWindow(QMainWindow):
         if len(self.brazo_angulos[0]) > 0:
             self.brazo_export_btn.setEnabled(True)
         
-        # Actualizar gráfica con múltiples líneas
-        max_len = max(len(self.brazo_angulos[i]) for i in range(3))
-        if max_len > 0:
-            for i in range(3):
-                if self.brazo_angulos[i]:
-                    x_data = range(len(self.brazo_angulos[i]))
-                    self.brazo_lines[i].set_data(x_data, self.brazo_angulos[i])
-            
-            # Ajustar límites dinámicamente
-            self.brazo_ax.set_xlim(0, max(self.brazo_max_points, max_len))
-            
-            # Encontrar rango de todos los ángulos
-            all_angles = []
-            for i in range(3):
-                all_angles.extend(self.brazo_angulos[i])
-            
-            if all_angles:
-                min_ang = min(all_angles)
-                max_ang = max(all_angles)
-                padding = max(10, (max_ang - min_ang) * 0.1)
-                self.brazo_ax.set_ylim(min_ang - padding, max_ang + padding)
-            
-            # Actualizar canvas
-            self.brazo_canvas.draw()
+        # Marcar que hay updates pendientes para el timer
+        self.pending_brazo_data = True
+        self.pending_updates = True
+        
+        # Iniciar el timer si no está corriendo
+        if not self.graph_update_timer.isActive():
+            self.graph_update_timer.start()
 
     def clear_brazo_graph(self):
         """Limpia la gráfica del brazo y reinicia los datos"""
@@ -1005,17 +1014,15 @@ class MainWindow(QMainWindow):
                 
                 # Posicionar la gráfica
                 ws.add_chart(chart, "J2")
-                
-                # Guardar archivo
+                  # Guardar archivo
                 wb.save(filename)
                 QMessageBox.information(self, "Exportación exitosa", 
                                       f"Datos exportados correctamente a:\n{filename}")
-                
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
 
     def toggle_angulo_monitoring(self):
-        """Inicia o detiene el monitoreo de ángulo"""
+        """Inicia o detiene el monitoreo de ángulo - OPTIMIZADO"""
         if not self.is_monitoring:
             # Iniciar monitoreo
             if not self.esp_client:
@@ -1033,6 +1040,10 @@ class MainWindow(QMainWindow):
             self.line.set_data([], [])
             self.canvas.draw()
             
+            # Iniciar timer para updates optimizados
+            if not self.graph_update_timer.isActive():
+                self.graph_update_timer.start()
+            
             # Actualizar UI
             self.is_monitoring = True
             self.start_btn.setText("⏸️ Pausar")
@@ -1045,15 +1056,23 @@ class MainWindow(QMainWindow):
                 self.angulo_thread.stop()
                 self.angulo_thread = None
             
+            # Detener timer si no hay más monitoreo activo
+            if not self.brazo_is_monitoring:
+                self.graph_update_timer.stop()
+            
             self.is_monitoring = False
             self.start_btn.setText("▶️ Continuar")
             self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
 
     def stop_angulo_monitoring(self):
-        """Detiene completamente el monitoreo"""
+        """Detiene completamente el monitoreo - OPTIMIZADO"""
         if self.angulo_thread:
             self.angulo_thread.stop()
             self.angulo_thread = None
+        
+        # Detener timer si no hay más monitoreo activo
+        if not self.brazo_is_monitoring:
+            self.graph_update_timer.stop()
         
         self.is_monitoring = False
         self.start_btn.setText("▶️ Iniciar Monitoreo")
@@ -1131,8 +1150,62 @@ class MainWindow(QMainWindow):
         self.animation.setEasingCurve(QEasingCurve.InOutCubic)
         self.animation.start()
 
+    def update_graph_display(self):
+        """Método optimizado para actualizar gráficas con timer"""
+        if not self.pending_updates:
+            return
+            
+        # Procesar updates pendientes para ángulo simple
+        if self.pending_simple_data and hasattr(self, 'canvas'):
+            try:
+                x_data = range(len(self.angulos))
+                self.line.set_data(x_data, self.angulos)
+                
+                # Ajustar límites dinámicamente
+                if self.angulos:
+                    self.ax.set_xlim(0, max(self.max_points, len(self.angulos)))
+                    min_ang = min(self.angulos)
+                    max_ang = max(self.angulos)
+                    padding = max(10, (max_ang - min_ang) * 0.1)
+                    self.ax.set_ylim(min_ang - padding, max_ang + padding)
+                
+                self.canvas.draw()
+                self.pending_simple_data = None
+            except:
+                pass
+        
+        # Procesar updates pendientes para brazo ángulos
+        if self.pending_brazo_data and hasattr(self, 'brazo_canvas'):
+            try:
+                max_len = max(len(self.brazo_angulos[i]) for i in range(3) if self.brazo_angulos[i])
+                if max_len > 0:
+                    for i in range(3):
+                        if self.brazo_angulos[i]:
+                            x_data = range(len(self.brazo_angulos[i]))
+                            self.brazo_lines[i].set_data(x_data, self.brazo_angulos[i])
+                    
+                    # Ajustar límites dinámicamente
+                    self.brazo_ax.set_xlim(0, max(self.brazo_max_points, max_len))
+                      # Encontrar rango de todos los ángulos
+                    all_angles = []
+                    for i in range(3):
+                        all_angles.extend(self.brazo_angulos[i])
+                    
+                    if all_angles:
+                        min_ang = min(all_angles)
+                        max_ang = max(all_angles)
+                        padding = max(10, (max_ang - min_ang) * 0.1)
+                        self.brazo_ax.set_ylim(min_ang - padding, max_ang + padding)
+                
+                self.brazo_canvas.draw()
+                self.pending_brazo_data = None
+            except:
+                pass
+        
+        self.pending_updates = False
+
     def update_angulo_data(self, lectura, angulo):
-        """Actualiza los datos del sensor de ángulo en tiempo real"""
+        """Actualiza los datos del sensor de ángulo en tiempo real - OPTIMIZADO"""
         # Actualizar etiqueta con datos en tiempo real
         self.angulo_label.setText(f"Lectura: {lectura} | Ángulo: {angulo}°")
         
@@ -1149,20 +1222,13 @@ class MainWindow(QMainWindow):
             self.angulos = self.angulos[-self.max_points:]
             self.lecturas = self.lecturas[-self.max_points:]
         
-        # Actualizar gráfica con colores mejorados
-        x_data = range(len(self.angulos))
-        self.line.set_data(x_data, self.angulos)
+        # Marcar que hay updates pendientes para el timer
+        self.pending_simple_data = True
+        self.pending_updates = True
         
-        # Ajustar límites dinámicamente
-        if self.angulos:
-            self.ax.set_xlim(0, max(self.max_points, len(self.angulos)))
-            min_ang = min(self.angulos)
-            max_ang = max(self.angulos)
-            padding = max(10, (max_ang - min_ang) * 0.1)
-            self.ax.set_ylim(min_ang - padding, max_ang + padding)
-        
-        # Actualizar canvas
-        self.canvas.draw()
+        # Iniciar el timer si no está corriendo
+        if not self.graph_update_timer.isActive():
+            self.graph_update_timer.start()
 
     def export_to_excel(self):
         """Exporta los datos a un archivo Excel con gráficas mejoradas"""
