@@ -1,6 +1,5 @@
-# main.py para ESP32 (MicroPython) - SensoraCore Alpha 0.2
-# Sistema unificado con interfaces digital/analógica
-# Sensores: Potenciómetro, IR Digital, Capacitivo Digital, Ultrasónico Analógico
+# main.py para ESP32 (MicroPython) - Versión con Brazo Ángulo
+# Lee potenciómetros, sensor capacitivo y controla LED por WiFi
 import network # type: ignore
 import socket
 from machine import Pin, ADC # type: ignore

@@ -125,6 +125,156 @@ class BrazoAnguloThread(QThread):
         self.running = False
         self.wait()
 
+class DistanciaIRThread(QThread):
+    data_received = Signal(bool)  # Solo estado digital ON/OFF
+    
+    def __init__(self, esp32_ip, port=8080):
+        super().__init__()
+        self.esp32_ip = esp32_ip
+        self.port = port
+        self.running = False
+        self.sock = None
+    
+    def run(self):
+        self.running = True
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(3)
+            self.sock.connect((self.esp32_ip, self.port))
+            self.sock.sendall(b'MODO:DISTANCIA_IR')
+            self.sock.settimeout(1)
+            
+            while self.running:
+                try:
+                    data = self.sock.recv(128)
+                    if not data:
+                        break
+                    msg = data.decode(errors='ignore').strip()
+                    for line in msg.split('\n'):
+                        if line.startswith('IR_DIGITAL:'):
+                            try:
+                                # Parsear formato: IR_DIGITAL:True/False
+                                estado = line.split(':')[1] == 'True'
+                                self.data_received.emit(estado)
+                            except:
+                                pass
+                except socket.timeout:
+                    continue
+        except Exception as e:
+            pass
+        finally:
+            if self.sock:
+                try:
+                    self.sock.sendall(b'STOP')
+                except:
+                    pass
+                self.sock.close()
+    
+    def stop(self):
+        self.running = False
+        self.wait()
+
+class DistanciaCapThread(QThread):
+    data_received = Signal(bool)  # Solo estado digital ON/OFF
+    
+    def __init__(self, esp32_ip, port=8080):
+        super().__init__()
+        self.esp32_ip = esp32_ip
+        self.port = port
+        self.running = False
+        self.sock = None
+    
+    def run(self):
+        self.running = True
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(3)
+            self.sock.connect((self.esp32_ip, self.port))
+            self.sock.sendall(b'MODO:DISTANCIA_CAP')
+            self.sock.settimeout(1)
+            
+            while self.running:
+                try:
+                    data = self.sock.recv(128)
+                    if not data:
+                        break
+                    msg = data.decode(errors='ignore').strip()
+                    for line in msg.split('\n'):
+                        if line.startswith('CAP_DIGITAL:'):
+                            try:                                # Parsear formato: CAP_DIGITAL:True/False
+                                estado = line.split(':')[1] == 'True'
+                                self.data_received.emit(estado)
+                            except:
+                                pass
+                except socket.timeout:
+                    continue
+                except Exception as e:
+                    pass
+        finally:
+            if self.sock:
+                try:
+                    self.sock.sendall(b'STOP')
+                except:
+                    pass
+                self.sock.close()
+    
+    def stop(self):
+        self.running = False
+        self.wait()
+
+class DistanciaUltrasonicThread(QThread):
+    data_received = Signal(int, float, float)  # lectura_adc, voltaje, distancia_cm
+    
+    def __init__(self, esp32_ip, port=8080):
+        super().__init__()
+        self.esp32_ip = esp32_ip
+        self.port = port
+        self.running = False
+        self.sock = None
+    
+    def run(self):
+        self.running = True
+        try:
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(3)
+            self.sock.connect((self.esp32_ip, self.port))
+            self.sock.sendall(b'MODO:DISTANCIA_ULTRA')
+            self.sock.settimeout(1)
+            
+            while self.running:
+                try:
+                    data = self.sock.recv(128)
+                    if not data:
+                        break
+                    msg = data.decode(errors='ignore').strip()
+                    for line in msg.split('\n'):
+                        if line.startswith('ULTRA_ADC:'):
+                            try:
+                                # Parsear formato: ULTRA_ADC:val,ULTRA_V:volt,ULTRA_CM:dist
+                                parts = line.split(',')
+                                lectura_adc = int(parts[0].split(':')[1])
+                                voltaje = float(parts[1].split(':')[1])
+                                distancia_cm = float(parts[2].split(':')[1])
+                                
+                                self.data_received.emit(lectura_adc, voltaje, distancia_cm)
+                            except:
+                                pass
+                except socket.timeout:
+                    continue
+        except Exception as e:
+            pass
+        finally:
+            if self.sock:
+                try:
+                    self.sock.sendall(b'STOP')
+                except:
+                    pass
+                self.sock.close()
+    
+    def stop(self):
+        self.running = False
+        self.wait()
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -136,6 +286,8 @@ class MainWindow(QMainWindow):
         self.esp_client = None
         self.angulo_thread = None
         self.brazo_thread = None
+        self.distancia_ir_thread = None
+        self.distancia_cap_thread = None
         self.is_connected = False
         self.is_monitoring = False
           # Variables para gráfica con optimización de memoria
@@ -153,11 +305,28 @@ class MainWindow(QMainWindow):
         self.brazo_capacitive_states = []
         self.brazo_max_points = 50  # Reducido para mejor rendimiento
         self.brazo_is_monitoring = False
-        
-        # Sistema de updates optimizado con timer
+          # Variables para sensores de distancia
+        self.distancia_ir_lecturas = []
+        self.distancia_ir_voltajes = []
+        self.distancia_ir_cm = []
+        self.distancia_cap_lecturas = []
+        self.distancia_cap_voltajes = []
+        self.distancia_cap_cm = []
+        # Variables para sensor ultrasonico
+        self.distancia_ultra_lecturas = []
+        self.distancia_ultra_voltajes = []
+        self.distancia_ultra_cm = []
+        self.distancia_max_points = 100
+        self.distancia_ir_is_monitoring = False
+        self.distancia_cap_is_monitoring = False
+        self.distancia_ultra_is_monitoring = False
+          # Sistema de updates optimizado con timer
         self.pending_updates = False
         self.pending_simple_data = None
         self.pending_brazo_data = None
+        self.pending_distancia_ir_data = None
+        self.pending_distancia_cap_data = None
+        self.pending_distancia_ultra_data = None
         
         # Configurar estilo de la aplicación
         self.setup_styles()
@@ -364,9 +533,8 @@ class MainWindow(QMainWindow):
         for icon_name, description, sensor_id in sensors:
             item = QListWidgetItem()
             item.setText(f"{icon_name}\n{description}")
-            item.setData(Qt.UserRole, sensor_id)
-              # Deshabilitar sensores no implementados
-            if sensor_id not in ["angulo_simple", "brazo_angulo"]:
+            item.setData(Qt.UserRole, sensor_id)            # Deshabilitar sensores no implementados
+            if sensor_id not in ["angulo_simple", "brazo_angulo", "distancia_ir", "distancia_cap", "distancia_ultra"]:
                 item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
                 item.setText(f"{icon_name}\n{description}\n(Próximamente)")
                 item.setToolTip("Esta función será implementada en futuras versiones")
@@ -431,13 +599,19 @@ class MainWindow(QMainWindow):
         if not self.is_connected:
             QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
             return
-            
+        
         sensor_id = item.data(Qt.UserRole)
         
         if sensor_id == "angulo_simple":
             self.show_angulo_simple_interface()
         elif sensor_id == "brazo_angulo":
             self.show_brazo_angulo_interface()
+        elif sensor_id == "distancia_ir":
+            self.show_distancia_ir_interface()
+        elif sensor_id == "distancia_cap":
+            self.show_distancia_cap_interface()
+        elif sensor_id == "distancia_ultra":
+            self.show_distancia_ultra_interface()
         else:
             QMessageBox.information(self, "Próximamente", 
                                   "Esta función será implementada en futuras versiones")
@@ -806,555 +980,1352 @@ class MainWindow(QMainWindow):
         self.sensor_details.setWidget(sensor_widget)
         self.sensor_details.setVisible(True)
 
-    def toggle_brazo_monitoring(self):
-        """Inicia o detiene el monitoreo del brazo ángulo - OPTIMIZADO"""
-        if not self.brazo_is_monitoring:
-            # Iniciar monitoreo
-            if not self.esp_client:
-                QMessageBox.warning(self, "Error", "Primero conecta al ESP32")
-                return
-                
-            ip = self.ip_input.text().strip()
-            self.brazo_thread = BrazoAnguloThread(ip)
-            self.brazo_thread.data_received.connect(self.update_brazo_data)
-            self.brazo_thread.start()
-            
-            # Limpiar gráfica al iniciar
-            for i in range(3):
-                self.brazo_angulos[i].clear()
-                self.brazo_lecturas[i].clear()
-                self.brazo_lines[i].set_data([], [])
-            self.brazo_capacitive_states.clear()
-            self.brazo_canvas.draw()
-            
-            # Iniciar timer para updates optimizados
-            if not self.graph_update_timer.isActive():
-                self.graph_update_timer.start()
-            
-            # Actualizar UI
-            self.brazo_is_monitoring = True
-            self.brazo_start_btn.setText("⏸️ Pausar")
-            self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: #212529; }")
-            self.brazo_stop_btn.setEnabled(True)
-        else:
-            # Pausar monitoreo
-            if self.brazo_thread:
-                self.brazo_thread.stop()
-                self.brazo_thread = None
-            
-            # Detener timer si no hay más monitoreo activo
-            if not self.is_monitoring:
-                self.graph_update_timer.stop()
-            
-            self.brazo_is_monitoring = False
-            self.brazo_start_btn.setText("▶️ Continuar")
-            self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
+    def show_distancia_ir_interface(self):
+        """Muestra la interfaz del sensor de distancia infrarrojo DIGITAL"""
+        # Ocultar mensaje de bienvenida
+        self.welcome_widget.setVisible(False)
+        
+        # Crear interfaz específica del sensor
+        sensor_widget = QWidget()
+        layout = QVBoxLayout(sensor_widget)
+        layout.setSpacing(20)
+        
+        # Título del sensor
+        title = QLabel("📡 Sensor Infrarrojo Digital (IR)")
+        title.setStyleSheet("""
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, 
+                                      stop: 0 #e74c3c, stop: 1 #c0392b);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        """)
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+        
+        # Layout horizontal para contenido principal
+        main_layout = QHBoxLayout()
+        
+        # Panel izquierdo - Diagrama de conexión
+        left_panel = QGroupBox("🔌 Diagrama de Conexión")
+        left_layout = QVBoxLayout(left_panel)
+        
+        connection_diagram = QLabel()
+        connection_text = """
+        <div style='font-family: monospace; font-size: 12px; line-height: 1.5;'>
+        <b>ESP32 ↔ Sensor IR Digital</b><br><br>
+        
+        <table border='1' style='border-collapse: collapse; width: 100%;'>
+        <tr style='background-color: #f39c12; color: white;'>
+            <th style='padding: 8px;'>ESP32</th>
+            <th style='padding: 8px;'>Sensor IR</th>
+            <th style='padding: 8px;'>Cable</th>
+        </tr>
+        <tr>
+            <td style='padding: 8px;'>3.3V</td>
+            <td style='padding: 8px;'>VCC</td>
+            <td style='padding: 8px; color: red;'>🔴 Rojo</td>
+        </tr>
+        <tr style='background-color: #ecf0f1;'>
+            <td style='padding: 8px;'>GND</td>
+            <td style='padding: 8px;'>GND</td>
+            <td style='padding: 8px;'>⚫ Negro</td>
+        </tr>
+        <tr>
+            <td style='padding: 8px;'>GPIO 35</td>
+            <td style='padding: 8px;'>OUT</td>
+            <td style='padding: 8px; color: orange;'>🟠 Amarillo</td>
+        </tr>
+        </table><br>
+        
+        <b>Especificaciones:</b><br>
+        • Tipo: Digital (ON/OFF)<br>
+        • Voltaje: 3.3V<br>
+        • Pull-up interno: Activo<br>
+        • Detección: Presencia/Ausencia
+        </div>
+        """
+        connection_diagram.setText(connection_text)
+        connection_diagram.setWordWrap(True)
+        connection_diagram.setStyleSheet("""
+            background-color: #ffffff;
+            border: 2px solid #e74c3c;
+            border-radius: 8px;
+            padding: 15px;
+        """)
+        left_layout.addWidget(connection_diagram)
+        left_panel.setMaximumWidth(400)
+        main_layout.addWidget(left_panel)
+        
+        # Panel derecho - Estado digital
+        right_panel = QGroupBox("🎛️ Estado Digital")
+        right_layout = QVBoxLayout(right_panel)
+        
+        # Estado actual
+        status_group = QGroupBox("🔍 Estado Actual")
+        status_layout = QVBoxLayout(status_group)
+        
+        self.distancia_ir_status = QLabel("🔴 SIN DETECCIÓN")
+        self.distancia_ir_status.setStyleSheet("""
+            font-size: 28px;
+            font-weight: bold;
+            color: #dc3545;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            border: 3px solid #dc3545;
+            text-align: center;
+        """)
+        self.distancia_ir_status.setAlignment(Qt.AlignCenter)
+        status_layout.addWidget(self.distancia_ir_status)
+        right_layout.addWidget(status_group)
+        
+        # Controles de monitoreo
+        controls_group = QGroupBox("🕹️ Controles")
+        controls_layout = QVBoxLayout(controls_group)
+        
+        buttons_layout = QHBoxLayout()
+        
+        self.start_distancia_ir_btn = QPushButton("▶️ Iniciar Monitoreo")
+        self.start_distancia_ir_btn.clicked.connect(self.toggle_distancia_ir_monitoring)
+        self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #e74c3c; border-color: #e74c3c; color: white; padding: 10px; }")
+        buttons_layout.addWidget(self.start_distancia_ir_btn)
+        
+        self.stop_distancia_ir_btn = QPushButton("⏹️ Detener")
+        self.stop_distancia_ir_btn.clicked.connect(self.stop_distancia_ir_monitoring)
+        self.stop_distancia_ir_btn.setEnabled(False)
+        self.stop_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; color: white; padding: 10px; }")
+        buttons_layout.addWidget(self.stop_distancia_ir_btn)
+        
+        controls_layout.addLayout(buttons_layout)
+        right_layout.addWidget(controls_group)
+        
+        # Información adicional
+        info_group = QGroupBox("ℹ️ Información")
+        info_layout = QVBoxLayout(info_group)
+        
+        info_text = QLabel("""
+        <b>Sensor IR Digital:</b><br>
+        • Detección simple de presencia/ausencia<br>
+        • No mide distancia exacta<br>
+        • Ideal para detección de obstáculos<br>
+        • Bajo consumo de energía<br>
+        • Respuesta rápida ON/OFF
+        """)
+        info_text.setWordWrap(True)
+        info_text.setStyleSheet("padding: 10px; background-color: #fff3cd; border-radius: 5px;")
+        info_layout.addWidget(info_text)
+        right_layout.addWidget(info_group)
+        
+        main_layout.addWidget(right_panel)
+        layout.addLayout(main_layout)
+          # Configurar el widget en el área principal
+        self.sensor_details.setWidget(sensor_widget)
+    
+    def show_distancia_cap_interface(self):
+        """Muestra la interfaz del sensor de distancia capacitivo DIGITAL"""
+        # Ocultar mensaje de bienvenida
+        self.welcome_widget.setVisible(False)
+        
+        # Crear interfaz específica del sensor
+        sensor_widget = QWidget()
+        layout = QVBoxLayout(sensor_widget)
+        layout.setSpacing(20)
+        
+        # Título del sensor
+        title = QLabel("📡 Sensor Capacitivo Digital")
+        title.setStyleSheet("""
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, 
+                                      stop: 0 #3498db, stop: 1 #2980b9);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        """)
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+        
+        # Layout horizontal para contenido principal
+        main_layout = QHBoxLayout()
+        
+        # Panel izquierdo - Diagrama de conexión
+        left_panel = QGroupBox("🔌 Diagrama de Conexión")
+        left_layout = QVBoxLayout(left_panel)
+        
+        connection_diagram = QLabel()
+        connection_text = """
+        <div style='font-family: monospace; font-size: 12px; line-height: 1.5;'>
+        <b>ESP32 ↔ Sensor Capacitivo Digital</b><br><br>
+        
+        <table border='1' style='border-collapse: collapse; width: 100%;'>
+        <tr style='background-color: #3498db; color: white;'>
+            <th style='padding: 8px;'>ESP32</th>
+            <th style='padding: 8px;'>Sensor Cap.</th>
+            <th style='padding: 8px;'>Cable</th>
+        </tr>
+        <tr>
+            <td style='padding: 8px;'>3.3V</td>
+            <td style='padding: 8px;'>VCC</td>
+            <td style='padding: 8px; color: red;'>🔴 Rojo</td>
+        </tr>
+        <tr style='background-color: #ecf0f1;'>
+            <td style='padding: 8px;'>GND</td>
+            <td style='padding: 8px;'>GND</td>
+            <td style='padding: 8px;'>⚫ Negro</td>
+        </tr>
+        <tr>
+            <td style='padding: 8px;'>GPIO 36</td>
+            <td style='padding: 8px;'>OUT</td>
+            <td style='padding: 8px; color: blue;'>🔵 Azul</td>
+        </tr>
+        </table><br>
+        
+        <b>Especificaciones:</b><br>
+        • Tipo: Digital (ON/OFF)<br>
+        • Voltaje: 3.3V<br>
+        • Pull-up interno: Activo<br>
+        • Detección: Presencia/Ausencia
+        </div>
+        """
+        connection_diagram.setText(connection_text)
+        connection_diagram.setWordWrap(True)
+        connection_diagram.setStyleSheet("""
+            background-color: #ffffff;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+        """)
+        left_layout.addWidget(connection_diagram)
+        left_panel.setMaximumWidth(400)
+        main_layout.addWidget(left_panel)
+        
+        # Panel derecho - Estado digital
+        right_panel = QGroupBox("🎛️ Estado Digital")
+        right_layout = QVBoxLayout(right_panel)
+        
+        # Estado actual
+        status_group = QGroupBox("🔍 Estado Actual")
+        status_layout = QVBoxLayout(status_group)
+        
+        self.distancia_cap_status = QLabel("🔴 SIN DETECCIÓN")
+        self.distancia_cap_status.setStyleSheet("""
+            font-size: 28px;
+            font-weight: bold;
+            color: #dc3545;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            border: 3px solid #dc3545;
+            text-align: center;
+        """)
+        self.distancia_cap_status.setAlignment(Qt.AlignCenter)
+        status_layout.addWidget(self.distancia_cap_status)
+        right_layout.addWidget(status_group)
+        
+        # Controles de monitoreo
+        controls_group = QGroupBox("🕹️ Controles")
+        controls_layout = QVBoxLayout(controls_group)
+        
+        buttons_layout = QHBoxLayout()
+        
+        self.start_distancia_cap_btn = QPushButton("▶️ Iniciar Monitoreo")
+        self.start_distancia_cap_btn.clicked.connect(self.toggle_distancia_cap_monitoring)
+        self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #3498db; border-color: #3498db; color: white; padding: 10px; }")
+        buttons_layout.addWidget(self.start_distancia_cap_btn)
+        
+        self.stop_distancia_cap_btn = QPushButton("⏹️ Detener")
+        self.stop_distancia_cap_btn.clicked.connect(self.stop_distancia_cap_monitoring)
+        self.stop_distancia_cap_btn.setEnabled(False)
+        self.stop_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; color: white; padding: 10px; }")
+        buttons_layout.addWidget(self.stop_distancia_cap_btn)
+        
+        controls_layout.addLayout(buttons_layout)
+        
+        # Acciones adicionales
+        actions_layout = QHBoxLayout()
+        
+        self.clear_distancia_cap_btn = QPushButton("🗑️ Resetear Estado")
+        self.clear_distancia_cap_btn.clicked.connect(self.clear_distancia_cap_graph)
+        actions_layout.addWidget(self.clear_distancia_cap_btn)
+        
+        self.export_distancia_cap_btn = QPushButton("📊 Info Exportar")
+        self.export_distancia_cap_btn.clicked.connect(self.export_distancia_cap_to_excel)
+        actions_layout.addWidget(self.export_distancia_cap_btn)
+        
+        controls_layout.addLayout(actions_layout)
+        right_layout.addWidget(controls_group)
+        
+        # Información adicional
+        info_group = QGroupBox("ℹ️ Información")
+        info_layout = QVBoxLayout(info_group)
+        
+        info_text = QLabel("""
+        <b>Sensor Capacitivo Digital:</b><br>
+        • Detección simple de presencia/ausencia<br>
+        • No mide distancia exacta<br>
+        • Ideal para detección de proximidad<br>
+        • Sensible a materiales no metálicos<br>
+        • Respuesta rápida ON/OFF
+        """)
+        info_text.setWordWrap(True)
+        info_text.setStyleSheet("padding: 10px; background-color: #d1ecf1; border-radius: 5px;")
+        info_layout.addWidget(info_text)
+        right_layout.addWidget(info_group)
+        
+        main_layout.addWidget(right_panel)
+        layout.addLayout(main_layout)
+        
+        # Configurar el widget en el área principal
+        self.sensor_details.setWidget(sensor_widget)
 
-    def stop_brazo_monitoring(self):
-        """Detiene completamente el monitoreo del brazo - OPTIMIZADO"""
-        if self.brazo_thread:
-            self.brazo_thread.stop()
-            self.brazo_thread = None
+    def show_distancia_ultra_interface(self):
+        """Muestra la interfaz del sensor de distancia ultrasónico HC-SR04"""
+        # Ocultar mensaje de bienvenida
+        self.welcome_widget.setVisible(False)
         
-        # Detener timer si no hay más monitoreo activo
-        if not self.is_monitoring:
-            self.graph_update_timer.stop()
+        # Crear interfaz específica del sensor
+        sensor_widget = QWidget()
+        layout = QVBoxLayout(sensor_widget)
+        layout.setSpacing(20)
         
-        self.brazo_is_monitoring = False
-        self.brazo_start_btn.setText("▶️ Iniciar Monitoreo")
-        self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
-        self.brazo_stop_btn.setEnabled(False)
+        # Título del sensor
+        title = QLabel("📏 Sensor Ultrasónico HC-SR04")
+        title.setStyleSheet("""
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0, 
+                                      stop: 0 #17a2b8, stop: 1 #138496);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        """)
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
         
-        # Resetear etiquetas
-        for i in range(1, 4):
-            self.brazo_labels[f'pot{i}'].setText(f"Potenciómetro {i}: Lectura: -- | Ángulo: --°")
-        self.capacitive_label.setText("Sensor Capacitivo: --")
-
-    def update_brazo_data(self, lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_cap):
-        """Actualiza los datos del sensor de brazo en tiempo real"""
-        # Actualizar etiquetas con datos en tiempo real
-        self.brazo_labels['pot1'].setText(f"Potenciómetro 1: Lectura: {lectura1} | Ángulo: {angulo1}°")
-        self.brazo_labels['pot2'].setText(f"Potenciómetro 2: Lectura: {lectura2} | Ángulo: {angulo2}°")
-        self.brazo_labels['pot3'].setText(f"Potenciómetro 3: Lectura: {lectura3} | Ángulo: {angulo3}°")
+        # Layout horizontal para contenido principal
+        main_layout = QHBoxLayout()
         
-        # Actualizar estado del sensor capacitivo con colores
-        if sensor_cap:
-            self.capacitive_label.setText("🟢 Sensor Capacitivo: ACTIVADO (Agarrando)")
-            self.capacitive_label.setStyleSheet("""
-                font-size: 14px;
-                font-weight: bold;
-                color: #155724;
-                background-color: #d4edda;
-                border: 2px solid #c3e6cb;
-                padding: 8px;
-                border-radius: 6px;
-                margin: 2px;
-            """)
-        else:
-            self.capacitive_label.setText("🔴 Sensor Capacitivo: INACTIVO (Liberado)")
-            self.capacitive_label.setStyleSheet("""
-                font-size: 14px;
-                font-weight: bold;
-                color: #721c24;
-                background-color: #f8d7da;
-                border: 2px solid #f5c6cb;
-                padding: 8px;
-                border-radius: 6px;
-                margin: 2px;
-            """)
+        # Panel izquierdo - Diagrama de conexión
+        left_panel = QGroupBox("🔌 Diagrama de Conexión")
+        left_layout = QVBoxLayout(left_panel)
         
-        # Agregar datos a las listas
-        angulos = [angulo1, angulo2, angulo3]
-        lecturas = [lectura1, lectura2, lectura3]
+        connection_diagram = QLabel()
+        connection_text = """
+        <div style='font-family: monospace; font-size: 12px; line-height: 1.5;'>
+        <b>ESP32 ↔ Sensor HC-SR04</b><br><br>
         
-        for i in range(3):
-            self.brazo_lecturas[i].append(lecturas[i])
-            self.brazo_angulos[i].append(angulos[i])
-            
-            # Mantener solo los últimos puntos para mejor rendimiento
-            if len(self.brazo_angulos[i]) > self.brazo_max_points:
-                self.brazo_angulos[i] = self.brazo_angulos[i][-self.brazo_max_points:]
-                self.brazo_lecturas[i] = self.brazo_lecturas[i][-self.brazo_max_points:]        
-        self.brazo_capacitive_states.append(sensor_cap)
-        if len(self.brazo_capacitive_states) > self.brazo_max_points:
-            self.brazo_capacitive_states = self.brazo_capacitive_states[-self.brazo_max_points:]
+        <table border='1' style='border-collapse: collapse; width: 100%;'>
+        <tr style='background-color: #17a2b8; color: white;'>
+            <th style='padding: 8px;'>ESP32</th>
+            <th style='padding: 8px;'>HC-SR04</th>
+            <th style='padding: 8px;'>Cable</th>
+        </tr>
+        <tr>
+            <td style='padding: 8px;'>5V</td>
+            <td style='padding: 8px;'>VCC</td>
+            <td style='padding: 8px; color: red;'>🔴 Rojo</td>
+        </tr>
+        <tr style='background-color: #ecf0f1;'>
+            <td style='padding: 8px;'>GND</td>
+            <td style='padding: 8px;'>GND</td>
+            <td style='padding: 8px;'>⚫ Negro</td>
+        </tr>
+        <tr>
+            <td style='padding: 8px;'>GPIO 26</td>
+            <td style='padding: 8px;'>TRIG</td>
+            <td style='padding: 8px; color: green;'>🟢 Verde</td>
+        </tr>
+        <tr style='background-color: #ecf0f1;'>
+            <td style='padding: 8px;'>GPIO 27</td>
+            <td style='padding: 8px;'>ECHO</td>
+            <td style='padding: 8px; color: blue;'>🔵 Azul</td>
+        </tr>
+        </table><br>
         
-        # Habilitar botón de exportar cuando hay datos
-        if len(self.brazo_angulos[0]) > 0:
-            self.brazo_export_btn.setEnabled(True)
+        <b>Especificaciones:</b><br>
+        • Rango: 2-400 cm<br>
+        • Voltaje: 5V<br>
+        • Tipo: Analógico<br>
+        • Precisión: ±3mm<br>
+        • Frecuencia: 40kHz
+        </div>
+        """
+        connection_diagram.setText(connection_text)
+        connection_diagram.setWordWrap(True)
+        connection_diagram.setStyleSheet("""
+            background-color: #ffffff;
+            border: 2px solid #17a2b8;
+            border-radius: 8px;
+            padding: 15px;
+        """)
+        left_layout.addWidget(connection_diagram)
+        left_panel.setMaximumWidth(400)
+        main_layout.addWidget(left_panel)
         
-        # Marcar que hay updates pendientes para el timer
-        self.pending_brazo_data = True
-        self.pending_updates = True
+        # Panel derecho - Controles y lecturas
+        right_panel = QGroupBox("🎛️ Control y Monitoreo")
+        right_layout = QVBoxLayout(right_panel)
         
-        # Iniciar el timer si no está corriendo
-        if not self.graph_update_timer.isActive():
-            self.graph_update_timer.start()
-
-    def clear_brazo_graph(self):
-        """Limpia la gráfica del brazo y reinicia los datos"""
-        # Limpiar todas las listas de datos
-        for i in range(3):
-            self.brazo_angulos[i].clear()
-            self.brazo_lecturas[i].clear()
-            self.brazo_lines[i].set_data([], [])
-        self.brazo_capacitive_states.clear()
+        # Lecturas actuales
+        readings_group = QGroupBox("📊 Lecturas Actuales")
+        readings_layout = QVBoxLayout(readings_group)
         
-        # Actualizar gráfica
-        self.brazo_canvas.draw()
+        self.distancia_ultra_label = QLabel("ADC: -- | Voltaje: -- V | Distancia: -- cm")
+        self.distancia_ultra_label.setStyleSheet("""
+            font-size: 18px;
+            font-weight: bold;
+            color: #17a2b8;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #17a2b8;
+        """)
+        readings_layout.addWidget(self.distancia_ultra_label)
+        right_layout.addWidget(readings_group)
         
-        # Resetear etiquetas
-        for i in range(1, 4):
-            self.brazo_labels[f'pot{i}'].setText(f"Potenciómetro {i}: Lectura: -- | Ángulo: --°")
-        self.capacitive_label.setText("Sensor Capacitivo: --")
+        # Controles de monitoreo
+        controls_group = QGroupBox("🕹️ Controles")
+        controls_layout = QVBoxLayout(controls_group)
         
-        # Deshabilitar botón de exportar
-        self.brazo_export_btn.setEnabled(False)
+        buttons_layout = QHBoxLayout()
         
-        QMessageBox.information(self, "Gráfica limpia", "Se han borrado todos los datos de la gráfica del brazo")
-
-    def export_brazo_to_excel(self):
-        """Exporta los datos del brazo a un archivo Excel"""
-        if not any(self.brazo_angulos[i] for i in range(3)):
-            QMessageBox.warning(self, "Sin datos", "No hay datos para exportar")
-            return
-            
-        filename, _ = QFileDialog.getSaveFileName(
-            self, "Guardar datos del brazo", f"datos_brazo_angulo_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            "Excel files (*.xlsx)"
-        )
+        self.start_distancia_ultra_btn = QPushButton("▶️ Iniciar Monitoreo")
+        self.start_distancia_ultra_btn.clicked.connect(self.toggle_distancia_ultra_monitoring)
+        self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #17a2b8; border-color: #17a2b8; color: white; padding: 10px; }")
+        buttons_layout.addWidget(self.start_distancia_ultra_btn)
         
-        if filename:
-            try:
-                # Crear un nuevo libro de trabajo
-                wb = openpyxl.Workbook()
-                ws = wb.active
-                ws.title = "Datos Brazo Ángulo"
-                
-                # Encabezados
-                headers = ['Muestra', 'Lectura_Pot1', 'Angulo_Pot1', 'Lectura_Pot2', 'Angulo_Pot2', 
-                          'Lectura_Pot3', 'Angulo_Pot3', 'Sensor_Capacitivo']
-                for col, header in enumerate(headers, 1):
-                    ws.cell(row=1, column=col, value=header)
-                
-                # Datos
-                max_len = max(len(self.brazo_angulos[i]) for i in range(3))
-                for row in range(max_len):
-                    ws.cell(row=row+2, column=1, value=row+1)  # Muestra
-                    
-                    for pot in range(3):
-                        if row < len(self.brazo_lecturas[pot]):
-                            ws.cell(row=row+2, column=2+pot*2, value=self.brazo_lecturas[pot][row])    # Lectura
-                            ws.cell(row=row+2, column=3+pot*2, value=self.brazo_angulos[pot][row])     # Ángulo
-                    
-                    # Sensor capacitivo
-                    if row < len(self.brazo_capacitive_states):
-                        ws.cell(row=row+2, column=8, value="ACTIVADO" if self.brazo_capacitive_states[row] else "INACTIVO")
-                
-                # Crear gráfica en Excel
-                chart = LineChart()
-                chart.title = "Ángulos del Brazo Robótico en Tiempo Real"
-                chart.style = 13
-                chart.x_axis.title = 'Muestras'
-                chart.y_axis.title = 'Ángulo (°)'
-                
-                # Agregar series para cada potenciómetro
-                colors = ['0066CC', '228B22', 'DC143C']  # Azul, Verde, Rojo
-                labels = ['Base (Pot 1)', 'Articulación 1 (Pot 2)', 'Articulación 2 (Pot 3)']
-                
-                for pot in range(3):
-                    data = Reference(ws, min_col=3+pot*2, min_row=1, max_row=max_len+1)
-                    series = chart.add_data(data, titles_from_data=True)
-                    series[0].graphicalProperties.line.solidFill = colors[pot]
-                    series[0].graphicalProperties.line.width = 25000
-                
-                # Configurar el eje X
-                cats = Reference(ws, min_col=1, min_row=2, max_row=max_len+1)
-                chart.set_categories(cats)
-                
-                # Posicionar la gráfica
-                ws.add_chart(chart, "J2")
-                  # Guardar archivo
-                wb.save(filename)
-                QMessageBox.information(self, "Exportación exitosa", 
-                                      f"Datos exportados correctamente a:\n{filename}")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
-
-    def toggle_angulo_monitoring(self):
-        """Inicia o detiene el monitoreo de ángulo - OPTIMIZADO"""
-        if not self.is_monitoring:
-            # Iniciar monitoreo
-            if not self.esp_client:
-                QMessageBox.warning(self, "Error", "Primero conecta al ESP32")
-                return
-                
-            ip = self.ip_input.text().strip()
-            self.angulo_thread = AnguloSimpleThread(ip)
-            self.angulo_thread.data_received.connect(self.update_angulo_data)
-            self.angulo_thread.start()
-            
-            # Limpiar gráfica al iniciar
-            self.angulos.clear()
-            self.lecturas.clear()
-            self.line.set_data([], [])
-            self.canvas.draw()
-            
-            # Iniciar timer para updates optimizados
-            if not self.graph_update_timer.isActive():
-                self.graph_update_timer.start()
-            
-            # Actualizar UI
-            self.is_monitoring = True
-            self.start_btn.setText("⏸️ Pausar")
-            self.start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: #212529; }")
-            self.stop_btn.setEnabled(True)
-            
-        else:
-            # Pausar monitoreo
-            if self.angulo_thread:
-                self.angulo_thread.stop()
-                self.angulo_thread = None
-            
-            # Detener timer si no hay más monitoreo activo
-            if not self.brazo_is_monitoring:
-                self.graph_update_timer.stop()
-            
-            self.is_monitoring = False
-            self.start_btn.setText("▶️ Continuar")
-            self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
-
-    def stop_angulo_monitoring(self):
-        """Detiene completamente el monitoreo - OPTIMIZADO"""
-        if self.angulo_thread:
-            self.angulo_thread.stop()
-            self.angulo_thread = None
+        self.stop_distancia_ultra_btn = QPushButton("⏹️ Detener")
+        self.stop_distancia_ultra_btn.clicked.connect(self.stop_distancia_ultra_monitoring)
+        self.stop_distancia_ultra_btn.setEnabled(False)
+        self.stop_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; color: white; padding: 10px; }")
+        buttons_layout.addWidget(self.stop_distancia_ultra_btn)
         
-        # Detener timer si no hay más monitoreo activo
-        if not self.brazo_is_monitoring:
-            self.graph_update_timer.stop()
+        controls_layout.addLayout(buttons_layout)
         
-        self.is_monitoring = False
-        self.start_btn.setText("▶️ Iniciar Monitoreo")
-        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
-        self.stop_btn.setEnabled(False)
-        self.angulo_label.setText("Lectura: -- | Ángulo: --")
-
-    def test_connection(self):
-        """Prueba la conexión con el ESP32"""
-        ip = self.ip_input.text().strip()
-        if not ip:
-            QMessageBox.warning(self, "Error", "Debes ingresar la IP del ESP32")
-            return
-            
-        # Cambiar texto del botón mientras conecta
-        self.connect_btn.setText("🔄 Conectando...")
-        self.connect_btn.setEnabled(False)
+        # Acciones adicionales
+        actions_layout = QHBoxLayout()
         
-        self.esp_client = ESP32Client(ip)
-        result = self.esp_client.led_on()
+        self.clear_distancia_ultra_btn = QPushButton("🗑️ Limpiar Gráfica")
+        self.clear_distancia_ultra_btn.clicked.connect(self.clear_distancia_ultra_graph)
+        actions_layout.addWidget(self.clear_distancia_ultra_btn)
         
-        if "OK" in result:
-            # Conexión exitosa
-            self.is_connected = True
-            self.update_connection_status(True)
-            self.show_sensors_panel()
-            QMessageBox.information(self, "Conexión exitosa", 
-                                  f"LED integrado encendido!\nESP32 conectado en: {ip}")
-        else:
-            # Fallo de conexión
-            self.is_connected = False
-            self.update_connection_status(False)
-            QMessageBox.critical(self, "Fallo de conexión", 
-                               f"No se pudo encender el LED.\nVerifica la IP y que el ESP32 esté encendido.\nRespuesta: {result}")
+        self.export_distancia_ultra_btn = QPushButton("📊 Exportar Excel")
+        self.export_distancia_ultra_btn.clicked.connect(self.export_distancia_ultra_to_excel)
+        self.export_distancia_ultra_btn.setEnabled(False)
+        actions_layout.addWidget(self.export_distancia_ultra_btn)
         
-        # Restaurar botón
-        self.connect_btn.setText("🔌 Conectar ESP32")
-        self.connect_btn.setEnabled(True)
-
-    def update_connection_status(self, connected):
-        """Actualiza el indicador visual de conexión"""
-        if connected:
-            self.status_label.setText("🟢 Conectado")
-            self.status_label.setStyleSheet("""
-                padding: 8px;
-                border-radius: 4px;
-                background-color: #d4edda;
-                color: #155724;
-                font-weight: bold;
-            """)
-            self.connect_btn.setText("🔄 Reconectar")
-        else:
-            self.status_label.setText("🔴 Desconectado")
-            self.status_label.setStyleSheet("""
-                padding: 8px;
-                border-radius: 4px;
-                background-color: #f8d7da;
-                color: #721c24;
-                font-weight: bold;
-            """)
-            self.connect_btn.setText("🔌 Conectar ESP32")
-
-    def show_sensors_panel(self):
-        """Muestra el panel de sensores con animación"""
-        self.sensors_group.setVisible(True)
+        controls_layout.addLayout(actions_layout)
+        right_layout.addWidget(controls_group)
         
-        # Crear animación de fade-in
-        self.opacity_effect = QGraphicsOpacityEffect()
-        self.sensors_group.setGraphicsEffect(self.opacity_effect)
+        # Información adicional
+        info_group = QGroupBox("ℹ️ Información")
+        info_layout = QVBoxLayout(info_group)
         
-        self.animation = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.animation.setDuration(500)
-        self.animation.setStartValue(0.0)
-        self.animation.setEndValue(1.0)
-        self.animation.setEasingCurve(QEasingCurve.InOutCubic)
-        self.animation.start()
+        info_text = QLabel("""
+        <b>Sensor HC-SR04:</b><br>
+        • Alta precisión en medición de distancia<br>
+        • Ideal para navegación de robots<br>
+        • No afectado por color o transparencia<br>
+        • Funciona con ondas ultrasónicas<br>
+        • Excelente para distancias largas
+        """)
+        info_text.setWordWrap(True)
+        info_text.setStyleSheet("padding: 10px; background-color: #d1ecf1; border-radius: 5px;")
+        info_layout.addWidget(info_text)
+        right_layout.addWidget(info_group)
+        
+        main_layout.addWidget(right_panel)
+        layout.addLayout(main_layout)
+        
+        # Gráfica
+        graph_group = QGroupBox("📈 Gráfica en Tiempo Real")
+        graph_layout = QVBoxLayout(graph_group)
+        
+        # Configurar matplotlib para sensor ultrasónico
+        self.figure_ultra = Figure(figsize=(12, 6), dpi=100, facecolor='white')
+        self.canvas_ultra = FigureCanvas(self.figure_ultra)
+        self.ax_ultra = self.figure_ultra.add_subplot(111)
+        
+        # Configuración de la gráfica
+        self.ax_ultra.set_title('Sensor Ultrasónico HC-SR04 - Tiempo Real', fontsize=14, fontweight='bold', color='#17a2b8')
+        self.ax_ultra.set_xlabel('Tiempo (s)', fontsize=12)
+        self.ax_ultra.set_ylabel('Distancia (cm)', fontsize=12)
+        self.ax_ultra.grid(True, alpha=0.3)
+        self.ax_ultra.set_facecolor('#f8f9fa')
+        
+        # Línea de la gráfica
+        self.line_ultra, = self.ax_ultra.plot([], [], 'c-', linewidth=2, label='Distancia Ultrasónica')
+        self.ax_ultra.legend()
+        
+        # Configurar límites iniciales
+        self.ax_ultra.set_xlim(0, 60)  # 60 segundos
+        self.ax_ultra.set_ylim(0, 400)   # 0-400 cm
+        
+        self.figure_ultra.tight_layout()
+        graph_layout.addWidget(self.canvas_ultra)
+        layout.addWidget(graph_group)
+        
+        # Configurar el widget en el área principal
+        self.sensor_details.setWidget(sensor_widget)
 
     def update_graph_display(self):
-        """Método optimizado para actualizar gráficas con timer"""
+        """Actualiza las gráficas de forma optimizada usando el timer"""
+        # Solo actualizar si hay datos pendientes y la aplicación está activa
         if not self.pending_updates:
             return
             
-        # Procesar updates pendientes para ángulo simple
-        if self.pending_simple_data and hasattr(self, 'canvas'):
-            try:
-                x_data = range(len(self.angulos))
-                self.line.set_data(x_data, self.angulos)
-                
-                # Ajustar límites dinámicamente
-                if self.angulos:
-                    self.ax.set_xlim(0, max(self.max_points, len(self.angulos)))
-                    min_ang = min(self.angulos)
-                    max_ang = max(self.angulos)
-                    padding = max(10, (max_ang - min_ang) * 0.1)
-                    self.ax.set_ylim(min_ang - padding, max_ang + padding)
-                
+        try:
+            # Actualizar gráfica de ángulo simple si hay datos pendientes
+            if (self.pending_simple_data is not None and 
+                hasattr(self, 'canvas') and hasattr(self, 'line')):
                 self.canvas.draw()
-                self.pending_simple_data = None
-            except:
-                pass
-        
-        # Procesar updates pendientes para brazo ángulos
-        if self.pending_brazo_data and hasattr(self, 'brazo_canvas'):
-            try:
-                max_len = max(len(self.brazo_angulos[i]) for i in range(3) if self.brazo_angulos[i])
-                if max_len > 0:
-                    for i in range(3):
-                        if self.brazo_angulos[i]:
-                            x_data = range(len(self.brazo_angulos[i]))
-                            self.brazo_lines[i].set_data(x_data, self.brazo_angulos[i])
-                    
-                    # Ajustar límites dinámicamente
-                    self.brazo_ax.set_xlim(0, max(self.brazo_max_points, max_len))
-                      # Encontrar rango de todos los ángulos
-                    all_angles = []
-                    for i in range(3):
-                        all_angles.extend(self.brazo_angulos[i])
-                    
-                    if all_angles:
-                        min_ang = min(all_angles)
-                        max_ang = max(all_angles)
-                        padding = max(10, (max_ang - min_ang) * 0.1)
-                        self.brazo_ax.set_ylim(min_ang - padding, max_ang + padding)
                 
+            # Actualizar gráfica de brazo si hay datos pendientes  
+            if (self.pending_brazo_data is not None and 
+                hasattr(self, 'brazo_canvas') and hasattr(self, 'brazo_lines')):
                 self.brazo_canvas.draw()
-                self.pending_brazo_data = None
-            except:
-                pass
+                
+            # Actualizar gráfica IR si hay datos pendientes
+            if (self.pending_distancia_ir_data is not None and 
+                hasattr(self, 'canvas_ir') and hasattr(self, 'line_ir')):
+                self.canvas_ir.draw()
+                
+            # Actualizar gráfica capacitiva si hay datos pendientes
+            if (self.pending_distancia_cap_data is not None and 
+                hasattr(self, 'canvas_cap') and hasattr(self, 'line_cap')):
+                self.canvas_cap.draw()
+                
+            # Actualizar gráfica ultrasónica si hay datos pendientes
+            if (self.pending_distancia_ultra_data is not None and 
+                hasattr(self, 'canvas_ultra') and hasattr(self, 'line_ultra')):
+                self.canvas_ultra.draw()
+                
+            # Limpiar flags de datos pendientes
+            self.pending_updates = False
+            self.pending_simple_data = None
+            self.pending_brazo_data = None
+            self.pending_distancia_ir_data = None  
+            self.pending_distancia_cap_data = None
+            self.pending_distancia_ultra_data = None
+            
+        except Exception as e:
+            # Continuar silenciosamente si hay errores de actualización
+            pass    # ============================================================================
+    # FUNCIONES DE CONEXIÓN Y MONITOREO
+    # ============================================================================
+    def test_connection(self):
+        """Prueba la conexión con el ESP32"""
+        esp32_ip = self.ip_input.text().strip()
         
-        self.pending_updates = False
+        if not esp32_ip:
+            QMessageBox.warning(self, "IP requerida", "Ingresa la IP del ESP32")
+            return
+        
+        # Deshabilitar botón y mostrar estado de conexión
+        self.connect_btn.setEnabled(False)
+        self.status_label.setText("🔄 Conectando...")
+        self.status_label.setStyleSheet("""
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #cce5ff;
+            color: #004085;
+            font-weight: bold;
+        """)
+        self.repaint()  # Forzar actualización de la interfaz
+        
+        # Probar conexión directamente
+        try:
+            client = ESP32Client(esp32_ip)
+            response = client.led_on()  # Probar con comando LED_ON
+            
+            if "LED_ON_OK" in response:
+                # Conexión exitosa
+                self.on_connected(esp32_ip)
+            else:
+                # Respuesta inesperada
+                self.on_disconnected()
+                
+        except Exception as e:
+            # Error de conexión
+            self.on_disconnected()
+    
+    def on_connected(self, esp32_ip):
+        """Callback cuando la conexión es exitosa"""
+        self.is_connected = True
+        self.esp_client = ESP32Client(esp32_ip)
+        
+        # Actualizar interfaz
+        self.connect_btn.setText("🔌 Conectado")
+        self.connect_btn.setEnabled(False)
+        self.status_label.setText("✅ Conectado al ESP32")
+        self.status_label.setStyleSheet("""
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        """)
+        
+        # Mostrar lista de sensores con animación
+        self.show_sensors_with_animation()
+    
+    def on_disconnected(self):
+        """Callback cuando la conexión falla"""
+        self.is_connected = False
+        self.esp_client = None
+        
+        # Actualizar interfaz
+        self.connect_btn.setText("🔌 Conectar al ESP32")
+        self.connect_btn.setEnabled(True)
+        self.status_label.setText("❌ Error de conexión")
+        self.status_label.setStyleSheet("""
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #f8d7da;
+            color: #721c24;
+            font-weight: bold;
+        """)
+        
+        # Ocultar lista de sensores
+        self.sensors_group.setVisible(False)
+    
+    def show_sensors_with_animation(self):
+        """Muestra la lista de sensores con efecto de desvanecimiento"""
+        self.sensors_group.setVisible(True)
+        
+        # Crear efecto de opacidad
+        self.fade_effect = QGraphicsOpacityEffect()
+        self.sensors_group.setGraphicsEffect(self.fade_effect)
+        
+        # Crear animación
+        self.animation = QPropertyAnimation(self.fade_effect, b"opacity")
+        self.animation.setDuration(800)
+        self.animation.setStartValue(0.0)
+        self.animation.setEndValue(1.0)
+        self.animation.setEasingCurve(QEasingCurve.InOutQuad)
+        
+        # Iniciar animación
+        self.animation.start()
 
-    def update_angulo_data(self, lectura, angulo):
-        """Actualiza los datos del sensor de ángulo en tiempo real - OPTIMIZADO"""
-        # Actualizar etiqueta con datos en tiempo real
-        self.angulo_label.setText(f"Lectura: {lectura} | Ángulo: {angulo}°")
+    # ============================================================================
+    # FUNCIONES DE MONITOREO - ÁNGULO SIMPLE
+    # ============================================================================
+    
+    def toggle_angulo_monitoring(self):
+        """Inicia o detiene el monitoreo del sensor de ángulo simple"""
+        if not self.is_monitoring:
+            self.start_angulo_monitoring()
+        else:
+            self.stop_angulo_monitoring()
+    
+    def start_angulo_monitoring(self):
+        """Inicia el monitoreo del sensor de ángulo simple"""
+        if not self.is_connected:
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return
         
+        try:
+            # Crear y configurar thread
+            self.angulo_thread = AnguloSimpleThread(self.esp_client.esp32_ip)
+            self.angulo_thread.data_received.connect(self.update_angulo_data)
+            
+            # Iniciar monitoreo
+            self.angulo_thread.start()
+            self.is_monitoring = True
+            
+            # Actualizar interfaz
+            self.start_btn.setText("⏸️ Pausar")
+            self.start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; }")
+            self.stop_btn.setEnabled(True)
+            self.export_btn.setEnabled(True)
+            
+            # Iniciar timer de actualización gráfica
+            self.graph_update_timer.start()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+    
+    def stop_angulo_monitoring(self):
+        """Detiene el monitoreo del sensor de ángulo simple"""
+        if self.angulo_thread and self.angulo_thread.isRunning():
+            self.angulo_thread.stop()
+            self.angulo_thread = None
+        
+        self.is_monitoring = False
+        self.graph_update_timer.stop()
+        
+        # Actualizar interfaz
+        self.start_btn.setText("▶️ Iniciar Monitoreo")
+        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
+        self.stop_btn.setEnabled(False)
+    
+    def update_angulo_data(self, lectura, angulo):
+        """Actualiza los datos del sensor de ángulo simple"""
         # Agregar datos a las listas
         self.lecturas.append(lectura)
         self.angulos.append(angulo)
         
-        # Habilitar botón de exportar cuando hay datos
-        if len(self.angulos) > 0:
-            self.export_btn.setEnabled(True)
+        # Mantener máximo de puntos
+        if len(self.lecturas) > self.max_points:
+            self.lecturas.pop(0)
+            self.angulos.pop(0)
         
-        # Mantener solo los últimos puntos para mejor rendimiento
-        if len(self.angulos) > self.max_points:
-            self.angulos = self.angulos[-self.max_points:]
-            self.lecturas = self.lecturas[-self.max_points:]
+        # Actualizar etiqueta
+        self.angulo_label.setText(f"Lectura: {lectura} | Ángulo: {angulo}°")
         
-        # Marcar que hay updates pendientes para el timer
-        self.pending_simple_data = True
+        # Actualizar gráfica de forma optimizada
+        if hasattr(self, 'line'):
+            x_data = list(range(len(self.angulos)))
+            self.line.set_data(x_data, self.angulos)
+            
+            # Ajustar límites del eje X
+            if len(x_data) > 0:
+                self.ax.set_xlim(0, max(100, len(x_data)))
+        
+        # Marcar para actualización
         self.pending_updates = True
+        self.pending_simple_data = (lectura, angulo)
+    
+    def clear_graph(self):
+        """Limpia la gráfica del sensor de ángulo simple"""
+        self.lecturas.clear()
+        self.angulos.clear()
         
-        # Iniciar el timer si no está corriendo
-        if not self.graph_update_timer.isActive():
-            self.graph_update_timer.start()
-
+        if hasattr(self, 'line'):
+            self.line.set_data([], [])
+            self.ax.set_xlim(0, 100)
+            self.canvas.draw()
+        
+        self.angulo_label.setText("Lectura: -- | Ángulo: --°")
+        self.export_btn.setEnabled(False)
+    
     def export_to_excel(self):
-        """Exporta los datos a un archivo Excel con gráficas mejoradas"""
-        if not self.angulos or not self.lecturas:
-            QMessageBox.warning(self, "Sin datos", "No hay datos para exportar")
-            return
-        
-        # Solicitar ubicación del archivo
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, 
-            "Guardar datos como Excel", 
-            f"SensoraCore_AnguloSimple_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-            "Excel Files (*.xlsx)"
-        )
-        
-        if not file_path:
+        """Exporta los datos del sensor de ángulo simple a Excel"""
+        if not self.lecturas:
+            QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
             return
         
         try:
-            # Crear libro de trabajo
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Datos Ángulo Simple"
-            
-            # Encabezados con estilo
-            headers = ["Muestra", "Lectura ADC", "Ángulo (°)", "Timestamp"]
-            for col, header in enumerate(headers, 1):
-                cell = ws.cell(row=1, column=col, value=header)
-                cell.font = openpyxl.styles.Font(bold=True)
-                cell.fill = openpyxl.styles.PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-                cell.font = openpyxl.styles.Font(color="FFFFFF", bold=True)
-            
-            # Datos
-            for i, (lectura, angulo) in enumerate(zip(self.lecturas, self.angulos)):
-                ws[f'A{i+2}'] = i + 1
-                ws[f'B{i+2}'] = lectura
-                ws[f'C{i+2}'] = angulo
-                ws[f'D{i+2}'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            # Crear gráfica en Excel
-            chart = LineChart()
-            chart.title = "Ángulo vs Tiempo"
-            chart.style = 13
-            chart.x_axis.title = 'Muestra'
-            chart.y_axis.title = 'Ángulo (°)'
-            chart.width = 15
-            chart.height = 10
-            
-            # Datos para la gráfica
-            data = Reference(ws, min_col=3, min_row=1, max_row=len(self.angulos)+1)
-            cats = Reference(ws, min_col=1, min_row=2, max_row=len(self.angulos)+1)
-            chart.add_data(data, titles_from_data=True)
-            chart.set_categories(cats)
-            
-            # Añadir gráfica a la hoja
-            ws.add_chart(chart, "F2")
-            
-            # Información adicional con formato
-            info_row = 1
-            info_data = [
-                ("Información del ESP32:", ""),
-                (f"IP: {self.ip_input.text()}", ""),
-                (f"Total de muestras: {len(self.angulos)}", ""),
-                (f"Ángulo mínimo: {min(self.angulos)}°", ""),
-                (f"Ángulo máximo: {max(self.angulos)}°", ""),
-                (f"Ángulo promedio: {sum(self.angulos)/len(self.angulos):.2f}°", ""),
-                (f"Fecha de exportación: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", "")
-            ]
-            
-            for i, (label, value) in enumerate(info_data):
-                cell = ws.cell(row=info_row + i, column=6, value=label)
-                if i == 0:  # Título
-                    cell.font = openpyxl.styles.Font(bold=True, size=14)
-                else:
-                    cell.font = openpyxl.styles.Font(size=11)
-            
-            # Ajustar ancho de columnas
-            for column in ws.columns:
-                max_length = 0
-                column_letter = column[0].column_letter
-                for cell in column:
-                    try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                adjusted_width = min(max_length + 2, 50)
-                ws.column_dimensions[column_letter].width = adjusted_width
-            
-            # Guardar archivo
-            wb.save(file_path)
-            
-            QMessageBox.information(
-                self, 
-                "Exportación exitosa", 
-                f"Datos exportados correctamente a:\n{file_path}\n\nTotal de muestras: {len(self.angulos)}"
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Guardar datos",
+                f"SensoraCore_Angulo_{timestamp}.xlsx",
+                "Excel files (*.xlsx)"
             )
             
+            if filename:
+                # Crear workbook
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Datos Ángulo Simple"
+                
+                # Headers
+                ws['A1'] = "Muestra"
+                ws['B1'] = "Lectura ADC"
+                ws['C1'] = "Ángulo (°)"
+                ws['D1'] = "Timestamp"
+                
+                # Datos
+                for i, (lectura, angulo) in enumerate(zip(self.lecturas, self.angulos)):
+                    ws[f'A{i+2}'] = i+1
+                    ws[f'B{i+2}'] = lectura
+                    ws[f'C{i+2}'] = angulo
+                    ws[f'D{i+2}'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Crear gráfica
+                chart = LineChart()
+                chart.title = "Ángulo vs Tiempo"
+                chart.y_axis.title = "Ángulo (°)"
+                chart.x_axis.title = "Muestra"
+                
+                data = Reference(ws, min_col=3, min_row=1, max_row=len(self.angulos)+1)
+                categories = Reference(ws, min_col=1, min_row=2, max_row=len(self.angulos)+1)
+                chart.add_data(data, titles_from_data=True)
+                chart.set_categories(categories)
+                
+                ws.add_chart(chart, "F2")
+                
+                # Guardar
+                wb.save(filename)
+                QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
+                
         except Exception as e:
-            QMessageBox.critical(self, "Error al exportar", f"Error al guardar el archivo:\n{str(e)}")
+            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
 
-    def clear_graph(self):
-        """Limpia la gráfica y los datos"""
-        # Limpiar datos
-        self.angulos.clear()
-        self.lecturas.clear()
+    # ============================================================================
+    # FUNCIONES DE MONITOREO - BRAZO ÁNGULO
+    # ============================================================================
+    
+    def toggle_brazo_monitoring(self):
+        """Inicia o detiene el monitoreo del sensor de brazo"""
+        if not self.brazo_is_monitoring:
+            self.start_brazo_monitoring()
+        else:
+            self.stop_brazo_monitoring()
+    
+    def start_brazo_monitoring(self):
+        """Inicia el monitoreo del sensor de brazo"""
+        if not self.is_connected:
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return
         
-        # Limpiar gráfica
-        self.line.set_data([], [])
-        self.ax.set_xlim(0, self.max_points)
-        self.ax.set_ylim(0, 270)
-        self.canvas.draw()
+        try:
+            # Crear y configurar thread
+            self.brazo_thread = BrazoAnguloThread(self.esp_client.esp32_ip)
+            self.brazo_thread.data_received.connect(self.update_brazo_data)
+            
+            # Iniciar monitoreo
+            self.brazo_thread.start()
+            self.brazo_is_monitoring = True
+            
+            # Actualizar interfaz
+            self.brazo_start_btn.setText("⏸️ Pausar")
+            self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; }")
+            self.brazo_stop_btn.setEnabled(True)
+            self.brazo_export_btn.setEnabled(True)
+            
+            # Iniciar timer de actualización gráfica
+            self.graph_update_timer.start()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+    
+    def stop_brazo_monitoring(self):
+        """Detiene el monitoreo del sensor de brazo"""
+        if self.brazo_thread and self.brazo_thread.isRunning():
+            self.brazo_thread.stop()
+            self.brazo_thread = None
+        
+        self.brazo_is_monitoring = False
+        self.graph_update_timer.stop()
+        
+        # Actualizar interfaz
+        self.brazo_start_btn.setText("▶️ Iniciar Monitoreo")
+        self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
+        self.brazo_stop_btn.setEnabled(False)
+    
+    def update_brazo_data(self, lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_estado):
+        """Actualiza los datos del sensor de brazo"""
+        # Agregar datos a las listas
+        for i, (lectura, angulo) in enumerate([(lectura1, angulo1), (lectura2, angulo2), (lectura3, angulo3)]):
+            self.brazo_lecturas[i].append(lectura)
+            self.brazo_angulos[i].append(angulo)
+            
+            # Mantener máximo de puntos
+            if len(self.brazo_lecturas[i]) > self.brazo_max_points:
+                self.brazo_lecturas[i].pop(0)
+                self.brazo_angulos[i].pop(0)
+        
+        # Agregar estado del sensor capacitivo
+        self.brazo_capacitive_states.append(sensor_estado)
+        if len(self.brazo_capacitive_states) > self.brazo_max_points:
+            self.brazo_capacitive_states.pop(0)
+        
+        # Actualizar etiquetas
+        self.brazo_labels['pot1'].setText(f"Potenciómetro 1: Lectura: {lectura1} | Ángulo: {angulo1}°")
+        self.brazo_labels['pot2'].setText(f"Potenciómetro 2: Lectura: {lectura2} | Ángulo: {angulo2}°")
+        self.brazo_labels['pot3'].setText(f"Potenciómetro 3: Lectura: {lectura3} | Ángulo: {angulo3}°")
+        self.capacitive_label.setText(f"Sensor Capacitivo: {'Activado' if sensor_estado else 'Desactivado'}")
+        
+        # Actualizar gráfica de forma optimizada
+        if hasattr(self, 'brazo_lines'):
+            for i, line in enumerate(self.brazo_lines):
+                x_data = list(range(len(self.brazo_angulos[i])))
+                line.set_data(x_data, self.brazo_angulos[i])
+            
+            # Ajustar límites del eje X
+            if len(self.brazo_angulos[0]) > 0:
+                max_len = max(len(angles) for angles in self.brazo_angulos)
+                self.brazo_ax.set_xlim(0, max(100, max_len))
+        
+        # Marcar para actualización
+        self.pending_updates = True
+        self.pending_brazo_data = (lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_estado)
+    
+    def clear_brazo_graph(self):
+        """Limpia la gráfica del sensor de brazo"""
+        for i in range(3):
+            self.brazo_lecturas[i].clear()
+            self.brazo_angulos[i].clear()
+        self.brazo_capacitive_states.clear()
+        
+        if hasattr(self, 'brazo_lines'):
+            for line in self.brazo_lines:
+                line.set_data([], [])
+            self.brazo_ax.set_xlim(0, 100)
+            self.brazo_canvas.draw()
+        
+        # Resetear etiquetas
+        for i in range(1, 4):
+            self.brazo_labels[f'pot{i}'].setText(f"Potenciómetro {i}: Lectura: -- | Ángulo: --°")
+        self.capacitive_label.setText("Sensor Capacitivo: --")
+        self.brazo_export_btn.setEnabled(False)
+    
+    def export_brazo_to_excel(self):
+        """Exporta los datos del sensor de brazo a Excel"""
+        if not any(self.brazo_lecturas):
+            QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
+            return
+        
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Guardar datos",
+                f"SensoraCore_Brazo_{timestamp}.xlsx",
+                "Excel files (*.xlsx)"
+            )
+            
+            if filename:
+                # Crear workbook
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Datos Brazo Ángulo"
+                
+                # Headers
+                headers = ["Muestra", "Lectura1", "Ángulo1", "Lectura2", "Ángulo2", 
+                          "Lectura3", "Ángulo3", "Sensor_Cap", "Timestamp"]
+                for i, header in enumerate(headers):
+                    ws.cell(row=1, column=i+1, value=header)
+                
+                # Datos
+                max_len = max(len(angles) for angles in self.brazo_angulos if angles)
+                for i in range(max_len):
+                    row = i + 2
+                    ws.cell(row=row, column=1, value=i+1)
+                    
+                    for j in range(3):
+                        if i < len(self.brazo_lecturas[j]):
+                            ws.cell(row=row, column=j*2+2, value=self.brazo_lecturas[j][i])
+                            ws.cell(row=row, column=j*2+3, value=self.brazo_angulos[j][i])
+                    
+                    if i < len(self.brazo_capacitive_states):
+                        ws.cell(row=row, column=8, value=self.brazo_capacitive_states[i])
+                    
+                    ws.cell(row=row, column=9, value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                
+                # Crear gráficas para cada potenciómetro
+                colors = ["0000FF", "00FF00", "FF0000"]
+                for j in range(3):
+                    chart = LineChart()
+                    chart.title = f"Ángulo Potenciómetro {j+1} vs Tiempo"
+                    chart.y_axis.title = "Ángulo (°)"
+                    chart.x_axis.title = "Muestra"
+                    
+                    data = Reference(ws, min_col=j*2+3, min_row=1, max_row=max_len+1)
+                    categories = Reference(ws, min_col=1, min_row=2, max_row=max_len+1)
+                    chart.add_data(data, titles_from_data=True)
+                    chart.set_categories(categories)
+                    
+                    ws.add_chart(chart, f"{chr(75+j*8)}2")  # K2, S2, AA2
+                
+                # Guardar
+                wb.save(filename)
+                QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
+
+    # ============================================================================
+    # FUNCIONES DE MONITOREO - DISTANCIA IR
+    # ============================================================================
+    
+    def toggle_distancia_ir_monitoring(self):
+        """Inicia o detiene el monitoreo del sensor de distancia IR"""
+        if not self.distancia_ir_is_monitoring:
+            self.start_distancia_ir_monitoring()
+        else:
+            self.stop_distancia_ir_monitoring()
+    
+    def start_distancia_ir_monitoring(self):
+        """Inicia el monitoreo del sensor de distancia IR"""
+        if not self.is_connected:
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return
+        
+        try:
+            # Crear y configurar thread
+            self.distancia_ir_thread = DistanciaIRThread(self.esp_client.esp32_ip)
+            self.distancia_ir_thread.data_received.connect(self.update_distancia_ir_data)
+            
+            # Iniciar monitoreo
+            self.distancia_ir_thread.start()
+            self.distancia_ir_is_monitoring = True
+            
+            # Actualizar interfaz
+            self.start_distancia_ir_btn.setText("⏸️ Pausar")
+            self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")
+            self.stop_distancia_ir_btn.setEnabled(True)
+            if hasattr(self, 'export_distancia_ir_btn'):
+                self.export_distancia_ir_btn.setEnabled(True)
+            
+            # Iniciar timer de actualización gráfica
+            self.graph_update_timer.start()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+    
+    def stop_distancia_ir_monitoring(self):
+        """Detiene el monitoreo del sensor de distancia IR"""
+        if self.distancia_ir_thread and self.distancia_ir_thread.isRunning():
+            self.distancia_ir_thread.stop()
+            self.distancia_ir_thread = None
+        
+        self.distancia_ir_is_monitoring = False
+        self.graph_update_timer.stop()
+        
+        # Actualizar interfaz
+        self.start_distancia_ir_btn.setText("▶️ Iniciar Monitoreo")
+        self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #e74c3c; border-color: #e74c3c; color: white; padding: 10px; }")
+        self.stop_distancia_ir_btn.setEnabled(False)
+    
+    def update_distancia_ir_data(self, estado_digital):
+        """Actualiza los datos del sensor de distancia IR (digital)"""
+        # Actualizar etiqueta con estado digital
+        estado_texto = "DETECTADO" if estado_digital else "NO DETECTADO"
+        color = "#e74c3c" if estado_digital else "#27ae60"
+        
+        self.distancia_ir_label.setText(f"Estado: {estado_texto}")
+        self.distancia_ir_label.setStyleSheet(f"""
+            font-size: 18px;
+            font-weight: bold;
+            color: {color};
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid {color};
+        """)
+        
+        # No necesitamos gráficas para sensores digitales, solo estado actual
+        # Marcar para actualización si es necesario
+        self.pending_updates = True
+        self.pending_distancia_ir_data = estado_digital
+    
+    def clear_distancia_ir_graph(self):
+        """Limpia la gráfica del sensor de distancia IR"""
+        self.distancia_ir_lecturas.clear()
+        self.distancia_ir_voltajes.clear()
+        self.distancia_ir_cm.clear()
+        
+        if hasattr(self, 'line_ir'):
+            self.line_ir.set_data([], [])
+            self.ax_ir.set_xlim(0, 100)
+            self.canvas_ir.draw()
+        
+        self.distancia_ir_label.setText("ADC: -- | Voltaje: -- V | Distancia: -- cm")
+        if hasattr(self, 'export_distancia_ir_btn'):
+            self.export_distancia_ir_btn.setEnabled(False)
+    
+    def export_distancia_ir_to_excel(self):
+        """Exporta los datos del sensor de distancia IR a Excel"""
+        if not self.distancia_ir_lecturas:
+            QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
+            return
+        
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Guardar datos",
+                f"SensoraCore_DistanciaIR_{timestamp}.xlsx",
+                "Excel files (*.xlsx)"
+            )
+            
+            if filename:
+                # Crear workbook
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Datos Distancia IR"
+                
+                # Headers
+                ws['A1'] = "Muestra"
+                ws['B1'] = "Lectura ADC"
+                ws['C1'] = "Voltaje (V)"
+                ws['D1'] = "Distancia (cm)"
+                ws['E1'] = "Timestamp"
+                
+                # Datos
+                for i, (lectura, voltaje, distancia) in enumerate(zip(self.distancia_ir_lecturas, self.distancia_ir_voltajes, self.distancia_ir_cm)):
+                    ws[f'A{i+2}'] = i+1
+                    ws[f'B{i+2}'] = lectura
+                    ws[f'C{i+2}'] = voltaje
+                    ws[f'D{i+2}'] = distancia
+                    ws[f'E{i+2}'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Crear gráfica
+                chart = LineChart()
+                chart.title = "Distancia IR vs Tiempo"
+                chart.y_axis.title = "Distancia (cm)"
+                chart.x_axis.title = "Muestra"
+                
+                data = Reference(ws, min_col=4, min_row=1, max_row=len(self.distancia_ir_cm)+1)
+                categories = Reference(ws, min_col=1, min_row=2, max_row=len(self.distancia_ir_cm)+1)
+                chart.add_data(data, titles_from_data=True)
+                chart.set_categories(categories)
+                
+                ws.add_chart(chart, "G2")
+                
+                # Guardar
+                wb.save(filename)
+                QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
+
+    # ============================================================================
+    # FUNCIONES DE MONITOREO - DISTANCIA CAPACITIVO
+    # ============================================================================
+    
+    def toggle_distancia_cap_monitoring(self):
+        """Inicia o detiene el monitoreo del sensor de distancia capacitivo"""
+        if not self.distancia_cap_is_monitoring:
+            self.start_distancia_cap_monitoring()
+        else:
+            self.stop_distancia_cap_monitoring()
+    
+    def start_distancia_cap_monitoring(self):
+        """Inicia el monitoreo del sensor de distancia capacitivo"""
+        if not self.is_connected:
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return
+        
+        try:
+            # Crear y configurar thread
+            self.distancia_cap_thread = DistanciaCapThread(self.esp_client.esp32_ip)
+            self.distancia_cap_thread.data_received.connect(self.update_distancia_cap_data)
+            
+            # Iniciar monitoreo
+            self.distancia_cap_thread.start()
+            self.distancia_cap_is_monitoring = True
+            
+            # Actualizar interfaz
+            self.start_distancia_cap_btn.setText("⏸️ Pausar")
+            self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")
+            self.stop_distancia_cap_btn.setEnabled(True)
+            if hasattr(self, 'export_distancia_cap_btn'):
+                self.export_distancia_cap_btn.setEnabled(True)
+            
+            # Iniciar timer de actualización gráfica
+            self.graph_update_timer.start()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+    
+    def stop_distancia_cap_monitoring(self):
+        """Detiene el monitoreo del sensor de distancia capacitivo"""
+        if self.distancia_cap_thread and self.distancia_cap_thread.isRunning():
+            self.distancia_cap_thread.stop()
+            self.distancia_cap_thread = None
+        
+        self.distancia_cap_is_monitoring = False
+        self.graph_update_timer.stop()
+          # Actualizar interfaz
+        self.start_distancia_cap_btn.setText("▶️ Iniciar Monitoreo")
+        self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #3498db; border-color: #3498db; color: white; padding: 10px; }")
+        self.stop_distancia_cap_btn.setEnabled(False)
+    
+    def update_distancia_cap_data(self, estado_digital):
+        """Actualiza los datos del sensor de distancia capacitivo (digital)"""
+        # Actualizar etiqueta con estado digital
+        estado_texto = "🟢 DETECTADO" if estado_digital else "🔴 SIN DETECCIÓN"
+        color = "#28a745" if estado_digital else "#dc3545"
+        
+        self.distancia_cap_status.setText(estado_texto)
+        self.distancia_cap_status.setStyleSheet(f"""
+            font-size: 28px;
+            font-weight: bold;
+            color: {color};
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            border: 3px solid {color};
+            text-align: center;
+        """)
+        
+        # No necesitamos gráficas para sensores digitales, solo estado actual
+        # Marcar para actualización si es necesario        self.pending_updates = True
+        self.pending_distancia_cap_data = estado_digital
+    
+    def clear_distancia_cap_graph(self):
+        """Resetea el estado del sensor de distancia capacitivo digital"""
+        # No hay gráficas que limpiar para sensores digitales
+        # Solo resetear el estado visual
+        if hasattr(self, 'distancia_cap_status'):
+            self.distancia_cap_status.setText("🔴 SIN DETECCIÓN")
+            self.distancia_cap_status.setStyleSheet("""
+                font-size: 28px;
+                font-weight: bold;
+                color: #dc3545;
+                padding: 20px;
+                background-color: #f8f9fa;
+                border-radius: 12px;
+                border: 3px solid #dc3545;
+                text-align: center;            """)
+
+    def export_distancia_cap_to_excel(self):
+        """Exporta los datos del sensor de distancia capacitivo digital a Excel"""
+        # Para sensores digitales, no hay datos continuos que exportar
+        # Solo exportamos el estado actual si está disponible
+        QMessageBox.information(self, "Sensor Digital", 
+            "Los sensores digitales no generan datos continuos para exportar.\n\n"
+            "El sensor capacitivo solo proporciona estado ON/OFF en tiempo real.\n"
+            "Estado actual visible en la interfaz.")
+        return
+
+    # ============================================================================
+    # FUNCIONES DE MONITOREO - DISTANCIA ULTRASONICO
+    # ============================================================================
+    
+    def toggle_distancia_ultra_monitoring(self):
+        """Inicia o detiene el monitoreo del sensor de distancia ultrasónico"""
+        if not self.distancia_ultra_is_monitoring:
+            self.start_distancia_ultra_monitoring()
+        else:
+            self.stop_distancia_ultra_monitoring()
+    
+    def start_distancia_ultra_monitoring(self):
+        """Inicia el monitoreo del sensor de distancia ultrasónico"""
+        if not self.is_connected:
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return
+        
+        try:
+            # Crear y configurar thread
+            self.distancia_ultrasonic_thread = DistanciaUltrasonicThread(self.esp_client.esp32_ip)
+            self.distancia_ultrasonic_thread.data_received.connect(self.update_distancia_ultra_data)
+            
+            # Iniciar monitoreo
+            self.distancia_ultrasonic_thread.start()
+            self.distancia_ultra_is_monitoring = True
+            
+            # Actualizar interfaz
+            self.start_distancia_ultra_btn.setText("⏸️ Pausar")
+            self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")
+            self.stop_distancia_ultra_btn.setEnabled(True)
+            if hasattr(self, 'export_distancia_ultra_btn'):
+                self.export_distancia_ultra_btn.setEnabled(True)
+            
+            # Iniciar timer de actualización gráfica
+            self.graph_update_timer.start()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+    
+    def stop_distancia_ultra_monitoring(self):
+        """Detiene el monitoreo del sensor de distancia ultrasónico"""
+        if self.distancia_ultrasonic_thread and self.distancia_ultrasonic_thread.isRunning():
+            self.distancia_ultrasonic_thread.stop()
+            self.distancia_ultrasonic_thread = None
+        
+        self.distancia_ultra_is_monitoring = False
+        self.graph_update_timer.stop()
+        
+        # Actualizar interfaz
+        self.start_distancia_ultra_btn.setText("▶️ Iniciar Monitoreo")
+        self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #17a2b8; border-color: #17a2b8; color: white; padding: 10px; }")
+        self.stop_distancia_ultra_btn.setEnabled(False)
+    
+    def update_distancia_ultra_data(self, lectura_adc, voltaje, distancia_cm):
+        """Actualiza los datos del sensor de distancia ultrasónico"""
+        # Agregar datos a las listas
+        self.distancia_ultra_lecturas.append(lectura_adc)
+        self.distancia_ultra_voltajes.append(voltaje)
+        self.distancia_ultra_cm.append(distancia_cm)
+        
+        # Mantener máximo de puntos
+        if len(self.distancia_ultra_lecturas) > self.distancia_max_points:
+            self.distancia_ultra_lecturas.pop(0)
+            self.distancia_ultra_voltajes.pop(0)
+            self.distancia_ultra_cm.pop(0)
         
         # Actualizar etiqueta
-        self.angulo_label.setText("Lectura: -- | Ángulo: --")
+        self.distancia_ultra_label.setText(f"ADC: {lectura_adc} | Voltaje: {voltaje:.2f} V | Distancia: {distancia_cm:.1f} cm")
         
-        # Deshabilitar botón de exportar
-        self.export_btn.setEnabled(False)
+        # Actualizar gráfica de forma optimizada
+        if hasattr(self, 'line_ultra'):
+            x_data = list(range(len(self.distancia_ultra_cm)))
+            self.line_ultra.set_data(x_data, self.distancia_ultra_cm)
+            
+            # Ajustar límites del eje X
+            if len(x_data) > 0:
+                self.ax_ultra.set_xlim(0, max(100, len(x_data)))
         
-        QMessageBox.information(self, "Gráfica limpia", "Se han borrado todos los datos de la gráfica")
-
-    def closeEvent(self, event):
-        """Maneja el cierre de la aplicación"""
-        # Asegurar que se cierre el hilo al cerrar la ventana
-        if self.angulo_thread:
-            self.angulo_thread.stop()
-        if self.brazo_thread:
-            self.brazo_thread.stop()
-        event.accept()
+        # Marcar para actualización
+        self.pending_updates = True
+        self.pending_distancia_ultra_data = (lectura_adc, voltaje, distancia_cm)
+    
+    def clear_distancia_ultra_graph(self):
+        """Limpia la gráfica del sensor de distancia ultrasónico"""
+        self.distancia_ultra_lecturas.clear()
+        self.distancia_ultra_voltajes.clear()
+        self.distancia_ultra_cm.clear()
+        
+        if hasattr(self, 'line_ultra'):
+            self.line_ultra.set_data([], [])
+            self.ax_ultra.set_xlim(0, 100)
+            self.canvas_ultra.draw()
+        
+        self.distancia_ultra_label.setText("ADC: -- | Voltaje: -- V | Distancia: -- cm")
+        if hasattr(self, 'export_distancia_ultra_btn'):
+            self.export_distancia_ultra_btn.setEnabled(False)
+    
+    def export_distancia_ultra_to_excel(self):
+        """Exporta los datos del sensor de distancia ultrasónico a Excel"""
+        if not self.distancia_ultra_lecturas:
+            QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
+            return
+        
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Guardar datos",
+                f"SensoraCore_DistanciaUltra_{timestamp}.xlsx",
+                "Excel files (*.xlsx)"
+            )
+            
+            if filename:
+                # Crear workbook
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Datos Distancia Ultrasónico"
+                
+                # Headers
+                ws['A1'] = "Muestra"
+                ws['B1'] = "Lectura ADC"
+                ws['C1'] = "Voltaje (V)"
+                ws['D1'] = "Distancia (cm)"
+                ws['E1'] = "Timestamp"
+                
+                # Datos
+                for i, (lectura, voltaje, distancia) in enumerate(zip(self.distancia_ultra_lecturas, self.distancia_ultra_voltajes, self.distancia_ultra_cm)):
+                    ws[f'A{i+2}'] = i+1
+                    ws[f'B{i+2}'] = lectura
+                    ws[f'C{i+2}'] = voltaje
+                    ws[f'D{i+2}'] = distancia
+                    ws[f'E{i+2}'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Crear gráfica
+                chart = LineChart()
+                chart.title = "Distancia Ultrasónico vs Tiempo"
+                chart.y_axis.title = "Distancia (cm)"
+                chart.x_axis.title = "Muestra"
+                
+                data = Reference(ws, min_col=4, min_row=1, max_row=len(self.distancia_ultra_cm)+1)
+                categories = Reference(ws, min_col=1, min_row=2, max_row=len(self.distancia_ultra_cm)+1)
+                chart.add_data(data, titles_from_data=True)
+                chart.set_categories(categories)
+                
+                ws.add_chart(chart, "G2")
+                
+                # Guardar
+                wb.save(filename)
+                QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")

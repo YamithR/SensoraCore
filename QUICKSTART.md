@@ -1,6 +1,6 @@
-# Configuración rápida de SensoraCore
+# Configuración rápida de SensoraCore Alpha 0.2
 
-## 🚀 Inicio Rápido
+## 🚀 Inicio Rápido - Interfaces Digital/Analógica Unificada
 
 ### 1. Configurar ESP32
 
@@ -39,21 +39,54 @@ python main.py
    - Presiona "Conectar y encender LED integrado"
    - Si funciona, el LED del ESP32 se enciende
 
-### 3. Usar Sensor de Ángulo
+### 3. Usar Sensores Alpha 0.2
 
-1. **Conectar potenciómetro**:
-   - Pin + → 3.3V (ESP32)
-   - Pin - → GND (ESP32)  
-   - Pin S → GPIO 32 (ESP32)
+1. **Conectar sensores**:
+   - **Potenciómetro (Analógico)**: Pin + → 3.3V, Pin - → GND, Pin S → GPIO 32
+   - **Sensor IR (Digital)**: VCC → 3.3V, GND → GND, OUT → GPIO 35  
+   - **Sensor Capacitivo (Digital)**: VCC → 3.3V, GND → GND, OUT → GPIO 36
+   - **Sensor Ultrasónico (Analógico)**: VCC → 5V, GND → GND, Trig → GPIO 5, Echo → GPIO 18
 
-2. **Activar modo**:
-   - Marca "Modo Ángulo Simple"
-   - Gira el potenciómetro
-   - Ve los datos en tiempo real
+2. **Seleccionar modo**:
+   - **Sensores Digitales** (IR/Capacitivo): Estado ON/OFF
+   - **Sensores Analógicos** (Ángulo/Distancia): Valores numéricos con gráficas
+      - Para **Ángulo Simple**: Gira el potenciómetro (0-270°)
+   - Para **Distancia IR Digital**: Estado True/False según detección
+   - Para **Distancia Capacitivo Digital**: Estado True/False según proximidad  
+   - Para **Distancia Ultrasónica**: Valores en cm con gráficas en tiempo real
+   - Ve los datos en tiempo real con interfaces diferenciadas
 
 3. **Exportar datos**:
    - Presiona "Exportar datos a Excel"
    - Elige ubicación del archivo
+
+### 4. Nuevas Funciones Alpha 0.2
+
+1. **Interfaz Digital Unificada**:
+   - Sensores IR y Capacitivo ahora con salida digital ON/OFF
+   - Indicadores visuales claros para estados digitales
+   - Protocolo simplificado: IR_DIGITAL:True/False, CAP_DIGITAL:True/False
+
+2. **Sensor Ultrasónico Implementado**:
+   - Medición de distancia con gráficas en tiempo real
+   - Comando MODO:DISTANCIA_ULTRA para activación
+   - Rango de medición optimizado para aplicaciones didácticas
+
+### 5. Usar Sensores de Distancia Actualizados
+
+1. **Sensor IR Digital (Sharp GP2Y0A21YK)**:   - VCC → 3.3V, GND → GND, OUT → GPIO 35
+   - **NUEVO**: Salida digital True/False según detección
+   - Ideal para detección de presencia/ausencia
+
+2. **Sensor Capacitivo Digital**:
+   - VCC → 3.3V, GND → GND, OUT → GPIO 36  
+   - **NUEVO**: Salida digital True/False según proximidad
+   - Ideal para detección de materiales no metálicos
+
+3. **Sensor Ultrasónico (HC-SR04)**:
+   - VCC → 5V, GND → GND, Trig → GPIO 5, Echo → GPIO 18
+   - **NUEVO EN ALPHA 0.2**: Medición analógica con gráficas
+   - Rango: 2-400 cm, ideal para mediciones de distancia precisas
 
 ## 🔧 Solución de Problemas Comunes
 

@@ -1,5 +1,7 @@
-# main.py para ESP32 (MicroPython) - Versión con Brazo Ángulo
-# Lee potenciómetros, sensor capacitivo y controla LED por WiFi
+# main_brazo.py para ESP32 (MicroPython) - SensoraCore Alpha 0.2
+# Versión especializada para Brazo Robótico con 3 potenciómetros
+# NOTA: Este archivo es para aplicaciones específicas de brazo robótico
+# Para sensores básicos, usar main.py
 import network # type: ignore
 import socket
 from machine import Pin, ADC # type: ignore
