@@ -43,9 +43,9 @@ python main.py
 
 1. **Conectar sensores**:
    - **Potenciómetro (Analógico)**: Pin + → 3.3V, Pin - → GND, Pin S → GPIO 32
-   - **Sensor IR (Digital)**: VCC → 3.3V, GND → GND, OUT → GPIO 35  
-   - **Sensor Capacitivo (Digital)**: VCC → 3.3V, GND → GND, OUT → GPIO 36
-   - **Sensor Ultrasónico (Analógico)**: VCC → 5V, GND → GND, Trig → GPIO 5, Echo → GPIO 18
+   - **Sensor IR (Digital)**: VCC → 3.3V, GND → GND, OUT → GPIO 14  
+   - **Sensor Capacitivo (Digital)**: VCC → 3.3V, GND → GND, OUT → GPIO 35
+   - **Sensor Ultrasónico (Analógico)**: VCC → 5V, GND → GND, Trig → GPIO 26, Echo → GPIO 27
 
 2. **Seleccionar modo**:
    - **Sensores Digitales** (IR/Capacitivo): Estado ON/OFF
@@ -74,17 +74,17 @@ python main.py
 
 ### 5. Usar Sensores de Distancia Actualizados
 
-1. **Sensor IR Digital (Sharp GP2Y0A21YK)**:   - VCC → 3.3V, GND → GND, OUT → GPIO 35
+1. **Sensor IR Digital (Sharp GP2Y0A21YK)**:   - VCC → 3.3V, GND → GND, OUT → GPIO 14
    - **NUEVO**: Salida digital True/False según detección
    - Ideal para detección de presencia/ausencia
 
 2. **Sensor Capacitivo Digital**:
-   - VCC → 3.3V, GND → GND, OUT → GPIO 36  
+   - VCC → 3.3V, GND → GND, OUT → GPIO 35  
    - **NUEVO**: Salida digital True/False según proximidad
    - Ideal para detección de materiales no metálicos
 
 3. **Sensor Ultrasónico (HC-SR04)**:
-   - VCC → 5V, GND → GND, Trig → GPIO 5, Echo → GPIO 18
+   - VCC → 5V, GND → GND, Trig → GPIO 26, Echo → GPIO 27
    - **NUEVO EN ALPHA 0.2**: Medición analógica con gráficas
    - Rango: 2-400 cm, ideal para mediciones de distancia precisas
 

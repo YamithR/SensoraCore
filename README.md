@@ -220,8 +220,8 @@ ESP32 DevKit V1 - Conexiones de Sensores:
 │  │                       │  │                      │
 │  │ 5V  ○ ←── Ultra VCC   │  │ 3V3 ○ ←── Cap VCC    │
 │  │ GND ○ ←── Ultra GND   │  │ GND ○ ←── Cap GND    │
-│  │ D33 ○ ←── Ultra Trig  │  │ D36 ○ ←── Cap OUT    │
-│  │ D34 ○ ←── Ultra Echo  │  │                      │
+│  │ D26 ○ ←── Ultra Trig  │  │ D35 ○ ←── Cap OUT    │
+│  │ D27 ○ ←── Ultra Echo  │  │                      │
 │  └───────────────────────┘  └──────────────────────┘
 │                                                    │
 │  LED integrado: GPIO 2                             │
@@ -240,20 +240,20 @@ Potenciómetro 10kΩ (Ángulo):
 Sensor IR Sharp GP2Y0A21YK:
 • Pin VCC → 3.3V ESP32
 • Pin GND → GND ESP32
-• Pin OUT → GPIO 35 ESP32
+• Pin OUT → GPIO 14 ESP32
 • Rango: 10-80 cm (modo digital ON/OFF)
 
 Sensor Capacitivo de Distancia:
 • Pin VCC → 3.3V ESP32
 • Pin GND → GND ESP32
-• Pin OUT → GPIO 36 ESP32
+• Pin OUT → GPIO 35 ESP32
 • Rango: 0-40 cm (modo digital ON/OFF)
 
 Sensor Ultrasónico HC-SR04:
 • Pin VCC → 5V ESP32 (importante: requiere 5V)
 • Pin GND → GND ESP32
-• Pin Trig → GPIO 33 ESP32
-• Pin Echo → GPIO 34 ESP32
+• Pin Trig → GPIO 26 ESP32
+• Pin Echo → GPIO 27 ESP32
 • Rango: 2-400 cm (medición analógica precisa)
 ```
 
@@ -267,7 +267,7 @@ Brazo Robótico - Configuración Múltiple:
 GPIO 32 → Potenciómetro 1 (Articulación Base)
 GPIO 33 → Potenciómetro 2 (Articulación Medio)  
 GPIO 34 → Potenciómetro 3 (Articulación Final)
-GPIO 35 → Sensor Capacitivo (Detector de Objeto)
+GPIO 25 → Sensor Capacitivo (Detector de Objeto)
 
 Todos los potenciómetros: 3.3V, GND, señal analógica
 ```

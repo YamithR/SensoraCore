@@ -3,8 +3,12 @@
 # Sensores: Potenciómetro, IR Digital, Capacitivo Digital, Ultrasónico Analógico
 import network # type: ignore
 import socket
-from machine import Pin, ADC # type: ignore
+from machine import Pin, ADC, reset # type: ignore
 import time
+
+# Esperar a que el ESP32 se inicialice completamente
+print("Iniciando SensoraCore ESP32...")
+time.sleep(2)
 
 # Configuración WiFi (ajusta en wifi_config.py)
 try:
@@ -48,28 +52,103 @@ for pot_adc in [pot1, pot2, pot3]:
 current_mode = None
 continuous_client = None
 
-# Conexión WiFi
-sta = network.WLAN(network.STA_IF)
-sta.active(True)
-sta.connect(SSID, PASSWORD)
-while not sta.isconnected():
-    time.sleep(0.5)
+# Función para conectar WiFi con manejo de errores
+def connect_wifi():
+    print("Iniciando conexión WiFi...")
+    sta = network.WLAN(network.STA_IF)
+    
+    # Desactivar y reactivar WiFi para limpiar estado
+    sta.active(False)
+    time.sleep(1)
+    sta.active(True)
+    
+    # Intentar conexión con reintentos
+    max_attempts = 5
+    attempt = 1
+    
+    while attempt <= max_attempts:
+        try:
+            print(f"Intento {attempt}/{max_attempts}: Conectando a '{SSID}'...")
+            
+            # Verificar si ya está conectado
+            if sta.isconnected():
+                print(f'WiFi ya conectado. IP: {sta.ifconfig()[0]}')
+                return sta
+            
+            # Conectar a la red
+            sta.connect(SSID, PASSWORD)
+            
+            # Esperar conexión con timeout
+            timeout = 15  # 15 segundos timeout
+            start_time = time.time()
+            
+            while not sta.isconnected() and (time.time() - start_time) < timeout:
+                time.sleep(0.5)
+                led.value(not led.value())  # Parpadear LED durante conexión
+            
+            if sta.isconnected():
+                led.value(0)  # Apagar LED
+                ip = sta.ifconfig()[0]
+                print(f'WiFi conectado exitosamente!')
+                print(f'IP: {ip}')
+                print(f'Máscara: {sta.ifconfig()[1]}')
+                print(f'Gateway: {sta.ifconfig()[2]}')
+                print(f'DNS: {sta.ifconfig()[3]}')
+                return sta
+            else:
+                print(f"Timeout en intento {attempt}")
+                
+        except OSError as e:
+            print(f"Error OSError en intento {attempt}: {e}")
+        except Exception as e:
+            print(f"Error desconocido en intento {attempt}: {e}")
+        
+        attempt += 1
+        if attempt <= max_attempts:
+            print("Esperando antes del siguiente intento...")
+            time.sleep(2)
+    
+    print("ERROR: No se pudo conectar al WiFi después de todos los intentos")
+    print("Verifique:")
+    print("1. Nombre de red (SSID) correcto")
+    print("2. Contraseña correcta") 
+    print("3. Red WiFi disponible")
+    print("4. ESP32 dentro del rango de la red")
+    return None
 
-print(f'WiFi conectado. IP: {sta.ifconfig()[0]}')
+# Conectar WiFi
+sta = connect_wifi()
+if not sta:
+    print("FALLO CRÍTICO: Sin conexión WiFi - Reiniciando...")
+    reset()
 
 # Servidor simple para recibir comandos y enviar datos
-addr = socket.getaddrinfo('0.0.0.0', 8080)[0][-1]
-s = socket.socket()
-s.bind(addr)
-s.listen(1)
+def create_server():
+    try:
+        addr = socket.getaddrinfo('0.0.0.0', 8080)[0][-1]
+        s = socket.socket()
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Reutilizar dirección
+        s.bind(addr)
+        s.listen(1)
+        print(f"Servidor iniciado en puerto 8080")
+        print(f"IP del servidor: {sta.ifconfig()[0]}:8080")
+        return s
+    except Exception as e:
+        print(f"Error creando servidor: {e}")
+        return None
+
+s = create_server()
+if not s:
+    print("FALLO CRÍTICO: No se pudo crear el servidor - Reiniciando...")
+    reset()
 
 def angulo_simple_loop(client):
     global current_mode, continuous_client
     try:
         while current_mode == 'ANGULO_SIMPLE' and continuous_client == client:
             lectura = pot.read()
-            # Mapea de 0-4095 a 0-270 grados (rango típico de potenciómetro)
-            angulo = int((lectura * 270) / 4095)
+            # Mapear de 0-4095 a -135 a +135 grados
+            angulo = int(((lectura * 270) / 4095) - 135)
             msg = f"POT:{lectura},ANG:{angulo}\n"
             try:
                 client.send(msg.encode())
@@ -197,68 +276,94 @@ def distancia_ultrasonico_loop(client):
 # Bucle principal del servidor
 print("Servidor iniciado, esperando conexiones...")
 while True:
-    cl, addr = s.accept()
-    print('Cliente conectado desde', addr)
-    data = cl.recv(1024).decode()
-    
-    if 'GET_POT' in data:
-        value = pot.read()
-        cl.send(str(value).encode())
-    elif 'LED_ON' in data:
-        led.value(1)
-        cl.send(b'LED_ON_OK')
-    elif 'LED_OFF' in data:
-        led.value(0)
-        cl.send(b'LED_OFF_OK')
-    elif 'MODO:ANGULO_SIMPLE' in data:
-        current_mode = 'ANGULO_SIMPLE'
-        continuous_client = cl
-        cl.send(b'ANGULO_SIMPLE_OK')
-        angulo_simple_loop(cl)
+    try:
+        cl, addr = s.accept()
+        print('Cliente conectado desde', addr)
+        
+        # Configurar timeout para el socket del cliente
+        cl.settimeout(30)  # 30 segundos timeout
+        
+        data = cl.recv(1024).decode()
+        print(f"Comando recibido: {data.strip()}")
+        
+        if 'GET_POT' in data:
+            value = pot.read()
+            cl.send(str(value).encode())
+        elif 'LED_ON' in data:
+            led.value(1)
+            cl.send(b'LED_ON_OK')
+        elif 'LED_OFF' in data:
+            led.value(0)
+            cl.send(b'LED_OFF_OK')
+        elif 'MODO:ANGULO_SIMPLE' in data:
+            current_mode = 'ANGULO_SIMPLE'
+            continuous_client = cl
+            cl.send(b'ANGULO_SIMPLE_OK')
+            angulo_simple_loop(cl)
+            cl.close()
+            current_mode = None
+            continuous_client = None
+            continue
+        elif 'MODO:BRAZO_ANGULO' in data:
+            current_mode = 'BRAZO_ANGULO'
+            continuous_client = cl
+            cl.send(b'BRAZO_ANGULO_OK')
+            brazo_angulo_loop(cl)
+            cl.close()
+            current_mode = None
+            continuous_client = None
+            continue
+        elif 'MODO:DISTANCIA_IR' in data:
+            current_mode = 'DISTANCIA_IR'
+            continuous_client = cl
+            cl.send(b'DISTANCIA_IR_OK')
+            distancia_ir_loop(cl)
+            cl.close()
+            current_mode = None
+            continuous_client = None
+            continue
+        elif 'MODO:DISTANCIA_CAP' in data:
+            current_mode = 'DISTANCIA_CAP'
+            continuous_client = cl
+            cl.send(b'DISTANCIA_CAP_OK')
+            distancia_cap_loop(cl)
+            cl.close()
+            current_mode = None
+            continuous_client = None
+            continue
+        elif 'MODO:DISTANCIA_ULTRA' in data:
+            current_mode = 'DISTANCIA_ULTRA'
+            continuous_client = cl
+            cl.send(b'DISTANCIA_ULTRA_OK')
+            distancia_ultrasonico_loop(cl)
+            cl.close()
+            current_mode = None
+            continuous_client = None
+            continue
+        elif 'STOP' in data:
+            current_mode = None
+            cl.send(b'STOP_OK')
+        else:
+            cl.send(b'CMD_UNKNOWN')
+        
         cl.close()
-        current_mode = None
-        continuous_client = None
-        continue
-    elif 'MODO:BRAZO_ANGULO' in data:
-        current_mode = 'BRAZO_ANGULO'
-        continuous_client = cl
-        cl.send(b'BRAZO_ANGULO_OK')
-        brazo_angulo_loop(cl)
-        cl.close()
-        current_mode = None
-        continuous_client = None
-        continue
-    elif 'MODO:DISTANCIA_IR' in data:
-        current_mode = 'DISTANCIA_IR'
-        continuous_client = cl
-        cl.send(b'DISTANCIA_IR_OK')
-        distancia_ir_loop(cl)
-        cl.close()
-        current_mode = None
-        continuous_client = None
-        continue
-    elif 'MODO:DISTANCIA_CAP' in data:
-        current_mode = 'DISTANCIA_CAP'
-        continuous_client = cl
-        cl.send(b'DISTANCIA_CAP_OK')
-        distancia_cap_loop(cl)
-        cl.close()
-        current_mode = None
-        continuous_client = None
-        continue
-    elif 'MODO:DISTANCIA_ULTRA' in data:
-        current_mode = 'DISTANCIA_ULTRA'
-        continuous_client = cl
-        cl.send(b'DISTANCIA_ULTRA_OK')
-        distancia_ultrasonico_loop(cl)
-        cl.close()
-        current_mode = None
-        continuous_client = None
-        continue
-    elif 'STOP' in data:
-        current_mode = None
-        cl.send(b'STOP_OK')
-    else:
-        cl.send(b'CMD_UNKNOWN')
-    
-    cl.close()
+        
+    except OSError as e:
+        print(f"Error de red: {e}")
+        try:
+            cl.close()
+        except:
+            pass
+        # Verificar conexión WiFi
+        if not sta.isconnected():
+            print("Conexión WiFi perdida - Intentando reconectar...")
+            sta = connect_wifi()
+            if not sta:
+                print("No se pudo reconectar - Reiniciando...")
+                reset()
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+        try:
+            cl.close()
+        except:
+            pass
