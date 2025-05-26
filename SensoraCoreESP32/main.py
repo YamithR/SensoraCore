@@ -27,15 +27,15 @@ pot3 = ADC(Pin(34))  # Tercer potenciómetro (articulación 2)
 sensor_cap = Pin(25, Pin.IN, Pin.PULL_UP)  # Sensor capacitivo para agarre
 
 # Configuración para sensores de distancia DIGITALES
-# Sensor IR: GPIO digital en GPIO 35 (solo ON/OFF)
-sensor_ir = Pin(35, Pin.IN, Pin.PULL_UP)  # Sensor infrarrojo digital
+# Sensor IR: GPIO digital en GPIO 14 (solo ON/OFF)
+sensor_ir = Pin(14, Pin.IN, Pin.PULL_UP)  # Sensor infrarrojo digital
 
-# Sensor Capacitivo de Distancia: GPIO digital en GPIO 36 (solo ON/OFF)
-sensor_cap_dist = Pin(36, Pin.IN, Pin.PULL_UP)  # Sensor capacitivo digital
+# Sensor Capacitivo de Distancia: GPIO digital en GPIO 35 (solo ON/OFF)
+sensor_cap_dist = Pin(35, Pin.IN, Pin.PULL_UP)  # Sensor capacitivo digital
 
 # Sensor Ultrasónico HC-SR04: Pines trigger y echo
-trigger_pin = Pin(26, Pin.OUT)  # Pin trigger del HC-SR04
-echo_pin = Pin(27, Pin.IN)      # Pin echo del HC-SR04
+trigger_pin = Pin(26, Pin.OUT)   # Pin trigger del HC-SR04
+echo_pin = Pin(27, Pin.IN)       # Pin echo del HC-SR04
 
 # Configurar ADCs para los potenciómetros del brazo
 for pot_adc in [pot1, pot2, pot3]:

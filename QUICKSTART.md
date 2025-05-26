@@ -1,6 +1,6 @@
-# Configuración rápida de SensoraCore Alpha 0.2
+# Configuración rápida de SensoraCore Alpha 0.2.2
 
-## 🚀 Inicio Rápido - Interfaces Digital/Analógica Unificada
+## 🚀 Inicio Rápido - Interfaces Digital/Analógica Unificada con Gráficas Corregidas
 
 ### 1. Configurar ESP32
 
@@ -87,6 +87,18 @@ python main.py
    - VCC → 5V, GND → GND, Trig → GPIO 5, Echo → GPIO 18
    - **NUEVO EN ALPHA 0.2**: Medición analógica con gráficas
    - Rango: 2-400 cm, ideal para mediciones de distancia precisas
+
+### 6. Mejoras en Alpha 0.2.2
+
+1. **Gráficas Corregidas**:
+   - ✅ **Solucionado**: Las gráficas ahora se muestran correctamente desde el primer uso
+   - ✅ **Renderizado mejorado**: Canvas inicializado automáticamente
+   - ✅ **Sin pantallas en blanco**: Visualización inmediata al seleccionar sensores
+
+2. **Estabilidad Mejorada**:
+   - Interfaces de sensores analógicos más robustas
+   - Mejor experiencia de usuario al cambiar entre sensores
+   - Corrección de problemas de visualización en matplotlib
 
 ## 🔧 Solución de Problemas Comunes
 

@@ -798,9 +798,11 @@ class MainWindow(QMainWindow):
         # Configurar límites iniciales
         self.ax.set_xlim(0, 100)
         self.ax.set_ylim(0, 270)
-        
-        # Mejorar el layout del gráfico
+          # Mejorar el layout del gráfico
         self.figure.tight_layout(pad=2.0)
+        
+        # Inicializar el canvas con un dibujo inicial
+        self.canvas.draw()
         
         graph_layout.addWidget(self.canvas)
         layout.addWidget(graph_group)
@@ -1002,13 +1004,15 @@ class MainWindow(QMainWindow):
         
         # Agregar leyenda
         self.brazo_ax.legend(loc='upper right', fontsize=10)
-        
-        # Configurar límites iniciales
+          # Configurar límites iniciales
         self.brazo_ax.set_xlim(0, 100)
         self.brazo_ax.set_ylim(-135, 135)  # Rango de -135° a +135°
         
         # Mejorar el layout del gráfico
         self.brazo_figure.tight_layout(pad=2.0)
+        
+        # Inicializar el canvas con un dibujo inicial
+        self.brazo_canvas.draw()
         
         graph_layout.addWidget(self.brazo_canvas)
         layout.addWidget(graph_group)
@@ -1076,9 +1080,8 @@ class MainWindow(QMainWindow):
             <td style='padding: 8px;'>GND</td>
             <td style='padding: 8px;'>GND</td>
             <td style='padding: 8px;'>⚫ Negro</td>
-        </tr>
-        <tr>
-            <td style='padding: 8px;'>GPIO 35</td>
+        </tr>        <tr>
+            <td style='padding: 8px;'>GPIO 14</td>
             <td style='padding: 8px;'>OUT</td>
             <td style='padding: 8px; color: orange;'>🟠 Amarillo</td>
         </tr>
@@ -1228,9 +1231,8 @@ class MainWindow(QMainWindow):
             <td style='padding: 8px;'>GND</td>
             <td style='padding: 8px;'>GND</td>
             <td style='padding: 8px;'>⚫ Negro</td>
-        </tr>
-        <tr>
-            <td style='padding: 8px;'>GPIO 36</td>
+        </tr>        <tr>
+            <td style='padding: 8px;'>GPIO 35</td>
             <td style='padding: 8px;'>OUT</td>
             <td style='padding: 8px; color: blue;'>🔵 Azul</td>
         </tr>
@@ -1381,8 +1383,7 @@ class MainWindow(QMainWindow):
             <td style='padding: 8px;'>GND</td>
             <td style='padding: 8px;'>GND</td>
             <td style='padding: 8px;'>⚫ Negro</td>
-        </tr>
-        <tr>
+        </tr>        <tr>
             <td style='padding: 8px;'>GPIO 26</td>
             <td style='padding: 8px;'>TRIG</td>
             <td style='padding: 8px; color: green;'>🟢 Verde</td>
@@ -1422,10 +1423,9 @@ class MainWindow(QMainWindow):
         
         # Lecturas actuales
         readings_group = QGroupBox("📊 Lecturas Actuales")
-        readings_layout = QVBoxLayout(readings_group)
-          # ==================== LECTURAS DEL SENSOR ULTRASÓNICO ====================
-        # Etiqueta que muestra ADC, voltaje y distancia calculada en tiempo real
-        self.distancia_ultra_label = QLabel("ADC: -- | Voltaje: -- V | Distancia: -- cm")
+        readings_layout = QVBoxLayout(readings_group)        # ==================== LECTURAS DEL SENSOR ULTRASÓNICO ====================
+        # Etiqueta que muestra distancia, velocidad del sonido y ecuación de cálculo
+        self.distancia_ultra_label = QLabel("Distancia: -- cm")
         # ESTILO PARA LECTURAS - Color cyan temático con diseño destacado
         self.distancia_ultra_label.setStyleSheet("""
             font-size: 18px;                   /* Tamaño de fuente grande para lecturas */
@@ -1437,6 +1437,31 @@ class MainWindow(QMainWindow):
             border: 2px solid #17a2b8;          /* Borde cyan para consistencia */
         """)
         readings_layout.addWidget(self.distancia_ultra_label)
+        
+        # Información sobre velocidad del sonido y cálculo
+        self.sound_speed_label = QLabel("Velocidad del sonido: 343 m/s (20°C)")
+        self.sound_speed_label.setStyleSheet("""
+            font-size: 14px;
+            color: #495057;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 6px;
+            margin: 5px 0px;
+        """)
+        readings_layout.addWidget(self.sound_speed_label)
+        
+        # Ecuación de cálculo
+        self.equation_label = QLabel("Cálculo: Distancia = (Tiempo × 343 m/s) / 2")
+        self.equation_label.setStyleSheet("""
+            font-size: 13px;
+            color: #6c757d;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #17a2b8;
+            margin: 5px 0px;
+        """)
+        readings_layout.addWidget(self.equation_label)
         right_layout.addWidget(readings_group)
         
         # Controles de monitoreo
@@ -1518,12 +1543,15 @@ class MainWindow(QMainWindow):
         # LÍNEA DE DATOS - Color cyan para consistencia temática
         self.line_ultra, = self.ax_ultra.plot([], [], 'c-', linewidth=2, label='Distancia Ultrasónica')
         self.ax_ultra.legend()
-        
-        # CONFIGURAR LÍMITES INICIALES
+          # CONFIGURAR LÍMITES INICIALES
         self.ax_ultra.set_xlim(0, 60)     # 60 segundos de visualización
         self.ax_ultra.set_ylim(0, 400)    # Rango 0-400 cm (rango del HC-SR04)
         
         self.figure_ultra.tight_layout()
+        
+        # Inicializar el canvas con un dibujo inicial
+        self.canvas_ultra.draw()
+        
         graph_layout.addWidget(self.canvas_ultra)
         layout.addWidget(graph_group)
         
@@ -2282,8 +2310,8 @@ class MainWindow(QMainWindow):
             self.distancia_ultra_voltajes.pop(0)
             self.distancia_ultra_cm.pop(0)
         
-        # Actualizar etiqueta
-        self.distancia_ultra_label.setText(f"ADC: {lectura_adc} | Voltaje: {voltaje:.2f} V | Distancia: {distancia_cm:.1f} cm")
+        # Actualizar etiqueta con el nuevo formato simplificado
+        self.distancia_ultra_label.setText(f"Distancia: {distancia_cm:.1f} cm")
         
         # Actualizar gráfica de forma optimizada
         if hasattr(self, 'line_ultra'):
@@ -2293,8 +2321,7 @@ class MainWindow(QMainWindow):
             # Ajustar límites del eje X
             if len(x_data) > 0:
                 self.ax_ultra.set_xlim(0, max(100, len(x_data)))
-        
-        # Marcar para actualización
+          # Marcar para actualización
         self.pending_updates = True
         self.pending_distancia_ultra_data = (lectura_adc, voltaje, distancia_cm)
     
@@ -2309,7 +2336,7 @@ class MainWindow(QMainWindow):
             self.ax_ultra.set_xlim(0, 100)
             self.canvas_ultra.draw()
         
-        self.distancia_ultra_label.setText("ADC: -- | Voltaje: -- V | Distancia: -- cm")
+        self.distancia_ultra_label.setText("Distancia: -- cm")
         if hasattr(self, 'export_distancia_ultra_btn'):
             self.export_distancia_ultra_btn.setEnabled(False)
     

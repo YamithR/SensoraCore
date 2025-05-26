@@ -1,8 +1,8 @@
-# SensoraCore Alpha 0.2
+# SensoraCore Alpha 0.2.2
 
 **Sistema de Monitoreo de Sensores WiFi ESP32 + PySide6** 🚀
 
-✅ **VERSIÓN ALPHA 0.2** - Estado: **FUNCIONAL** con Interfaces Digital/Analógica Unificada
+✅ **VERSIÓN ALPHA 0.2.2** - Estado: **FUNCIONAL** con Correcciones de Gráficas
 
 **Fecha de Lanzamiento:** Mayo 25, 2025
 
@@ -57,7 +57,13 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - **✅ Optimización de rendimiento**: Sistema de updates mejorado para mejor fluidez
 - **✅ Arquitectura híbrida**: Diferenciación clara entre sensores digitales y analógicos
 
-## 📊 Estado del Proyecto - ALPHA 0.2
+### 🔧 Correcciones Alpha 0.2.2
+- **✅ Inicialización de gráficas corregida**: Solucionado problema donde las gráficas no se mostraban correctamente al seleccionar sensores
+- **✅ Canvas draw inicial agregado**: Añadido `canvas.draw()` inicial en todas las interfaces de sensores analógicos
+- **✅ Renderizado mejorado**: Las gráficas ahora se renderizan correctamente desde el primer uso
+- **✅ Estabilidad aumentada**: Eliminados errores de visualización en sensores de ángulo simple, brazo ángulo y ultrasónico
+
+## 📊 Estado del Proyecto - ALPHA 0.2.2
 
 ### ✅ COMPLETADO
 
@@ -86,6 +92,7 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - [x] Manejo de errores y mensajes informativos
 - [x] Configuración centralizada (config.py)
 - [x] Script para generar ejecutable (build_exe.py)
+- [x] **Inicialización de gráficas corregida (Alpha 0.2.2)**: Solucionado problema de renderizado inicial
 
 #### 🔌 ESP32 (SensoraCoreESP32)
 - [x] Código MicroPython funcional
@@ -607,6 +614,20 @@ Verificaciones:
 3. Verificar conexiones con continuidad
 4. Ajustar timeout en código si es necesario
 
+### ❌ Gráficas No Se Muestran al Iniciar (Solucionado en 0.2.2)
+
+**Síntomas**: Las gráficas aparecen en blanco o no se renderizan al seleccionar sensores analógicos
+```
+Estado: ✅ SOLUCIONADO en Alpha 0.2.2
+Causa: Falta de inicialización del canvas matplotlib
+Solución: Agregado canvas.draw() inicial en todas las interfaces
+```
+
+**Si experimentas este problema en versiones anteriores**:
+1. Actualizar a SensoraCore Alpha 0.2.2 o superior
+2. Verificar que se ejecute `canvas.draw()` después de configurar la gráfica
+3. Reiniciar la aplicación después de seleccionar un sensor
+
 ## 🚀 Generación de Ejecutable
 
 ### Crear Aplicación Standalone
@@ -812,6 +833,6 @@ Para reportar bugs o solicitar funcionalidades:
 
 ---
 
-**Versión**: Alpha 0.2
-**Estado**: Funcional con interfaces digital/analógica unificada  
-**Última actualización**: Mayo 25, 2025  
+**Versión**: Alpha 0.2.2
+**Estado**: Funcional con correcciones de gráficas aplicadas  
+**Última actualización**: Mayo 25, 2025
