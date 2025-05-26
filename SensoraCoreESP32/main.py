@@ -249,21 +249,16 @@ def distancia_ultrasonico_loop(client):
                 end_time = time.ticks_us()
                 if time.ticks_diff(end_time, start_time) > 30000:  # Timeout 30ms
                     break
-            
-            # Calcular distancia
+              # Calcular distancia
             duration = time.ticks_diff(end_time, start_time)
             if duration > 0:
                 distancia_cm = (duration * 0.034) / 2  # Velocidad del sonido
-                distancia_cm = max(2, min(400, distancia_cm))  # Límites del HC-SR04
+                distancia_cm = max(2, min(200, distancia_cm))  # Límites del HC-SR04
             else:
-                distancia_cm = 400  # Fuera de rango
+                distancia_cm = 200  # Fuera de rango
             
-            # Simular ADC y voltaje para compatibilidad con gráficas
-            # Mapear distancia a rango ADC simulado (2-400cm -> 0-4095)
-            adc_simulado = int((distancia_cm - 2) * 4095 / 398)
-            voltaje_simulado = (adc_simulado * 3.3) / 4095
-            
-            msg = f"ULTRA_ADC:{adc_simulado},ULTRA_V:{voltaje_simulado:.2f},ULTRA_CM:{distancia_cm:.1f}\n"
+            # Enviar solo la distancia real (sin datos simulados falsos)
+            msg = f"ULTRA_CM:{distancia_cm:.1f}\n"
             try:
                 client.send(msg.encode())
             except:

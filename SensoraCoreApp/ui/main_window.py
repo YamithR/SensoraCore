@@ -420,12 +420,12 @@ class DistanciaCapThread(QThread):
 # =====================================================================================
 # Propósito: Maneja sensor ultrasónico HC-SR04 para medición de distancia
 # Funcionalidad: Mide distancia real en centímetros usando ondas ultrasónicas
-# Datos: Lectura ADC, voltaje y distancia calculada
+# Datos: Solo distancia calculada (no ADC/voltaje simulados)
 
 class DistanciaUltrasonicThread(QThread):
-    # --- SEÑAL CON MÚLTIPLES VALORES ---
-    # Signal(int, float, float) = (lectura_adc, voltaje_medido, distancia_en_cm)
-    data_received = Signal(int, float, float)  # lectura_adc, voltaje, distancia_cm
+    # --- SEÑAL SIMPLIFICADA ---
+    # Signal(float) = distancia_en_cm
+    data_received = Signal(float)  # solo distancia_cm
     
     def __init__(self, esp32_ip, port=8080):
         """
@@ -437,14 +437,13 @@ class DistanciaUltrasonicThread(QThread):
         """
         super().__init__()                        # Inicializar clase padre QThread
         self.esp32_ip = esp32_ip                 # IP del microcontrolador ESP32
-        self.port = port                         # Puerto de comunicación TCP
-        self.running = False                     # Flag de control del bucle
+        self.port = port                         # Puerto de comunicación TCP        self.running = False                     # Flag de control del bucle
         self.sock = None                         # Socket de conexión TCP
     
     def run(self):
         """
         Método principal - maneja sensor ultrasónico HC-SR04
-        Formato esperado: "ULTRA_ADC:val,ULTRA_V:volt,ULTRA_CM:dist"
+        Formato esperado: "ULTRA_CM:25.4"
         """
         self.running = True                      # Activar bandera de ejecución
         try:
@@ -465,22 +464,17 @@ class DistanciaUltrasonicThread(QThread):
                     if not data:                 # Verificar conexión activa
                         break
                     
-                    # --- PROCESAR DATOS ANALÓGICOS ---
+                    # --- PROCESAR DATOS DE DISTANCIA ---
                     msg = data.decode(errors='ignore').strip()  # Convertir a string
                     for line in msg.split('\n'):               # Procesar cada línea
-                        if line.startswith('ULTRA_ADC:'):       # Identificar datos ultrasónicos
+                        if line.startswith('ULTRA_CM:'):        # Identificar datos ultrasónicos
                             try:
-                                # --- PARSEAR DATOS COMPLETOS ---
-                                # Formato: "ULTRA_ADC:1234,ULTRA_V:3.3,ULTRA_CM:25.4"
-                                parts = line.split(',')         # Separar por comas
+                                # --- PARSEAR SOLO DISTANCIA ---
+                                # Formato: "ULTRA_CM:25.4"
+                                distancia_cm = float(line.split(':')[1])  # Distancia en centímetros
                                 
-                                # Extraer cada valor individual
-                                lectura_adc = int(parts[0].split(':')[1])    # Lectura ADC (0-4095)
-                                voltaje = float(parts[1].split(':')[1])      # Voltaje analógico (0-3.3V)
-                                distancia_cm = float(parts[2].split(':')[1]) # Distancia en centímetros
-                                
-                                # --- EMITIR MEDICIONES COMPLETAS ---
-                                self.data_received.emit(lectura_adc, voltaje, distancia_cm)
+                                # --- EMITIR SOLO DISTANCIA REAL ---
+                                self.data_received.emit(distancia_cm)
                             except:
                                 pass                             # Ignorar errores de conversión
                                 
@@ -569,15 +563,12 @@ class MainWindow(QMainWindow):
         self.distancia_ir_lecturas = []         # Lecturas del sensor IR
         self.distancia_ir_voltajes = []         # Voltajes del sensor IR
         self.distancia_ir_cm = []               # Distancias calculadas del IR
-        
-        # --- Variables para sensor capacitivo ---
+          # --- Variables para sensor capacitivo ---
         self.distancia_cap_lecturas = []        # Lecturas del sensor capacitivo
         self.distancia_cap_voltajes = []        # Voltajes del sensor capacitivo
         self.distancia_cap_cm = []              # Distancias del capacitivo
         
         # --- Variables para sensor ultrasónico ---
-        self.distancia_ultra_lecturas = []      # Lecturas ADC del ultrasónico
-        self.distancia_ultra_voltajes = []      # Voltajes del ultrasónico
         self.distancia_ultra_cm = []            # Distancias reales del ultrasónico
         
         # --- Configuración común para sensores de distancia ---
@@ -1554,16 +1545,16 @@ class MainWindow(QMainWindow):
         <tr>
             <td style='padding: 8px;'>3.3V</td>
             <td style='padding: 8px;'>VCC</td>
-            <td style='padding: 8px; color: red;'>🔴 Rojo</td>
+            <td style='padding: 8px; color: brown;'>🟤 Marrón</td>
         </tr>
         <tr style='background-color: #ecf0f1;'>
             <td style='padding: 8px;'>GND</td>
             <td style='padding: 8px;'>GND</td>
-            <td style='padding: 8px;'>⚫ Negro</td>
+            <td style='padding: 8px;color: blue;'>🔵 Azul</td>
         </tr>        <tr>
             <td style='padding: 8px;'>GPIO 14</td>
             <td style='padding: 8px;'>OUT</td>
-            <td style='padding: 8px; color: orange;'>🟠 Amarillo</td>
+            <td style='padding: 8px; color: black;'>⚫ Negro</td>
         </tr>
         </table><br>
         
@@ -1716,16 +1707,16 @@ class MainWindow(QMainWindow):
         <tr>
             <td style='padding: 8px;'>3.3V</td>
             <td style='padding: 8px;'>VCC</td>
-            <td style='padding: 8px; color: red;'>🔴 Rojo</td>
+            <td style='padding: 8px; color: brown;'>🟤 Marrón</td>
         </tr>
         <tr style='background-color: #ecf0f1;'>
             <td style='padding: 8px;'>GND</td>
             <td style='padding: 8px;'>GND</td>
-            <td style='padding: 8px;'>⚫ Negro</td>
+            <td style='padding: 8px;color: blue;'>🔵 Azul</td>
         </tr>        <tr>
-            <td style='padding: 8px;'>GPIO 35</td>
+            <td style='padding: 8px;'>GPIO 14</td>
             <td style='padding: 8px;'>OUT</td>
-            <td style='padding: 8px; color: blue;'>🔵 Azul</td>
+            <td style='padding: 8px; color: black;'>⚫ Negro</td>
         </tr>
         </table><br>
         
@@ -1991,13 +1982,12 @@ class MainWindow(QMainWindow):
         
         # Acciones adicionales
         actions_layout = QHBoxLayout()
-          # ==================== BOTONES DE ACCIONES SECUNDARIAS ULTRASÓNICO ====================
-        # BOTÓN LIMPIAR GRÁFICA - Para borrar datos del sensor ultrasónico
+          # ==================== BOTONES DE ACCIONES SECUNDARIAS ULTRASÓNICO ====================        # BOTÓN LIMPIAR GRÁFICA - Para borrar datos del sensor ultrasónico
         self.clear_distancia_ultra_btn = QPushButton("🗑️ Limpiar Gráfica")
         self.clear_distancia_ultra_btn.clicked.connect(self.clear_distancia_ultra_graph)
         actions_layout.addWidget(self.clear_distancia_ultra_btn)
         
-        # BOTÓN EXPORTAR - Para guardar datos en Excel (ADC, voltaje, distancia)
+        # BOTÓN EXPORTAR - Para guardar datos en Excel (distancia)
         self.export_distancia_ultra_btn = QPushButton("📊 Exportar Excel")
         self.export_distancia_ultra_btn.clicked.connect(self.export_distancia_ultra_to_excel)
         self.export_distancia_ultra_btn.setEnabled(False)  # Se habilita solo cuando hay datos
@@ -3118,10 +3108,10 @@ class MainWindow(QMainWindow):
                 border: 3px solid {color};
                 text-align: center;
             """)
-            
-            # --- MARCAR PARA ACTUALIZACIÓN DE GRÁFICAS ---
+              # --- MARCAR PARA ACTUALIZACIÓN DE GRÁFICAS ---
             # No se usan gráficas para sensores digitales, solo estado actual
             self.pending_updates = True
+            self.pending_distancia_cap_data = estado_digital
         except RuntimeError:
             # Widget fue eliminado durante la actualización
             self.distancia_cap_is_monitoring = False
@@ -3227,18 +3217,15 @@ class MainWindow(QMainWindow):
         self.distancia_ultra_is_monitoring = False # Marcar como no monitoreando ultrasónico
         self.manage_graph_timer()                   # Gestionar timer compartido inteligentemente
         
-        # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---
-        self.start_distancia_ultra_btn.setText("▶️ Iniciar Monitoreo")
+        # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---        self.start_distancia_ultra_btn.setText("▶️ Iniciar Monitoreo")
         self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #17a2b8; border-color: #17a2b8; color: white; padding: 10px; }")
         self.stop_distancia_ultra_btn.setEnabled(False)
     
-    def update_distancia_ultra_data(self, lectura_adc, voltaje, distancia_cm):
+    def update_distancia_ultra_data(self, distancia_cm):
         """
         Actualiza datos en tiempo real del sensor de distancia ultrasónico.
         
         PARÁMETROS:
-        - lectura_adc (int): Valor ADC raw del ESP32 (0-4095)
-        - voltaje (float): Voltaje calculado en el pin analógico
         - distancia_cm (float): Distancia calculada en centímetros
         
         GESTIÓN DE MEMORIA:
@@ -3253,31 +3240,22 @@ class MainWindow(QMainWindow):
         - Optimiza rendimiento con actualización diferida
         
         INTERFAZ EN TIEMPO REAL:
-        - Actualiza etiquetas numéricas instantáneamente
-        - Muestra ADC, voltaje y distancia formateados
+        - Actualiza etiqueta de distancia formateada
         - Proporciona retroalimentación visual continua
         """
         # --- GESTIÓN DE MEMORIA CON BUFFER CIRCULAR ---
         max_points = 500  # Límite para evitar consumo excesivo de memoria
         
-        self.distancia_ultra_lecturas.append(lectura_adc)
-        self.distancia_ultra_voltajes.append(voltaje)
         self.distancia_ultra_cm.append(distancia_cm)
         
         # Mantener solo los últimos max_points (comportamiento FIFO)
-        if len(self.distancia_ultra_lecturas) > max_points:
-            self.distancia_ultra_lecturas.pop(0)
-            self.distancia_ultra_voltajes.pop(0)
+        if len(self.distancia_ultra_cm) > max_points:
             self.distancia_ultra_cm.pop(0)
-          # --- ACTUALIZAR ETIQUETAS EN TIEMPO REAL ---
+          # --- ACTUALIZAR ETIQUETA EN TIEMPO REAL ---
         try:
-            # Verificar que los widgets existen antes de actualizarlos
-            if hasattr(self, 'distancia_ultra_lectura_label'):
-                self.distancia_ultra_lectura_label.setText(f"ADC: {lectura_adc}")
-            if hasattr(self, 'distancia_ultra_voltaje_label'):
-                self.distancia_ultra_voltaje_label.setText(f"Voltaje: {voltaje:.2f}V")
-            if hasattr(self, 'distancia_ultra_distancia_label'):
-                self.distancia_ultra_distancia_label.setText(f"Distancia: {distancia_cm:.1f} cm")
+            # Verificar que el widget existe antes de actualizarlo
+            if hasattr(self, 'distancia_ultra_label'):
+                self.distancia_ultra_label.setText(f"Distancia: {distancia_cm:.1f} cm")
             
             # --- ACTUALIZAR GRÁFICA DE FORMA OPTIMIZADA ---
             if hasattr(self, 'line_ultra'):
@@ -3293,9 +3271,9 @@ class MainWindow(QMainWindow):
                     max_dist = max(self.distancia_ultra_cm)
                     margin = (max_dist - min_dist) * 0.1 if max_dist > min_dist else 10
                     self.ax_ultra.set_ylim(max(0, min_dist - margin), max_dist + margin)
-            
-            # --- MARCAR PARA ACTUALIZACIÓN DIFERIDA ---
+              # --- MARCAR PARA ACTUALIZACIÓN DIFERIDA ---
             self.pending_updates = True
+            self.pending_distancia_ultra_data = distancia_cm
         except RuntimeError:
             # Widget fue eliminado durante la actualización
             self.distancia_ultra_is_monitoring = False
@@ -3304,13 +3282,12 @@ class MainWindow(QMainWindow):
     def clear_distancia_ultra_graph(self):
         """
         Limpia la gráfica y datos del sensor de distancia ultrasónico.
-        
-        OPERACIONES DE LIMPIEZA:
-        1. Vaciar todas las listas de datos (ADC, voltaje, distancia)
+          OPERACIONES DE LIMPIEZA:
+        1. Vaciar lista de datos de distancia
         2. Resetear línea de gráfica a estado vacío
         3. Restaurar límites por defecto de los ejes
         4. Forzar redibujado del canvas de matplotlib
-        5. Resetear etiquetas numéricas al estado inicial
+        5. Resetear etiqueta numérica al estado inicial
         6. Mostrar confirmación al usuario
         
         CONFIGURACIÓN POR DEFECTO:
@@ -3320,10 +3297,7 @@ class MainWindow(QMainWindow):
         
         USO: Ideal para limpiar datos antes de una nueva sesión
         de monitoreo o cuando se requiere reiniciar mediciones.
-        """
-        # --- LIMPIAR TODAS LAS LISTAS DE DATOS ---
-        self.distancia_ultra_lecturas.clear()
-        self.distancia_ultra_voltajes.clear()
+        """        # --- LIMPIAR LISTA DE DATOS ---
         self.distancia_ultra_cm.clear()
         
         # --- RESETEAR GRÁFICA A ESTADO INICIAL ---
@@ -3333,11 +3307,7 @@ class MainWindow(QMainWindow):
             self.ax_ultra.set_ylim(0, 400)             # Restaurar límite Y (rango HC-SR04)
             self.canvas_ultra.draw()                   # Forzar redibujado
         
-        # --- RESETEAR ETIQUETAS NUMÉRICAS ---
-        if hasattr(self, 'distancia_ultra_lectura_label'):
-            self.distancia_ultra_lectura_label.setText("ADC: --")
-        if hasattr(self, 'distancia_ultra_voltaje_label'):
-            self.distancia_ultra_voltaje_label.setText("Voltaje: --")
+        # --- RESETEAR ETIQUETA NUMÉRICA ---
         if hasattr(self, 'distancia_ultra_distancia_label'):
             self.distancia_ultra_distancia_label.setText("Distancia: --")
         
@@ -3347,18 +3317,15 @@ class MainWindow(QMainWindow):
     def export_distancia_ultra_to_excel(self):
         """
         Exporta los datos del sensor de distancia ultrasónico a un archivo Excel.
-        
-        CONTENIDO DEL ARCHIVO:
-        1. Datos tabulares: Tiempo, ADC, Voltaje, Distancia
+          CONTENIDO DEL ARCHIVO:
+        1. Datos tabulares: Tiempo, Distancia
         2. Gráfica integrada: Distancia vs Tiempo con formato profesional
         3. Estadísticas calculadas: Mín, Máx, Promedio de distancias
         4. Metadatos: Timestamp de exportación y configuración del sensor
         
         FORMATO DE DATOS:
         - Columna A: Tiempo estimado en segundos (basado en frecuencia de muestreo)
-        - Columna B: Lectura ADC raw (0-4095)
-        - Columna C: Voltaje calculado con 2 decimales
-        - Columna D: Distancia en centímetros con 1 decimal
+        - Columna B: Distancia en centímetros con 1 decimal
         
         CARACTERÍSTICAS:
         - Encabezados con formato bold y centrado
@@ -3390,37 +3357,29 @@ class MainWindow(QMainWindow):
             wb = Workbook()
             ws = wb.active
             ws.title = "Datos Ultrasónico"
-            
-            # --- CONFIGURAR ENCABEZADOS CON FORMATO ---
-            headers = ["Tiempo (s)", "Lectura ADC", "Voltaje (V)", "Distancia (cm)"]
+              # --- CONFIGURAR ENCABEZADOS CON FORMATO ---
+            headers = ["Tiempo (s)", "Distancia (cm)"]
             for col, header in enumerate(headers, 1):
                 cell = ws.cell(row=1, column=col, value=header)
                 cell.font = Font(bold=True)                    # Texto en negrita
                 cell.alignment = Alignment(horizontal='center') # Centrar texto
             
             # --- ESCRIBIR DATOS TABULARES ---
-            for i, (lectura, voltaje, distancia) in enumerate(zip(
-                self.distancia_ultra_lecturas, 
-                self.distancia_ultra_voltajes, 
-                self.distancia_ultra_cm
-            )):
+            for i, distancia in enumerate(self.distancia_ultra_cm):
                 ws.cell(row=i+2, column=1, value=i*0.1)  # Tiempo estimado (100ms por muestra)
-                ws.cell(row=i+2, column=2, value=lectura)
-                ws.cell(row=i+2, column=3, value=voltaje)
-                ws.cell(row=i+2, column=4, value=distancia)
+                ws.cell(row=i+2, column=2, value=distancia)
             
             # --- CREAR GRÁFICA INTEGRADA ---
             chart = LineChart()
             chart.title = "Distancia Ultrasónica vs Tiempo"
             chart.x_axis.title = "Tiempo (s)"
             chart.y_axis.title = "Distancia (cm)"
-            
-            # Configurar datos para la gráfica
-            data = Reference(ws, min_col=4, min_row=1, max_row=len(self.distancia_ultra_cm)+1)
+              # Configurar datos para la gráfica
+            data = Reference(ws, min_col=2, min_row=1, max_row=len(self.distancia_ultra_cm)+1)
             chart.add_data(data, titles_from_data=True)
             
             # Agregar gráfica al worksheet
-            ws.add_chart(chart, "F2")
+            ws.add_chart(chart, "D2")
             
             # --- AGREGAR ESTADÍSTICAS CALCULADAS ---
             stats_row = len(self.distancia_ultra_cm) + 5

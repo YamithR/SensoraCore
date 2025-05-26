@@ -335,7 +335,7 @@ Todos los potenciómetros: 3.3V, GND, señal analógica
 | `MODO:BRAZO_ANGULO` | Activar modo brazo robótico | `POT1:val,ANG1:ang,POT2:val,ANG2:ang,POT3:val,ANG3:ang,SENSOR:state` | Analógico múltiple |
 | `MODO:DISTANCIA_IR` | Activar sensor IR digital | `IR_DIGITAL:True/False` | Digital |
 | `MODO:DISTANCIA_CAP` | Activar sensor capacitivo digital | `CAP_DIGITAL:True/False` | Digital |
-| `MODO:DISTANCIA_ULTRA` | Activar sensor ultrasónico | `ULTRA_ADC:val,ULTRA_V:volt,ULTRA_CM:dist` | Analógico |
+| `MODO:DISTANCIA_ULTRA` | Activar sensor ultrasónico | `ULTRA_CM:dist` | Analógico |
 | `STOP` | Detener modo continuo | `STOP_OK` | Control |
 
 ### Formato de Datos en Tiempo Real
@@ -350,8 +350,8 @@ POT:1024,ANG:67
 POT1:2048,ANG1:135,POT2:1024,ANG2:67,POT3:3072,ANG3:203,SENSOR:True
 
 # Sensor Ultrasónico  
-ULTRA_ADC:1500,ULTRA_V:1.21,ULTRA_CM:125.3
-ULTRA_ADC:2000,ULTRA_V:1.61,ULTRA_CM:165.8
+ULTRA_CM:125.3
+ULTRA_CM:165.8
 ```
 
 #### Sensores Digitales (Estados ON/OFF)
@@ -394,11 +394,8 @@ El archivo Excel exportado contiene múltiples hojas según el sensor:
 - **Múltiples gráficas**: Una por articulación
 
 #### **Hoja "Datos Ultrasónico"**:
-- **Columna A**: Número de muestra
-- **Columna B**: Valor ADC
-- **Columna C**: Voltaje (V)
-- **Columna D**: Distancia (cm)
-- **Columna E**: Timestamp
+- **Columna A**: Tiempo (s)
+- **Columna B**: Distancia (cm)
 - **Gráfica de distancia vs tiempo**
 
 #### **Sensores Digitales**:
