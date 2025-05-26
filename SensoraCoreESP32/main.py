@@ -10,9 +10,11 @@ import time
 try:
     from wifi_config import SSID, PASSWORD
 except ImportError:
-    SSID = 'CanelaYMaya'
-    PASSWORD = 'CanelayMayaEner0'
+    # Si no existe wifi_config.py, usa estos valores predeterminados
+    SSID = 'NombreDeTuRed'
+    PASSWORD = 'ContraseñaDeTuRed'
 
+# Configuración del LED integrado (GPIO 2)
 led = Pin(2, Pin.OUT)
 
 # Configuración para Ángulo Simple
