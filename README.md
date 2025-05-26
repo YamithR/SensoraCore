@@ -800,13 +800,8 @@ SOFTWARE.
 
 ### 🌐 Enlaces del Proyecto
 - **Repositorio**: https://github.com/YamithR/SensoraCore
-- **Issues**: Mail : yamithromero@hotmail.com
+- **Issues**: [Mail : yamithromero@hotmail.com](https://github.com/YamithR/SensoraCore/issues)
 - **Discusiones**: [URL del foro de la comunidad]
-
-### 📧 Contacto
-- **Email del Proyecto**: [email de contacto]
-- **Líder del Proyecto**: [nombre y contacto]
-- **Soporte Técnico**: [email de soporte]
 
 ### 🐞 Reportar Problemas
 Para reportar bugs o solicitar funcionalidades:
@@ -817,6 +812,6 @@ Para reportar bugs o solicitar funcionalidades:
 
 ---
 
-**Versión**: Alpha 0.2  
+**Versión**: Alpha 0.2
 **Estado**: Funcional con interfaces digital/analógica unificada  
 **Última actualización**: Mayo 25, 2025  

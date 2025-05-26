@@ -681,13 +681,13 @@ class MainWindow(QMainWindow):
         diagram_text = QLabel("""
 <pre style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #495057;">
 ┌─────────────────────────────────┐
-│  ESP32 DevKit V1               │
-│                                │
-│  3V3  ○ ←── Potenciómetro (+)  │
-│  GND  ○ ←── Potenciómetro (-)  │
-│  D32  ○ ←── Potenciómetro (S)  │
-│                                │
-│  LED integrado: GPIO 2         │
+│  ESP32 DevKit V1                │
+│                                 │
+│  3V3  ○ ←── Potenciómetro (+)   │
+│  GND  ○ ←── Potenciómetro (-)   │
+│  D32  ○ ←── Potenciómetro (S)   │
+│                                 │
+│  LED integrado: GPIO 2          │
 └─────────────────────────────────┘
 
 <b>Potenciómetro 10kΩ:</b>
@@ -846,16 +846,16 @@ class MainWindow(QMainWindow):
         diagram_text = QLabel("""
 <pre style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #495057;">
 ┌─────────────────────────────────┐
-│  ESP32 DevKit V1               │
-│                                │
-│  3V3  ○ ←── Potenciómetros (+) │
-│  GND  ○ ←── Potenciómetros (-) │
+│  ESP32 DevKit V1                │
+│                                 │
+│  3V3  ○ ←── Potenciómetros (+)  │
+│  GND  ○ ←── Potenciómetros (-)  │
 │  D32  ○ ←── Potenciómetro 1 (S) │
 │  D33  ○ ←── Potenciómetro 2 (S) │
 │  D34  ○ ←── Potenciómetro 3 (S) │
-│  D25  ○ ←── Sensor Capacitivo  │
-│                                │
-│  LED integrado: GPIO 2         │
+│  D25  ○ ←── Sensor Capacitivo   │
+│                                 │
+│  LED integrado: GPIO 2          │
 └─────────────────────────────────┘
 
 <b>3 Potenciómetros 10kΩ:</b>
