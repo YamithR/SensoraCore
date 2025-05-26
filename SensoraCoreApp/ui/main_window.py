@@ -1171,16 +1171,8 @@ class MainWindow(QMainWindow):
         
         # BOTÓN INICIAR - Color verde para indicar acción positiva
         self.start_btn = QPushButton("▶️ Iniciar Monitoreo")  # Botón con emoji de play
-        self.start_btn.clicked.connect(self.toggle_angulo_monitoring)  # Conectar a método de control
-        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde Bootstrap
+        self.start_btn.clicked.connect(self.toggle_angulo_monitoring)  # Conectar a método de control        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde Bootstrap
         buttons_layout.addWidget(self.start_btn)  # Agregar al layout de botones
-        
-        # BOTÓN DETENER - Color rojo para indicar acción de parada
-        self.stop_btn = QPushButton("⏹️ Detener")  # Botón con emoji de stop
-        self.stop_btn.clicked.connect(self.stop_angulo_monitoring)  # Conectar a método de parada
-        self.stop_btn.setEnabled(False)         # Inicialmente deshabilitado
-        self.stop_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; }")  # Rojo Bootstrap
-        buttons_layout.addWidget(self.stop_btn)  # Agregar al layout de botones
         
         controls_layout.addLayout(buttons_layout)  # Agregar botones principales a controles
         
@@ -1401,20 +1393,11 @@ class MainWindow(QMainWindow):
         
         # ==================== BOTONES DE CONTROL PARA BRAZO ROBÓTICO ====================
         buttons_layout = QHBoxLayout()
-        
-        # BOTÓN INICIAR MONITOREO - Verde para acción positiva
+          # BOTÓN INICIAR MONITOREO - Verde para acción positiva
         self.brazo_start_btn = QPushButton("▶️ Iniciar Monitoreo")
         self.brazo_start_btn.clicked.connect(self.toggle_brazo_monitoring)
         self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")
         buttons_layout.addWidget(self.brazo_start_btn)
-        
-        # BOTÓN DETENER - Rojo para acción de parada
-        self.brazo_stop_btn = QPushButton("⏹️ Detener")
-        self.brazo_stop_btn.clicked.connect(self.stop_brazo_monitoring)
-        self.brazo_stop_btn.setEnabled(False)  # Inicialmente deshabilitado
-        # ESTILO: Color rojo (#dc3545) para indicar acción de detención
-        self.brazo_stop_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; }")
-        buttons_layout.addWidget(self.brazo_stop_btn)
         
         controls_layout.addLayout(buttons_layout)
         
@@ -1608,20 +1591,12 @@ class MainWindow(QMainWindow):
         controls_group = QGroupBox("🕹️ Controles")
         controls_layout = QVBoxLayout(controls_group)
         
-        buttons_layout = QHBoxLayout()
-          # ==================== BOTÓN INICIAR MONITOREO IR ====================
+        buttons_layout = QHBoxLayout()        # ==================== BOTÓN INICIAR MONITOREO IR ====================
         self.start_distancia_ir_btn = QPushButton("▶️ Iniciar Monitoreo")
         self.start_distancia_ir_btn.clicked.connect(self.toggle_distancia_ir_monitoring)
         # ESTILO: Color rojo temático del sensor IR para consistencia visual
         self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #e74c3c; border-color: #e74c3c; color: white; padding: 10px; }")
         buttons_layout.addWidget(self.start_distancia_ir_btn)
-          # BOTÓN DETENER - Rojo estándar para acción de parada
-        self.stop_distancia_ir_btn = QPushButton("⏹️ Detener")
-        self.stop_distancia_ir_btn.clicked.connect(self.stop_distancia_ir_monitoring)
-        self.stop_distancia_ir_btn.setEnabled(False)  # Inicialmente deshabilitado
-        # ESTILO: Color rojo para detener, ligeramente diferente al color temático
-        self.stop_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; color: white; padding: 10px; }")
-        buttons_layout.addWidget(self.stop_distancia_ir_btn)
         
         controls_layout.addLayout(buttons_layout)
         right_layout.addWidget(controls_group)
@@ -1770,20 +1745,12 @@ class MainWindow(QMainWindow):
         controls_group = QGroupBox("🕹️ Controles")
         controls_layout = QVBoxLayout(controls_group)
         
-        buttons_layout = QHBoxLayout()
-          # ==================== BOTÓN INICIAR MONITOREO CAPACITIVO ====================
+        buttons_layout = QHBoxLayout()        # ==================== BOTÓN INICIAR MONITOREO CAPACITIVO ====================
         self.start_distancia_cap_btn = QPushButton("▶️ Iniciar Monitoreo")
         self.start_distancia_cap_btn.clicked.connect(self.toggle_distancia_cap_monitoring)
         # ESTILO: Color azul temático del sensor capacitivo para consistencia visual
         self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #3498db; border-color: #3498db; color: white; padding: 10px; }")
         buttons_layout.addWidget(self.start_distancia_cap_btn)
-          # BOTÓN DETENER - Rojo estándar para acción de parada
-        self.stop_distancia_cap_btn = QPushButton("⏹️ Detener")
-        self.stop_distancia_cap_btn.clicked.connect(self.stop_distancia_cap_monitoring)
-        self.stop_distancia_cap_btn.setEnabled(False)  # Inicialmente deshabilitado
-        # ESTILO: Color rojo para detener, consistente con otros sensores
-        self.stop_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; color: white; padding: 10px; }")
-        buttons_layout.addWidget(self.stop_distancia_cap_btn)
         
         controls_layout.addLayout(buttons_layout)
         right_layout.addWidget(controls_group)
@@ -1965,18 +1932,9 @@ class MainWindow(QMainWindow):
         buttons_layout = QHBoxLayout()
           # ==================== BOTÓN INICIAR MONITOREO ULTRASÓNICO ====================
         self.start_distancia_ultra_btn = QPushButton("▶️ Iniciar Monitoreo")
-        self.start_distancia_ultra_btn.clicked.connect(self.toggle_distancia_ultra_monitoring)
-        # ESTILO: Color cyan temático del sensor ultrasónico para consistencia visual
+        self.start_distancia_ultra_btn.clicked.connect(self.toggle_distancia_ultra_monitoring)        # ESTILO: Color cyan temático del sensor ultrasónico para consistencia visual
         self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #17a2b8; border-color: #17a2b8; color: white; padding: 10px; }")
         buttons_layout.addWidget(self.start_distancia_ultra_btn)
-        
-        # BOTÓN DETENER - Rojo estándar para acción de parada
-        self.stop_distancia_ultra_btn = QPushButton("⏹️ Detener")
-        self.stop_distancia_ultra_btn.clicked.connect(self.stop_distancia_ultra_monitoring)
-        self.stop_distancia_ultra_btn.setEnabled(False)  # Inicialmente deshabilitado
-        # ESTILO: Color rojo para detener, consistente con otros sensores
-        self.stop_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #dc3545; border-color: #dc3545; color: white; padding: 10px; }")
-        buttons_layout.addWidget(self.stop_distancia_ultra_btn)
         
         controls_layout.addLayout(buttons_layout)
         
@@ -2311,11 +2269,9 @@ class MainWindow(QMainWindow):
             # --- INICIAR MONITOREO ASÍNCRONO ---
             self.angulo_thread.start()           # Iniciar thread de comunicación
             self.is_monitoring = True            # Marcar estado como monitoreando
-            
-            # --- ACTUALIZAR INTERFAZ DE CONTROL ---
+              # --- ACTUALIZAR INTERFAZ DE CONTROL ---
             self.start_btn.setText("⏸️ Pausar")   # Cambiar botón a pausar
             self.start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; }")  # Amarillo pausa
-            self.stop_btn.setEnabled(True)       # Habilitar botón detener
             self.export_btn.setEnabled(True)     # Habilitar exportación
               # --- INICIAR ACTUALIZACIÓN GRÁFICA ---
             self.manage_graph_timer()           # Gestionar timer compartido inteligentemente
@@ -2344,11 +2300,9 @@ class MainWindow(QMainWindow):
           # --- ACTUALIZAR ESTADO Y TIMERS ---
         self.is_monitoring = False               # Marcar como no monitoreando
         self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
-        
-        # --- RESTAURAR INTERFAZ DE CONTROL ---
+          # --- RESTAURAR INTERFAZ DE CONTROL ---
         self.start_btn.setText("▶️ Iniciar Monitoreo")  # Restaurar texto inicial
         self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde inicial
-        self.stop_btn.setEnabled(False)          # Deshabilitar botón detener    
     # =====================================================================================
     # MÉTODO: ACTUALIZAR DATOS DEL SENSOR DE ÁNGULO
     # =====================================================================================
@@ -2546,11 +2500,9 @@ class MainWindow(QMainWindow):
             # --- INICIAR MONITOREO MULTI-SENSOR ---
             self.brazo_thread.start()            # Iniciar thread de comunicación
             self.brazo_is_monitoring = True      # Marcar estado como monitoreando brazo
-            
-            # --- ACTUALIZAR INTERFAZ DE CONTROL ---
+              # --- ACTUALIZAR INTERFAZ DE CONTROL ---
             self.brazo_start_btn.setText("⏸️ Pausar")  # Cambiar botón a pausar
             self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; }")  # Amarillo pausa
-            self.brazo_stop_btn.setEnabled(True) # Habilitar botón detener
             self.brazo_export_btn.setEnabled(True)  # Habilitar exportación multi-datos
               # --- INICIAR ACTUALIZACIÓN GRÁFICA MULTI-LÍNEA ---
             self.manage_graph_timer()            # Gestionar timer compartido inteligentemente
@@ -2579,11 +2531,9 @@ class MainWindow(QMainWindow):
           # --- ACTUALIZAR ESTADO Y TIMERS ---
         self.brazo_is_monitoring = False         # Marcar como no monitoreando brazo
         self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
-        
-        # --- RESTAURAR INTERFAZ DE CONTROL ---
+          # --- RESTAURAR INTERFAZ DE CONTROL ---
         self.brazo_start_btn.setText("▶️ Iniciar Monitoreo")  # Restaurar texto inicial
         self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde inicial
-        self.brazo_stop_btn.setEnabled(False)    # Deshabilitar botón detener
     
     # =====================================================================================
     # MÉTODO: ACTUALIZAR DATOS DEL BRAZO ROBÓTICO
@@ -2818,7 +2768,7 @@ class MainWindow(QMainWindow):
             # --- ACTUALIZAR INTERFAZ DE CONTROL IR ---
             self.start_distancia_ir_btn.setText("⏸️ Pausar")  # Cambiar botón a pausar
             self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")  # Amarillo pausa
-            self.stop_distancia_ir_btn.setEnabled(True)  # Habilitar botón detener
+
             if hasattr(self, 'export_distancia_ir_btn'):  # Si existe botón de exportación
                 self.export_distancia_ir_btn.setEnabled(True)  # Habilitar exportación
               # --- INICIAR ACTUALIZACIÓN GRÁFICA IR ---
@@ -2848,10 +2798,8 @@ class MainWindow(QMainWindow):
           # --- ACTUALIZAR ESTADO Y TIMERS ---
         self.distancia_ir_is_monitoring = False # Marcar como no monitoreando IR
         self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
-          # Actualizar interfaz
-        self.start_distancia_ir_btn.setText("▶️ Iniciar Monitoreo")
+          # Actualizar interfaz        self.start_distancia_ir_btn.setText("▶️ Iniciar Monitoreo")
         self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #e74c3c; border-color: #e74c3c; color: white; padding: 10px; }")
-        self.stop_distancia_ir_btn.setEnabled(False)
 
     def update_distancia_ir_data(self, estado_digital):
         """Actualiza los datos del sensor de distancia IR (digital)"""
@@ -3020,11 +2968,9 @@ class MainWindow(QMainWindow):
             # --- INICIAR MONITOREO EN SEGUNDO PLANO ---
             self.distancia_cap_thread.start()
             self.distancia_cap_is_monitoring = True
-            
-            # --- ACTUALIZAR INTERFAZ DE USUARIO ---
+              # --- ACTUALIZAR INTERFAZ DE USUARIO ---
             self.start_distancia_cap_btn.setText("⏸️ Pausar")
             self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")
-            self.stop_distancia_cap_btn.setEnabled(True)
             if hasattr(self, 'export_distancia_cap_btn'):
                 self.export_distancia_cap_btn.setEnabled(True)
             
@@ -3059,11 +3005,9 @@ class MainWindow(QMainWindow):
           # --- ACTUALIZAR ESTADO Y TIMERS ---
         self.distancia_cap_is_monitoring = False # Marcar como no monitoreando capacitivo
         self.manage_graph_timer()                 # Gestionar timer compartido inteligentemente
-        
-        # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---
+          # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---
         self.start_distancia_cap_btn.setText("▶️ Iniciar Monitoreo")
         self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #3498db; border-color: #3498db; color: white; padding: 10px; }")
-        self.stop_distancia_cap_btn.setEnabled(False)
     
     def update_distancia_cap_data(self, estado_digital):
         """
@@ -3178,11 +3122,9 @@ class MainWindow(QMainWindow):
             # --- INICIAR MONITOREO EN SEGUNDO PLANO ---
             self.distancia_ultra_thread.start()
             self.distancia_ultra_is_monitoring = True
-            
-            # --- ACTUALIZAR INTERFAZ DE USUARIO ---
+              # --- ACTUALIZAR INTERFAZ DE USUARIO ---
             self.start_distancia_ultra_btn.setText("⏸️ Pausar")
             self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")
-            self.stop_distancia_ultra_btn.setEnabled(True)
             if hasattr(self, 'export_distancia_ultra_btn'):
                 self.export_distancia_ultra_btn.setEnabled(True)
               # --- ACTIVAR TIMER DE ACTUALIZACIÓN GRÁFICA ---
@@ -3216,10 +3158,9 @@ class MainWindow(QMainWindow):
           # --- ACTUALIZAR ESTADO Y TIMERS ---
         self.distancia_ultra_is_monitoring = False # Marcar como no monitoreando ultrasónico
         self.manage_graph_timer()                   # Gestionar timer compartido inteligentemente
-        
-        # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---        self.start_distancia_ultra_btn.setText("▶️ Iniciar Monitoreo")
+          # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---
+        self.start_distancia_ultra_btn.setText("▶️ Iniciar Monitoreo")
         self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #17a2b8; border-color: #17a2b8; color: white; padding: 10px; }")
-        self.stop_distancia_ultra_btn.setEnabled(False)
     
     def update_distancia_ultra_data(self, distancia_cm):
         """

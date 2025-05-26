@@ -4,13 +4,13 @@ Archivo de configuración para personalizar el comportamiento de SensoraCore
 """
 
 # Configuración de red
-DEFAULT_ESP32_IP = "192.168.20.25"  # IP por defecto del ESP32
+DEFAULT_ESP32_IP = "192.168.10.243"  # IP por defecto del ESP32
 ESP32_PORT = 8080  # Puerto de comunicación
 CONNECTION_TIMEOUT = 3  # Timeout de conexión en segundos
 
 # Configuración de gráficas
-MAX_GRAPH_POINTS = 200  # Máximo número de puntos en la gráfica
-GRAPH_UPDATE_INTERVAL = 50  # Intervalo de actualización en ms
+MAX_GRAPH_POINTS = 100  # Máximo número de puntos en la gráfica
+GRAPH_UPDATE_INTERVAL = 100  # Intervalo de actualización en ms
 GRAPH_COLORS = {
     'angulo': 'blue',
     'distancia': 'red',
