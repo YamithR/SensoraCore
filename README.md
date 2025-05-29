@@ -23,6 +23,7 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - **Controles dinámicos**: Botones cambian según el contexto
 - **Validación inteligente**: Sistema previene estados inconsistentes
 - **Lista de sensores como menú**: Selección intuitiva con efectos visuales
+- **Botón de reinicio inteligente**: Reinicia interfaz manteniendo conexión ESP32
 
 ### 📊 **Visualización Avanzada**
 - **Gráficas profesionales**: Colores destacados y grid sutil
@@ -101,6 +102,7 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - [x] Script para generar ejecutable (build_exe.py)
 - [x] **Inicialización de gráficas corregida (Alpha 0.2.2)**: Solucionado problema de renderizado inicial
 - [x] **Interfaces de sensores corregidas (Alpha 0.2.3)**: Solucionada dependencia de interfaces y errores de exportación Excel
+- [x] **Botón "Reiniciar Interfaz"**: Función para limpiar toda la interfaz manteniendo conexión ESP32 activa
 
 #### 🔌 ESP32 (SensoraCoreESP32)
 - [x] Código MicroPython funcional
@@ -315,11 +317,19 @@ Todos los potenciómetros: 3.3V, GND, señal analógica
 6. **Limpiar Gráfica**:
    - Usa "Limpiar gráfica" para borrar todos los datos y reiniciar
 
+7. **Reiniciar Interfaz** 🔄:
+   - **Funcionalidad**: Limpia completamente la interfaz como si acabaras de conectar
+   - **Preserva**: Mantiene la conexión ESP32 activa sin desconectar
+   - **Limpia**: Todos los datos de sensores, gráficas, estados de monitoreo
+   - **Resetea**: Vuelve a la pantalla de bienvenida con todos los controles en estado inicial
+   - **Uso**: Ideal para comenzar una nueva sesión de mediciones sin reconectar
+
 ### 🎯 Características de la Interfaz
 
 #### Panel Izquierdo (1/3 del ancho)
 - **Campo IP**: Entrada para dirección ESP32
 - **Botón Conectar**: Con indicador visual de estado
+- **Botón Reiniciar Interfaz** 🔄: Limpia toda la interfaz manteniendo conexión ESP32
 - **Lista de Sensores**: Aparece solo después de conexión exitosa
 - **Diagrama de Conexiones**: Información visual del hardware
 

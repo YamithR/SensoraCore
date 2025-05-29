@@ -60,6 +60,11 @@ python main.py
    - Presiona "Exportar datos a Excel"
    - Elige ubicación del archivo
 
+4. **Reiniciar interfaz**:
+   - Usa el botón "🔄 Reiniciar Interfaz" para limpiar todo
+   - Mantiene la conexión ESP32 pero resetea la interfaz completa
+   - Ideal para empezar nuevas mediciones sin reconectar
+
 ### 4. Nuevas Funciones Alpha 0.2.3
 
 1. **Interfaz Digital Unificada**:
