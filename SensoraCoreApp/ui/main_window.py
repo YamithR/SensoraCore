@@ -889,11 +889,43 @@ class MainWindow(QMainWindow):
         
         sensors_layout.addWidget(self.sensors_list)  # Agregar lista al grupo
         layout.addWidget(self.sensors_group)   # Agregar grupo al panel principal
+          # =====================================================================================
+        # SECCIÓN: BOTÓN DE REINICIO EN ESQUINA SUPERIOR IZQUIERDA
+        # =====================================================================================
+        
+        # --- BOTÓN DE REINICIO ---
+        self.restart_btn = QPushButton("🔄 Reiniciar Interfaz")  # Botón con emoji de reinicio
+        self.restart_btn.setMinimumHeight(40)    # Altura mínima para mayor visibilidad
+        self.restart_btn.setMaximumWidth(180)    # Ancho máximo controlado
+        self.restart_btn.clicked.connect(self.restart_application)  # Conectar al método de reinicio
+        self.restart_btn.setEnabled(False)      # Deshabilitado hasta conectar ESP32
+        self.restart_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;     /* Verde para acción positiva */
+                color: white;                   /* Texto blanco */
+                border: none;                   /* Sin borde */
+                border-radius: 8px;             /* Esquinas redondeadas */
+                font-weight: bold;              /* Texto en negrita */
+                font-size: 12px;                /* Tamaño de fuente legible */
+                padding: 8px 12px;              /* Espaciado interno */
+            }
+            QPushButton:hover {
+                background-color: #218838;     /* Verde más oscuro al pasar mouse */
+            }
+            QPushButton:pressed {
+                background-color: #1e7e34;     /* Verde aún más oscuro al presionar */
+            }
+            QPushButton:disabled {
+                background-color: #6c757d;     /* Gris cuando está deshabilitado */
+                color: #dee2e6;                 /* Texto gris claro */
+            }
+        """)
+        layout.addWidget(self.restart_btn)       # Agregar botón al panel principal
         
         # --- ESPACIADOR FLEXIBLE ---
         layout.addStretch()                     # Agregar espacio flexible al final
         
-        return panel                            # Retornar panel completo configurado    
+        return panel                            # Retornar panel completo configurado
     # =====================================================================================
     # MÉTODO: AGREGAR ELEMENTOS A LA LISTA DE SENSORES
     # =====================================================================================
@@ -2143,10 +2175,10 @@ class MainWindow(QMainWindow):
         # --- ESTABLECER ESTADO DE CONEXIÓN ---
         self.is_connected = True                 # Flag global de conexión
         self.esp_client = ESP32Client(esp32_ip)  # Cliente para comunicación TCP
-        
-        # --- ACTUALIZAR INTERFAZ DE CONEXIÓN ---
+          # --- ACTUALIZAR INTERFAZ DE CONEXIÓN ---
         self.connect_btn.setText("🔌 Conectado")  # Cambiar texto del botón
         self.connect_btn.setEnabled(False)       # Deshabilitar botón (ya conectado)
+        self.restart_btn.setEnabled(True)        # Habilitar botón de reinicio
         self.status_label.setText("✅ Conectado al ESP32")  # Estado exitoso
         self.status_label.setStyleSheet("""
             padding: 8px;                        /* Espaciado interno */
@@ -2175,10 +2207,10 @@ class MainWindow(QMainWindow):
         # --- LIMPIAR ESTADO DE CONEXIÓN ---
         self.is_connected = False                # Flag global de desconexión
         self.esp_client = None                   # Limpiar cliente TCP
-        
-        # --- ACTUALIZAR INTERFAZ DE CONEXIÓN ---
+          # --- ACTUALIZAR INTERFAZ DE CONEXIÓN ---
         self.connect_btn.setText("🔌 Conectar al ESP32")  # Restaurar texto original
         self.connect_btn.setEnabled(True)        # Habilitar botón para reconectar
+        self.restart_btn.setEnabled(False)       # Deshabilitar botón de reinicio
         self.status_label.setText("❌ Error de conexión")  # Estado de error
         self.status_label.setStyleSheet("""
             padding: 8px;                        /* Espaciado interno */
@@ -3350,10 +3382,9 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Dependencia faltante", 
                                 "Se requiere 'openpyxl' para exportar a Excel.\n"
                                 "Instálalo con: pip install openpyxl")
-        except Exception as e:
-            # --- MANEJAR ERRORES GENERALES ---
-            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")    
-    # ============================================================================
+        except Exception as e:        # --- MANEJAR ERRORES GENERALES ---
+            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
+      # ============================================================================
     # MÉTODO: DETENER TODOS LOS THREADS DE MONITOREO
     # ============================================================================
     def stop_all_monitoring_threads(self):
@@ -3369,32 +3400,226 @@ class MainWindow(QMainWindow):
         # --- DETENER THREAD DE ÁNGULO SIMPLE ---
         if hasattr(self, 'angulo_thread') and self.angulo_thread and self.angulo_thread.isRunning():
             self.angulo_thread.stop()
+            self.angulo_thread.wait(2000)  # Esperar máximo 2 segundos
             self.angulo_thread = None
             self.is_monitoring = False
         
         # --- DETENER THREAD DE BRAZO ROBÓTICO ---
         if hasattr(self, 'brazo_thread') and self.brazo_thread and self.brazo_thread.isRunning():
             self.brazo_thread.stop()
+            self.brazo_thread.wait(2000)  # Esperar máximo 2 segundos
             self.brazo_thread = None
             self.brazo_is_monitoring = False
         
         # --- DETENER THREAD DE DISTANCIA IR ---
         if hasattr(self, 'distancia_ir_thread') and self.distancia_ir_thread and self.distancia_ir_thread.isRunning():
             self.distancia_ir_thread.stop()
+            self.distancia_ir_thread.wait(2000)  # Esperar máximo 2 segundos
             self.distancia_ir_thread = None
             self.distancia_ir_is_monitoring = False
         
         # --- DETENER THREAD DE DISTANCIA CAPACITIVO ---
         if hasattr(self, 'distancia_cap_thread') and self.distancia_cap_thread and self.distancia_cap_thread.isRunning():
             self.distancia_cap_thread.stop()
+            self.distancia_cap_thread.wait(2000)  # Esperar máximo 2 segundos
             self.distancia_cap_thread = None
             self.distancia_cap_is_monitoring = False
         
         # --- DETENER THREAD DE DISTANCIA ULTRASÓNICO ---
         if hasattr(self, 'distancia_ultra_thread') and self.distancia_ultra_thread and self.distancia_ultra_thread.isRunning():
             self.distancia_ultra_thread.stop()
+            self.distancia_ultra_thread.wait(2000)  # Esperar máximo 2 segundos
             self.distancia_ultra_thread = None
             self.distancia_ultra_is_monitoring = False
         
         # --- GESTIONAR TIMER COMPARTIDO ---
         self.manage_graph_timer()  # Detener timer si no hay sensores activos
+
+    # =====================================================================================
+    # MÉTODO: REINICIO COMPLETO DE LA APLICACIÓN
+    # =====================================================================================
+    def restart_application(self):
+        """
+        Reinicia completamente la aplicación manteniendo la conexión ESP32
+        
+        Propósito: Limpiar toda la interfaz y datos como si acabara de conectar al ESP32
+        Funcionamiento: Detiene todos los threads, limpia datos, reinicia la UI
+        Conexión: Mantiene la conexión TCP con el ESP32 sin desconectarla
+        Estado: Preserva el estado de conexión pero reinicia todo lo demás
+        UI: Vuelve a la pantalla de bienvenida y resetea todos los controles
+        """
+        
+        # --- VERIFICAR CONEXIÓN REQUERIDA ---
+        if not self.is_connected:
+            QMessageBox.warning(self, "Sin conexión", "No hay conexión ESP32 para reiniciar")
+            return
+        
+        # --- CONFIRMAR REINICIO CON EL USUARIO ---
+        reply = QMessageBox.question(self, "Confirmar Reinicio", 
+                                   "¿Estás seguro de que quieres reiniciar la interfaz?\n\n"
+                                   "Se mantendrá la conexión ESP32 pero se limpiarán todos los datos.",
+                                   QMessageBox.Yes | QMessageBox.No,
+                                   QMessageBox.No)
+        
+        if reply != QMessageBox.Yes:
+            return  # Usuario canceló el reinicio
+        
+        # --- PASO 1: DETENER TODOS LOS THREADS ACTIVOS ---
+        print("🔄 Iniciando reinicio - Deteniendo threads...")
+        self.stop_all_monitoring_threads()      # Detener todos los sensores activos
+        
+        # --- PASO 2: LIMPIAR TODOS LOS DATOS DE SENSORES ---
+        print("🧹 Limpiando datos de sensores...")
+        self.clear_all_sensor_data()
+        
+        # --- PASO 3: RESETEAR ESTADO DE LA INTERFAZ ---
+        print("🖥️ Reseteando interfaz de usuario...")
+        self.reset_interface_state()
+        
+        # --- PASO 4: MOSTRAR PANTALLA DE BIENVENIDA ---
+        print("🏠 Volviendo a pantalla de bienvenida...")
+        self.show_welcome_screen()
+        
+        # --- CONFIRMACIÓN FINAL ---
+        print("✅ Reinicio completado - Conexión ESP32 mantenida")
+        QMessageBox.information(self, "Reinicio Completado", 
+                              "La interfaz se ha reiniciado exitosamente.\n\n"
+                              "La conexión ESP32 se mantiene activa.")
+
+    # =====================================================================================
+    # MÉTODO: LIMPIAR TODOS LOS DATOS DE SENSORES
+    # =====================================================================================
+    def clear_all_sensor_data(self):
+        """
+        Limpia todos los datos almacenados de todos los sensores
+        
+        Propósito: Borrar historial de lecturas y resetear gráficas
+        Sensores: Ángulo simple, brazo robótico, IR, capacitivo, ultrasónico
+        Memoria: Libera listas de datos para optimizar memoria
+        """
+        
+        # --- LIMPIAR DATOS DE ÁNGULO SIMPLE ---
+        self.angulos = []                        # Limpiar lista de ángulos
+        self.lecturas = []                       # Limpiar lista de lecturas ADC
+        
+        # --- LIMPIAR DATOS DE BRAZO ROBÓTICO ---
+        if hasattr(self, 'brazo_angulos1'):
+            self.brazo_angulos1 = []             # Limpiar ángulos potenciómetro 1
+        if hasattr(self, 'brazo_angulos2'):
+            self.brazo_angulos2 = []             # Limpiar ángulos potenciómetro 2
+        if hasattr(self, 'brazo_angulos3'):
+            self.brazo_angulos3 = []             # Limpiar ángulos potenciómetro 3
+        if hasattr(self, 'brazo_lecturas1'):
+            self.brazo_lecturas1 = []            # Limpiar lecturas ADC brazo
+        if hasattr(self, 'brazo_lecturas2'):
+            self.brazo_lecturas2 = []
+        if hasattr(self, 'brazo_lecturas3'):
+            self.brazo_lecturas3 = []
+        
+        # --- LIMPIAR DATOS DE SENSORES DE DISTANCIA ---
+        if hasattr(self, 'distancia_ultra_data'):
+            self.distancia_ultra_data = []       # Limpiar datos ultrasónicos
+        
+        # --- LIMPIAR GRÁFICAS SI EXISTEN ---
+        if hasattr(self, 'ax') and self.ax:
+            self.ax.clear()                      # Limpiar gráfica principal
+            self.ax.set_title('Sensor de Ángulo Simple - Tiempo Real', fontsize=14, fontweight='bold')
+            self.ax.set_xlabel('Tiempo (s)', fontsize=12)
+            self.ax.set_ylabel('Ángulo (grados)', fontsize=12)
+            self.ax.grid(True, alpha=0.3)
+            self.ax.set_facecolor('#f8f9fa')
+            
+        if hasattr(self, 'ax_brazo') and self.ax_brazo:
+            self.ax_brazo.clear()                # Limpiar gráfica de brazo
+            self.ax_brazo.set_title('Brazo Robótico - 3 Sensores + Capacitivo', fontsize=14, fontweight='bold')
+            self.ax_brazo.set_xlabel('Tiempo (s)', fontsize=12)
+            self.ax_brazo.set_ylabel('Ángulo (grados)', fontsize=12)
+            self.ax_brazo.grid(True, alpha=0.3)
+            self.ax_brazo.set_facecolor('#f8f9fa')
+            
+        if hasattr(self, 'ax_ultra') and self.ax_ultra:
+            self.ax_ultra.clear()                # Limpiar gráfica ultrasónica
+            self.ax_ultra.set_title('Sensor Ultrasónico HC-SR04 - Tiempo Real', fontsize=14, fontweight='bold')
+            self.ax_ultra.set_xlabel('Tiempo (s)', fontsize=12)
+            self.ax_ultra.set_ylabel('Distancia (cm)', fontsize=12)
+            self.ax_ultra.grid(True, alpha=0.3)
+            self.ax_ultra.set_facecolor('#f8f9fa')
+          # --- REDIBUJAR GRÁFICAS VACÍAS (CON MANEJO SEGURO) ---
+        try:
+            if hasattr(self, 'canvas') and self.canvas:
+                self.canvas.draw()
+        except RuntimeError:
+            # Canvas ya eliminado, ignorar error
+            pass
+            
+        try:
+            if hasattr(self, 'canvas_brazo') and self.canvas_brazo:
+                self.canvas_brazo.draw()
+        except RuntimeError:
+            # Canvas ya eliminado, ignorar error
+            pass
+            
+        try:
+            if hasattr(self, 'canvas_ultra') and self.canvas_ultra:
+                self.canvas_ultra.draw()
+        except RuntimeError:
+            # Canvas ya eliminado, ignorar error
+            pass
+
+    # =====================================================================================
+    # MÉTODO: RESETEAR ESTADO DE LA INTERFAZ
+    # =====================================================================================
+    def reset_interface_state(self):
+        """
+        Resetea todos los estados de la interfaz a valores iniciales
+        
+        Propósito: Volver botones y controles a estado original
+        Estado: Mantiene conexión pero resetea flags de monitoreo
+        UI: Restaura textos de botones y estilos originales
+        """
+        
+        # --- RESETEAR FLAGS DE MONITOREO ---
+        self.is_monitoring = False                       # Ángulo simple no monitoreando
+        self.brazo_is_monitoring = False                 # Brazo no monitoreando
+        self.distancia_ir_is_monitoring = False          # IR no monitoreando
+        self.distancia_cap_is_monitoring = False         # Capacitivo no monitoreando
+        self.distancia_ultra_is_monitoring = False       # Ultrasónico no monitoreando
+        
+        # --- RESETEAR DATOS PENDIENTES ---
+        self.pending_updates = False
+        self.pending_simple_data = None
+        self.pending_brazo_data = None
+        self.pending_distancia_ir_data = None
+        self.pending_distancia_cap_data = None
+        self.pending_distancia_ultra_data = None
+        
+        # --- RESETEAR BOTONES DE EXPORTACIÓN ---
+        # Los botones de exportación se habilitarán automáticamente cuando haya datos nuevos
+        
+        print("🔧 Estado de interfaz reseteado completamente")
+
+    # =====================================================================================
+    # MÉTODO: MOSTRAR PANTALLA DE BIENVENIDA
+    # =====================================================================================
+    def show_welcome_screen(self):
+        """
+        Muestra la pantalla de bienvenida inicial
+        
+        Propósito: Volver al estado inicial como si acabara de conectar
+        UI: Oculta detalles de sensores y muestra mensaje de bienvenida
+        Estado: Mantiene lista de sensores visible pero sin selección
+        """
+        
+        # --- MOSTRAR PANTALLA DE BIENVENIDA ---
+        if hasattr(self, 'welcome_widget') and self.welcome_widget:
+            self.welcome_widget.setVisible(True)     # Mostrar mensaje de bienvenida
+        
+        # --- OCULTAR DETALLES DE SENSORES ---
+        if hasattr(self, 'sensor_details') and self.sensor_details:
+            self.sensor_details.setVisible(False)   # Ocultar área de detalles
+        
+        # --- DESELECCIONAR ELEMENTOS DE LA LISTA ---
+        if hasattr(self, 'sensors_list') and self.sensors_list:
+            self.sensors_list.clearSelection()      # Quitar selección de sensores
+        
+        print("🏠 Pantalla de bienvenida mostrada")
