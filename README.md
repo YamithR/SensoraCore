@@ -1,10 +1,10 @@
-# SensoraCore Alpha 0.2.2
+# SensoraCore Alpha 0.2.3
 
 **Sistema de Monitoreo de Sensores WiFi ESP32 + PySide6** 🚀
 
-✅ **VERSIÓN ALPHA 0.2.2** - Estado: **FUNCIONAL** con Correcciones de Gráficas
+✅ **VERSIÓN ALPHA 0.2.3** - Estado: **FUNCIONAL** con Correcciones de Interfaces y Excel
 
-**Fecha de Lanzamiento:** Mayo 25, 2025
+**Fecha de Lanzamiento:** Mayo 29, 2025
 
 SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutando MicroPython con una aplicación de escritorio desarrollada en Python usando PySide6. El sistema permite leer datos de sensores en tiempo real a través de WiFi, visualizarlos gráficamente y exportar los datos a Excel.
 
@@ -57,13 +57,20 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - **✅ Optimización de rendimiento**: Sistema de updates mejorado para mejor fluidez
 - **✅ Arquitectura híbrida**: Diferenciación clara entre sensores digitales y analógicos
 
+### 🔧 Correcciones Alpha 0.2.3
+- **✅ Interfaces de sensores corregidas**: Solucionado problema de dependencia donde sensores IR, capacitivo y ultrasónico no mostraban interfaces correctamente a menos que se abrieran primero los módulos de ángulo o brazo
+- **✅ Llamadas setVisible() agregadas**: Añadido `self.sensor_details.setVisible(True)` faltante en métodos de interfaz de sensores
+- **✅ Exportación Excel brazo ángulos corregida**: Solucionado error de columna inválida '[' en exportación Excel del sensor brazo de ángulos
+- **✅ Posicionamiento de gráficos Excel**: Corregidos nombres de columnas Excel para gráficos en exportación de brazo robótico
+- **✅ Correcciones de indentación**: Solucionados problemas de formato e indentación en código
+
 ### 🔧 Correcciones Alpha 0.2.2
 - **✅ Inicialización de gráficas corregida**: Solucionado problema donde las gráficas no se mostraban correctamente al seleccionar sensores
 - **✅ Canvas draw inicial agregado**: Añadido `canvas.draw()` inicial en todas las interfaces de sensores analógicos
 - **✅ Renderizado mejorado**: Las gráficas ahora se renderizan correctamente desde el primer uso
 - **✅ Estabilidad aumentada**: Eliminados errores de visualización en sensores de ángulo simple, brazo ángulo y ultrasónico
 
-## 📊 Estado del Proyecto - ALPHA 0.2.2
+## 📊 Estado del Proyecto - ALPHA 0.2.3
 
 ### ✅ COMPLETADO
 
@@ -93,6 +100,7 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - [x] Configuración centralizada (config.py)
 - [x] Script para generar ejecutable (build_exe.py)
 - [x] **Inicialización de gráficas corregida (Alpha 0.2.2)**: Solucionado problema de renderizado inicial
+- [x] **Interfaces de sensores corregidas (Alpha 0.2.3)**: Solucionada dependencia de interfaces y errores de exportación Excel
 
 #### 🔌 ESP32 (SensoraCoreESP32)
 - [x] Código MicroPython funcional
@@ -625,6 +633,34 @@ Solución: Agregado canvas.draw() inicial en todas las interfaces
 2. Verificar que se ejecute `canvas.draw()` después de configurar la gráfica
 3. Reiniciar la aplicación después de seleccionar un sensor
 
+### ❌ Sensores No Muestran Interfaces (Solucionado en 0.2.3)
+
+**Síntomas**: Los sensores IR, capacitivo y ultrasónico no muestran sus interfaces a menos que se abran primero los sensores de ángulo o brazo
+```
+Estado: ✅ SOLUCIONADO en Alpha 0.2.3
+Causa: Llamadas setVisible(True) faltantes en métodos de interfaz
+Solución: Agregado self.sensor_details.setVisible(True) en todos los métodos
+```
+
+**Si experimentas este problema en versiones anteriores**:
+1. Actualizar a SensoraCore Alpha 0.2.3 o superior
+2. Verificar que cada método de interfaz tenga la llamada setVisible(True)
+3. Reiniciar la aplicación si el problema persiste
+
+### ❌ Error de Exportación Excel Brazo Ángulos (Solucionado en 0.2.3)
+
+**Síntomas**: Error "'[' is not valid column name" al exportar datos del brazo de ángulos
+```
+Estado: ✅ SOLUCIONADO en Alpha 0.2.3
+Causa: Cálculo incorrecto de nombres de columnas Excel para gráficos
+Solución: Posiciones de gráficos predefinidas (K2, S2, AA2)
+```
+
+**Si experimentas este problema en versiones anteriores**:
+1. Actualizar a SensoraCore Alpha 0.2.3 o superior
+2. Evitar usar cálculos dinámicos chr() para nombres de columnas Excel
+3. Usar posiciones predefinidas para gráficos en exportación
+
 ## 🚀 Generación de Ejecutable
 
 ### Crear Aplicación Standalone
@@ -830,6 +866,6 @@ Para reportar bugs o solicitar funcionalidades:
 
 ---
 
-**Versión**: Alpha 0.2.2
-**Estado**: Funcional con correcciones de gráficas aplicadas  
-**Última actualización**: Mayo 25, 2025
+**Versión**: Alpha 0.2.3
+**Estado**: Funcional con correcciones de interfaces y Excel aplicadas  
+**Última actualización**: Mayo 29, 2025

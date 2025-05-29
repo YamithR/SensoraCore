@@ -1,6 +1,6 @@
-# Configuración rápida de SensoraCore Alpha 0.2.2
+# Configuración rápida de SensoraCore Alpha 0.2.3
 
-## 🚀 Inicio Rápido - Interfaces Digital/Analógica Unificada con Gráficas Corregidas
+## 🚀 Inicio Rápido - Interfaces Digital/Analógica Unificada con Correcciones de Dependencias y Excel
 
 ### 1. Configurar ESP32
 
@@ -39,7 +39,7 @@ python main.py
    - Presiona "Conectar y encender LED integrado"
    - Si funciona, el LED del ESP32 se enciende
 
-### 3. Usar Sensores Alpha 0.2
+### 3. Usar Sensores Alpha 0.2.3
 
 1. **Conectar sensores**:
    - **Potenciómetro (Analógico)**: Pin + → 3.3V, Pin - → GND, Pin S → GPIO 32
@@ -60,7 +60,7 @@ python main.py
    - Presiona "Exportar datos a Excel"
    - Elige ubicación del archivo
 
-### 4. Nuevas Funciones Alpha 0.2
+### 4. Nuevas Funciones Alpha 0.2.3
 
 1. **Interfaz Digital Unificada**:
    - Sensores IR y Capacitivo ahora con salida digital ON/OFF
@@ -71,6 +71,12 @@ python main.py
    - Medición de distancia con gráficas en tiempo real
    - Comando MODO:DISTANCIA_ULTRA para activación
    - Rango de medición optimizado para aplicaciones didácticas
+
+3. **Correcciones Críticas Alpha 0.2.3**:
+   - ✅ **Dependencias de interfaces resueltas**: Eliminados errores de inicialización
+   - ✅ **Exportación Excel corregida**: Nombres de columnas y posicionamiento de gráficas
+   - ✅ **Calls setVisible() agregadas**: Interfaces se muestran correctamente
+   - ✅ **Indentación corregida**: Código Python sin errores de sintaxis
 
 ### 5. Usar Sensores de Distancia Actualizados
 
@@ -88,19 +94,43 @@ python main.py
    - **NUEVO EN ALPHA 0.2**: Medición analógica con gráficas
    - Rango: 2-400 cm, ideal para mediciones de distancia precisas
 
-### 6. Mejoras en Alpha 0.2.2
+### 6. Mejoras en Alpha 0.2.3
 
-1. **Gráficas Corregidas**:
+1. **Gráficas Corregidas (desde 0.2.2)**:
    - ✅ **Solucionado**: Las gráficas ahora se muestran correctamente desde el primer uso
    - ✅ **Renderizado mejorado**: Canvas inicializado automáticamente
    - ✅ **Sin pantallas en blanco**: Visualización inmediata al seleccionar sensores
 
-2. **Estabilidad Mejorada**:
+2. **Correcciones Críticas Alpha 0.2.3**:
+   - ✅ **Interfaces de sensores estables**: Resueltas todas las dependencias faltantes
+   - ✅ **Excel totalmente funcional**: Exportación sin errores de columnas
+   - ✅ **Posicionamiento correcto**: Gráficas en Excel en posiciones adecuadas
+   - ✅ **Código optimizado**: Eliminados errores de indentación y sintaxis
+
+3. **Estabilidad Mejorada**:
    - Interfaces de sensores analógicos más robustas
    - Mejor experiencia de usuario al cambiar entre sensores
-   - Corrección de problemas de visualización en matplotlib
+   - Corrección completa de problemas de visualización en matplotlib
+   - Sistema de exportación Excel completamente estable
 
 ## 🔧 Solución de Problemas Comunes
+
+### ❌ Problemas Resueltos en Alpha 0.2.3
+
+1. **Interfaces de sensores no aparecen (SOLUCIONADO)**:
+   - **Síntoma**: Ventanas de sensores no se mostraban al seleccionar modos
+   - **Causa**: Faltaban llamadas setVisible() en la inicialización
+   - **Solución**: Actualiza a Alpha 0.2.3 - problema completamente resuelto
+
+2. **Error al exportar Excel con brazo robótico (SOLUCIONADO)**:
+   - **Síntoma**: Crash al exportar datos del sensor "Brazo Ángulos"
+   - **Causa**: Nombres de columnas incorrectos en el código de exportación
+   - **Solución**: Actualiza a Alpha 0.2.3 - exportación Excel completamente funcional
+
+3. **Gráficas mal posicionadas en Excel (SOLUCIONADO)**:
+   - **Síntoma**: Gráficas aparecían en posiciones incorrectas del archivo Excel
+   - **Causa**: Coordenadas de inserción incorrectas
+   - **Solución**: Actualiza a Alpha 0.2.3 - posicionamiento correcto implementado
 
 ### ESP32 no se conecta al WiFi
 - Verifica SSID y contraseña en `wifi_config.py`
@@ -136,6 +166,8 @@ Si no sabes la IP de tu ESP32, busca dispositivos en tu red:
 - **Calibración**: Los valores van de 0° a 270° (rango típico de potenciómetro)
 - **Datos**: La app mantiene máximo 100 puntos en pantalla para rendimiento
 - **Excel**: Los archivos incluyen timestamp y estadísticas automáticas
+- **Nueva en 0.2.3**: Todas las interfaces de sensores ahora se muestran correctamente desde el primer uso
+- **Exportación estable**: El sistema de exportación Excel funciona sin errores para todos los sensores
 
 ## 📞 Soporte
 
