@@ -1635,8 +1635,7 @@ class MainWindow(QMainWindow):
         
         # Información adicional
         info_group = QGroupBox("ℹ️ Información")
-        info_layout = QVBoxLayout(info_group)
-          # ==================== INFORMACIÓN DEL SENSOR IR ====================
+        info_layout = QVBoxLayout(info_group)        # ==================== INFORMACIÓN DEL SENSOR IR ====================
         info_text = QLabel("""
         <b>Sensor IR Digital:</b><br>
         • Detección simple de presencia/ausencia<br>
@@ -1655,7 +1654,9 @@ class MainWindow(QMainWindow):
         layout.addLayout(main_layout)
           # Configurar el widget en el área principal
         self.sensor_details.setWidget(sensor_widget)
-      # =====================================================================================
+        self.sensor_details.setVisible(True)    # Hacer visible el área de detalles del sensor
+    
+    # =====================================================================================
     # MÉTODO: INTERFAZ DEL SENSOR DE DISTANCIA CAPACITIVO
     # =====================================================================================
     def show_distancia_cap_interface(self):
@@ -1799,17 +1800,17 @@ class MainWindow(QMainWindow):
         • Sensible a materiales no metálicos<br>
         • Respuesta rápida ON/OFF
         """)
-        info_text.setWordWrap(True)
-        # ESTILO PARA INFORMACIÓN - Fondo azul suave para destacar info del sensor capacitivo
+        info_text.setWordWrap(True)        # ESTILO PARA INFORMACIÓN - Fondo azul suave para destacar info del sensor capacitivo
         info_text.setStyleSheet("padding: 10px; background-color: #d1ecf1; border-radius: 5px; color: black;")
         info_layout.addWidget(info_text)
         right_layout.addWidget(info_group)
-        
         main_layout.addWidget(right_panel)
         layout.addLayout(main_layout)
         
         # Configurar el widget en el área principal
-        self.sensor_details.setWidget(sensor_widget)    
+        self.sensor_details.setWidget(sensor_widget)
+        self.sensor_details.setVisible(True)    # Hacer visible el área de detalles del sensor
+    
     # =====================================================================================
     # MÉTODO: INTERFAZ DEL SENSOR ULTRASÓNICO HC-SR04
     # =====================================================================================
@@ -2031,15 +2032,16 @@ class MainWindow(QMainWindow):
         self.ax_ultra.set_ylim(0, 400)    # Rango 0-400 cm (rango del HC-SR04)
         
         self.figure_ultra.tight_layout()
-        
-        # Inicializar el canvas con un dibujo inicial
+          # Inicializar el canvas con un dibujo inicial
         self.canvas_ultra.draw()
         
         graph_layout.addWidget(self.canvas_ultra)
         layout.addWidget(graph_group)
         
         # Configurar el widget en el área principal
-        self.sensor_details.setWidget(sensor_widget)    
+        self.sensor_details.setWidget(sensor_widget)
+        self.sensor_details.setVisible(True)    # Hacer visible el área de detalles del sensor
+    
     # =====================================================================================
     # MÉTODO: ACTUALIZACIÓN OPTIMIZADA DE GRÁFICAS
     # =====================================================================================
@@ -2734,9 +2736,10 @@ class MainWindow(QMainWindow):
                     categories = Reference(ws, min_col=1, min_row=2, max_row=max_len+1)  # Columna de muestras
                     chart.add_data(data, titles_from_data=True)  # Agregar datos
                     chart.set_categories(categories)  # Establecer categorías
-                    
-                    # --- POSICIONAR GRÁFICOS EN DIFERENTES UBICACIONES ---
-                    ws.add_chart(chart, f"{chr(75+j*8)}2")  # K2, S2, AA2 (espaciado horizontal)
+                      # --- POSICIONAR GRÁFICOS EN DIFERENTES UBICACIONES ---
+                    # Columnas: K2, S2, AA2 para los tres gráficos
+                    chart_positions = ["K2", "S2", "AA2"]
+                    ws.add_chart(chart, chart_positions[j])
                 
                 # --- GUARDAR ARCHIVO COMPLEJO ---
                 wb.save(filename)                # Guardar en ubicación seleccionada
