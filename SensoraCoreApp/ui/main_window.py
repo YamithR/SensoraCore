@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (QMainWindow,        # Ventana principal de la apl
                                QPushButton,        # Botones clickeables
                                QLineEdit,          # Campo de entrada de texto
                                QMessageBox,        # Ventanas de diálogo (alertas, confirmaciones)
+                               QDialog,            # Diálogo base para ventanas modales
                                QGroupBox,          # Cajas agrupadas con borde y título
                                QHBoxLayout,        # Layout horizontal (elementos lado a lado)
                                QFileDialog,        # Diálogo para seleccionar archivos
@@ -44,6 +45,10 @@ from PySide6.QtGui import (QFont,                 # Configuración de fuentes
 
 # --- Módulo personalizado para comunicación ESP32 ---
 from network_client import ESP32Client            # Cliente para conectar con ESP32
+
+# --- Módulos personalizados para calibración ---
+from modules.calibration import LinearCalibration # Sistema de calibración lineal
+from ui.calibration_dialog import CalibrationDialog # Diálogo de calibración
 
 # --- Bibliotecas estándar de Python ---
 import socket                                     # Comunicación de red TCP/IP
@@ -528,10 +533,16 @@ class MainWindow(QMainWindow):
         self.brazo_thread = None                # Hilo para brazo con múltiples sensores
         self.distancia_ir_thread = None         # Hilo para sensor infrarrojo
         self.distancia_cap_thread = None        # Hilo para sensor capacitivo
-        
-        # --- Banderas de estado general ---
+          # --- Banderas de estado general ---
         self.is_connected = False               # True cuando ESP32 está conectado
         self.is_monitoring = False              # True cuando algún sensor está monitoreando
+        
+        # =====================================================================================
+        # SISTEMA DE CALIBRACIÓN
+        # =====================================================================================
+        
+        # --- Instancia de calibración para sensor de ángulo simple ---
+        self.angulo_calibration = LinearCalibration()  # Sistema de calibración lineal
           # =====================================================================================
         # VARIABLES PARA DATOS DE SENSOR DE ÁNGULO SIMPLE (con optimización de memoria)
         # =====================================================================================
@@ -1183,8 +1194,7 @@ class MainWindow(QMainWindow):
         # --- GRUPO DE CONTROLES ---
         controls_group = QGroupBox("Controles")  # Caja agrupada para controles
         controls_layout = QVBoxLayout(controls_group)  # Layout vertical para controles
-        
-        # --- ETIQUETA DE ESTADO EN TIEMPO REAL ---
+          # --- ETIQUETA DE ESTADO EN TIEMPO REAL ---
         # Muestra lectura ADC y ángulo calculado en tiempo real
         self.angulo_label = QLabel("Lectura ADC: -- | Ángulo: --")  # Texto inicial placeholder
         self.angulo_label.setStyleSheet("""
@@ -1198,13 +1208,34 @@ class MainWindow(QMainWindow):
         """)
         controls_layout.addWidget(self.angulo_label)  # Agregar etiqueta a controles
         
+        # --- ETIQUETA DE CALIBRACIÓN ---
+        # Muestra el estado de calibración y valores calibrados
+        self.calibration_status_label = QLabel("Calibración: No aplicada")  # Estado inicial
+        self.calibration_status_label.setStyleSheet("""
+            font-size: 14px;                    /* Tamaño menor para información secundaria */
+            font-weight: bold;                  /* Texto en negrita */
+            color: #856404;                     /* Color ámbar para indicar estado */
+            padding: 8px;                       /* Espacio interno menor */
+            background-color: #fff3cd;          /* Fondo ámbar claro */
+            border-radius: 4px;                 /* Esquinas redondeadas menores */
+            border: 1px solid #ffeaa7;          /* Borde ámbar */
+            margin-top: 5px;                    /* Separación superior */
+        """)
+        controls_layout.addWidget(self.calibration_status_label)  # Agregar etiqueta de calibración
+        
         # --- BOTONES DE CONTROL PRINCIPAL ---
         buttons_layout = QHBoxLayout()           # Layout horizontal para botones principales
-        
-        # BOTÓN INICIAR - Color verde para indicar acción positiva
+          # BOTÓN INICIAR - Color verde para indicar acción positiva
         self.start_btn = QPushButton("▶️ Iniciar Monitoreo")  # Botón con emoji de play
-        self.start_btn.clicked.connect(self.toggle_angulo_monitoring)  # Conectar a método de control        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde Bootstrap
+        self.start_btn.clicked.connect(self.toggle_angulo_monitoring)  # Conectar a método de control        
+        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde Bootstrap
         buttons_layout.addWidget(self.start_btn)  # Agregar al layout de botones
+        
+        # BOTÓN CALIBRACIÓN - Color azul para función de configuración
+        self.calibrate_btn = QPushButton("⚙️ Calibrar Sensor")  # Botón con emoji de configuración
+        self.calibrate_btn.clicked.connect(self.open_calibration_dialog)  # Conectar a método de calibración
+        self.calibrate_btn.setStyleSheet("QPushButton { background-color: #007bff; border-color: #007bff; color: white; padding: 10px; }")  # Azul Bootstrap
+        buttons_layout.addWidget(self.calibrate_btn)  # Agregar al layout de botones
         
         controls_layout.addLayout(buttons_layout)  # Agregar botones principales a controles
         
@@ -1265,10 +1296,12 @@ class MainWindow(QMainWindow):
         # =====================================================================================
         # FINALIZACIÓN: MOSTRAR INTERFAZ EN PANEL DERECHO
         # =====================================================================================
-        
-        # --- CONFIGURAR PANEL DERECHO ---
+          # --- CONFIGURAR PANEL DERECHO ---
         self.sensor_details.setWidget(sensor_widget)  # Establecer widget como contenido del área de scroll
-        self.sensor_details.setVisible(True)     # Hacer visible el área de detalles del sensor    
+        self.sensor_details.setVisible(True)     # Hacer visible el área de detalles del sensor
+        
+        # --- ACTUALIZAR ESTADO DE CALIBRACIÓN ---
+        self.update_calibration_status()         # Mostrar estado actual de calibración
     # =====================================================================================
     # MÉTODO: INTERFAZ DEL SENSOR DE BRAZO CON MÚLTIPLES ÁNGULOS
     # =====================================================================================
@@ -2351,19 +2384,29 @@ class MainWindow(QMainWindow):
         UI: Actualiza etiquetas de lectura actual
         Gráfica: Prepara datos para redibujado optimizado
         """
-        
-        # --- ALMACENAR DATOS EN HISTORIAL ---
+          # --- ALMACENAR DATOS EN HISTORIAL ---
         self.lecturas.append(lectura)            # Agregar lectura ADC a lista
-        self.angulos.append(angulo)              # Agregar ángulo calculado a lista
+        
+        # --- APLICAR CALIBRACIÓN SI ESTÁ DISPONIBLE ---
+        if self.angulo_calibration.is_calibrated:  # Si hay calibración activa
+            angulo_calibrado = self.angulo_calibration.calibrate_value(lectura)  # Aplicar calibración a lectura cruda
+            self.angulos.append(angulo_calibrado)    # Usar ángulo calibrado para gráfica y almacenamiento
+        else:
+            self.angulos.append(angulo)              # Usar ángulo original si no hay calibración
         
         # --- MANTENER LÍMITE DE PUNTOS EN MEMORIA ---
         if len(self.lecturas) > self.max_points:  # Si excede límite máximo
             self.lecturas.pop(0)                 # Eliminar primer elemento (más antiguo)
-            self.angulos.pop(0)                  # Eliminar primer ángulo
-          # --- ACTUALIZAR ETIQUETA DE LECTURA ACTUAL CON VERIFICACIÓN DEFENSIVA ---
+            self.angulos.pop(0)                  # Eliminar primer ángulo        # --- ACTUALIZAR ETIQUETA DE LECTURA ACTUAL CON VERIFICACIÓN DEFENSIVA ---
         try:
             if hasattr(self, 'angulo_label') and self.angulo_label is not None:
-                self.angulo_label.setText(f"Lectura: {lectura} | Ángulo: {angulo}°")
+                if self.angulo_calibration.is_calibrated:  # Si hay calibración activa
+                    angulo_calibrado = self.angulo_calibration.calibrate_value(lectura)  # Calcular valor calibrado
+                    self.angulo_label.setText(
+                        f"Lectura: {lectura} | Ángulo: {angulo}° | Calibrado: {angulo_calibrado:.1f}°"
+                    )
+                else:
+                    self.angulo_label.setText(f"Lectura: {lectura} | Ángulo: {angulo}°")  # Sin calibración
         except RuntimeError:
             # Widget has been deleted, stop monitoring
             if hasattr(self, 'is_monitoring'):
@@ -2379,10 +2422,87 @@ class MainWindow(QMainWindow):
             # --- AJUSTAR LÍMITES DINÁMICOS DEL EJE X ---
             if len(x_data) > 0:                  # Si hay datos que mostrar
                 self.ax.set_xlim(0, max(100, len(x_data)))  # Mínimo 100 puntos visibles
-        
-        # --- MARCAR PARA ACTUALIZACIÓN GRÁFICA ---
+          # --- MARCAR PARA ACTUALIZACIÓN GRÁFICA ---
         self.pending_updates = True              # Flag para redibujado pendiente
         self.pending_simple_data = (lectura, angulo)  # Datos específicos pendientes
+    
+    # =====================================================================================
+    # MÉTODO: ABRIR DIÁLOGO DE CALIBRACIÓN
+    # =====================================================================================
+    def open_calibration_dialog(self):
+        """
+        Abre el diálogo de calibración para el sensor de ángulo simple
+        
+        Propósito: Permitir al usuario configurar la calibración lineal del sensor
+        Funcionalidad: Crear puntos de calibración, realizar regresión lineal, guardar/cargar calibraciones
+        UI: Diálogo modal con tabla de puntos, gráfica en tiempo real y controles
+        Calibración: Sistema de regresión lineal que mejora la precisión del sensor
+        """        # --- CREAR DIÁLOGO DE CALIBRACIÓN ---
+        dialog = CalibrationDialog("Ángulo Simple", self.angulo_calibration, self)  # Pasar nombre del sensor, calibración y ventana padre
+        
+        # --- MOSTRAR DIÁLOGO Y PROCESAR RESULTADO ---
+        if dialog.exec() == QDialog.Accepted:    # Si el usuario presiona OK/Aplicar
+            # Actualizar estado de calibración en la interfaz
+            self.update_calibration_status()
+    
+    # =====================================================================================
+    # MÉTODO: ACTUALIZAR ESTADO DE CALIBRACIÓN EN LA INTERFAZ
+    # =====================================================================================
+    def update_calibration_status(self):
+        """
+        Actualiza la etiqueta de estado de calibración en la interfaz
+        
+        Propósito: Mostrar al usuario si hay calibración activa y sus estadísticas
+        Estado: Indica si la calibración está aplicada y muestra información relevante
+        UI: Actualiza color y texto de la etiqueta según el estado de calibración
+        """
+        
+        if hasattr(self, 'calibration_status_label'):  # Verificar que existe la etiqueta
+            if self.angulo_calibration.is_calibrated:   # Si hay calibración activa
+                stats = self.angulo_calibration.get_calibration_stats()  # Obtener estadísticas
+                if stats and 'r_squared' in stats and 'equation' in stats:
+                    # Mostrar información de calibración activa
+                    r2_percent = stats['r_squared'] * 100
+                    self.calibration_status_label.setText(
+                        f"Calibración: ✓ Activa | R² = {r2_percent:.1f}% | {stats['equation']}"
+                    )
+                    # Cambiar estilo a verde para indicar calibración activa
+                    self.calibration_status_label.setStyleSheet("""
+                        font-size: 14px;
+                        font-weight: bold;
+                        color: #155724;
+                        padding: 8px;
+                        background-color: #d4edda;
+                        border-radius: 4px;
+                        border: 1px solid #c3e6cb;
+                        margin-top: 5px;
+                    """)
+                else:
+                    # Calibración sin estadísticas válidas
+                    self.calibration_status_label.setText("Calibración: ⚠️ Aplicada (sin estadísticas)")
+                    self.calibration_status_label.setStyleSheet("""
+                        font-size: 14px;
+                        font-weight: bold;
+                        color: #856404;
+                        padding: 8px;
+                        background-color: #fff3cd;
+                        border-radius: 4px;
+                        border: 1px solid #ffeaa7;
+                        margin-top: 5px;
+                    """)
+            else:
+                # Sin calibración activa
+                self.calibration_status_label.setText("Calibración: No aplicada")
+                self.calibration_status_label.setStyleSheet("""
+                    font-size: 14px;
+                    font-weight: bold;
+                    color: #856404;
+                    padding: 8px;
+                    background-color: #fff3cd;
+                    border-radius: 4px;
+                    border: 1px solid #ffeaa7;
+                    margin-top: 5px;
+                """)
     
     # =====================================================================================
     # MÉTODO: LIMPIAR GRÁFICA DEL SENSOR DE ÁNGULO
