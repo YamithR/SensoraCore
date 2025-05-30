@@ -1,8 +1,8 @@
-# SensoraCore Alpha 0.2.3
+# SensoraCore Alpha 0.2.4
 
 **Sistema de Monitoreo de Sensores WiFi ESP32 + PySide6** 🚀
 
-✅ **VERSIÓN ALPHA 0.2.3** - Estado: **FUNCIONAL** con Correcciones de Interfaces y Excel
+✅ **VERSIÓN ALPHA 0.2.4** - Estado: **FUNCIONAL** con Sistema de Calibración Lineal Integrado
 
 **Fecha de Lanzamiento:** Mayo 29, 2025
 
@@ -32,6 +32,16 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - **Exportación Excel mejorada**: Formato profesional con gráficas integradas
 - **Estadísticas automáticas**: Min, max, promedio calculados en tiempo real
 
+### 🎯 **Sistema de Calibración Lineal**
+- **Calibración por regresión lineal**: Sistema de calibración avanzado usando scikit-learn
+- **Interfaz intuitiva de calibración**: Dialog con entrada de puntos de calibración
+- **Visualización en tiempo real**: Gráfico de dispersión con línea de regresión
+- **Estadísticas de calidad**: Coeficiente de determinación R² y ecuación de calibración
+- **Persistencia de datos**: Guardar y cargar configuraciones de calibración en JSON
+- **Aplicación automática**: Calibración aplicada en tiempo real a datos del sensor
+- **Validación de entrada**: Sistema robusto de validación de puntos de calibración
+- **Disponible para**: Sensor Ángulo Simple (extensible a otros sensores)
+
 ### 📡 **Comunicación WiFi Robusta**
 - **Conexión inalámbrica estable**: Entre ESP32 y aplicación de escritorio
 - **Protocolo de comandos**: Sistema de comunicación estructurado
@@ -50,6 +60,14 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 
 ### 🔄 Próximamente
 - **OpticTestLR_Velocidad**: Sensor óptico de velocidad
+
+### 🆕 Novedades Alpha 0.2.4
+- **✅ Sistema de calibración lineal**: Implementación completa de calibración por regresión lineal usando scikit-learn
+- **✅ Interfaz de calibración intuitiva**: Diálogo con gestión de puntos, visualización y estadísticas en tiempo real
+- **✅ Persistencia de calibraciones**: Guardar/cargar configuraciones de calibración en formato JSON
+- **✅ Aplicación automática**: Calibración aplicada en tiempo real a datos del sensor Ángulo Simple
+- **✅ Validación robusta**: Sistema de validación de entrada y manejo de errores
+- **✅ Documentación integrada**: Documentación completa del sistema de calibración en README principal
 
 ### 🆕 Novedades Alpha 0.2
 - **✅ Interfaz digital/analógica unificada**: Sensores IR y capacitivos ahora muestran estados digitales ON/OFF
@@ -71,7 +89,7 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - **✅ Renderizado mejorado**: Las gráficas ahora se renderizan correctamente desde el primer uso
 - **✅ Estabilidad aumentada**: Eliminados errores de visualización en sensores de ángulo simple, brazo ángulo y ultrasónico
 
-## 📊 Estado del Proyecto - ALPHA 0.2.3
+## 📊 Estado del Proyecto - ALPHA 0.2.4
 
 ### ✅ COMPLETADO
 
@@ -103,6 +121,11 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - [x] **Inicialización de gráficas corregida (Alpha 0.2.2)**: Solucionado problema de renderizado inicial
 - [x] **Interfaces de sensores corregidas (Alpha 0.2.3)**: Solucionada dependencia de interfaces y errores de exportación Excel
 - [x] **Botón "Reiniciar Interfaz"**: Función para limpiar toda la interfaz manteniendo conexión ESP32 activa
+- [x] **Sistema de calibración lineal**: Implementación completa de calibración por regresión lineal
+- [x] **Interfaz de calibración**: Diálogo intuitivo para gestión de puntos de calibración
+- [x] **Visualización de calibración**: Gráficos en tiempo real con línea de regresión
+- [x] **Persistencia de calibración**: Guardar/cargar configuraciones en formato JSON
+- [x] **Aplicación automática**: Calibración aplicada en tiempo real a datos del sensor
 
 #### 🔌 ESP32 (SensoraCoreESP32)
 - [x] Código MicroPython funcional
@@ -133,6 +156,8 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 4. **Exportación a Excel** ✅
 5. **Interfaz gráfica completa y moderna** ✅
 6. **Sistema híbrido digital/analógico** ✅
+7. **Sistema de calibración lineal** ✅
+8. **Persistencia de calibraciones** ✅
 
 #### 🚀 Listo para:
 - Demostración del sistema completo
@@ -140,6 +165,109 @@ SensoraCore es un sistema de monitoreo de sensores que conecta un ESP32 ejecutan
 - Migración de sensores desde Arduino
 - Desarrollo de nuevas funcionalidades
 - Aplicaciones en tiempo real
+
+## 🎯 Sistema de Calibración Lineal
+
+### 📋 Descripción General
+SensoraCore incluye un sistema avanzado de calibración lineal para mejorar la precisión de los sensores mediante regresión lineal. La calibración permite ajustar los valores crudos del sensor usando puntos de referencia conocidos, proporcionando lecturas más precisas y confiables.
+
+### 🔧 Implementación Técnica
+
+#### 1. Módulo de Calibración (`modules/calibration.py`)
+- **Clase LinearCalibration** con funcionalidad completa:
+  - Agregar puntos de calibración (valores crudos vs valores de referencia)
+  - Realizar regresión lineal usando scikit-learn
+  - Aplicar calibración a valores crudos del sensor
+  - Guardar/cargar datos de calibración en archivos JSON
+  - Obtener estadísticas de calibración (R², ecuación)
+
+#### 2. Interfaz de Calibración (`ui/calibration_dialog.py`)
+- **Clase CalibrationDialog** que proporciona:
+  - Campos de entrada para agregar puntos de calibración
+  - Tabla con funcionalidad de eliminación
+  - Visualización en tiempo real con matplotlib
+  - Controles de calibración (realizar, limpiar, guardar, cargar)
+  - Información estadística en pantalla
+
+#### 3. Integración en Ventana Principal (`ui/main_window.py`)
+- **Integrado en interfaz de Ángulo Simple**:
+  - Botón de calibración
+  - Etiqueta de estado mostrando ecuación y R²
+  - Visualización modificada para mostrar valores crudos y calibrados
+  - Aplicación de calibración en tiempo real
+
+### ✨ Características del Sistema
+
+#### Interfaz de Usuario
+1. **Botón de Calibración**: Abre el diálogo de calibración desde la interfaz del sensor Ángulo Simple
+2. **Visualización de Estado**: Muestra la ecuación de calibración actual y el valor R²
+3. **Visualización de Datos**: Muestra valores crudos y calibrados en tiempo real
+
+#### Diálogo de Calibración
+1. **Gestión de Puntos**: Agregar/eliminar puntos de calibración con validación
+2. **Visualización**: Gráfico en tiempo real mostrando puntos de datos y línea de regresión
+3. **Estadísticas**: Visualización de ecuación, R² y conteo de puntos
+4. **Persistencia**: Guardar/cargar configuraciones de calibración
+
+#### Motor de Calibración
+1. **Regresión Lineal**: Usa scikit-learn para cálculos robustos
+2. **Manejo de Errores**: Valida entrada y maneja casos extremos
+3. **Aplicación en Tiempo Real**: Aplica calibración a datos del sensor en vivo
+4. **Persistencia**: Almacenamiento basado en JSON para datos de calibración
+
+### 🔄 Flujo de Trabajo de Uso
+
+1. **Configuración**: Iniciar aplicación SensoraCore y seleccionar sensor Ángulo Simple
+2. **Calibración**:
+   - Hacer clic en botón "Calibrar" para abrir diálogo de calibración
+   - Agregar puntos de calibración ingresando valores crudos y de referencia
+   - Hacer clic en "Realizar Calibración" para calcular regresión lineal
+   - Revisar estadísticas y visualización
+   - Guardar calibración si es satisfactoria
+3. **Aplicación**: La calibración se aplica automáticamente a datos en tiempo real
+4. **Monitoreo**: Etiqueta de estado muestra ecuación de calibración activa y R²
+
+### 📊 Algoritmo de Calibración
+
+#### Fórmula de Calibración
+```
+Valor_Calibrado = pendiente × Valor_Crudo + intercepto
+```
+Donde pendiente e intercepto son determinados por regresión lineal en puntos de calibración.
+
+#### Flujo de Datos
+1. Valor crudo del sensor → Motor de calibración → Valor calibrado
+2. Visualización muestra: "Crudo: X.XX | Cal: Y.YY"
+3. Estado muestra: "y = mx + b | R² = 0.XXXX"
+
+### 📁 Estructura de Archivos
+```
+modules/
+  ├── __init__.py
+  └── calibration.py         # Clase LinearCalibration
+ui/
+  ├── calibration_dialog.py  # Clase CalibrationDialog
+  └── main_window.py         # Actualizado con integración de calibración
+```
+
+### 📋 Dependencias Agregadas
+```
+numpy                   # Operaciones numéricas
+scikit-learn           # Regresión lineal
+matplotlib             # Visualización
+```
+
+### ✅ Estado: LISTO PARA USO
+
+El sistema de calibración está completamente implementado e integrado. Proporciona:
+1. Calibración lineal robusta usando regresión científica
+2. Interfaz intuitiva para gestión de puntos de calibración
+3. Visualización en tiempo real de datos y regresión
+4. Aplicación automática a datos del sensor en vivo
+5. Persistencia de configuraciones de calibración
+6. Estadísticas de calidad de calibración
+
+**Sensores Soportados**: Ángulo Simple (extensible a otros sensores analógicos)
 
 ## 🏗️ Estructura del Proyecto
 
@@ -156,9 +284,21 @@ SensoraCore/
 │   ├── config.py               # Configuración centralizada
 │   ├── build_exe.py            # Script para generar ejecutable
 │   ├── compilar.bat            # Script de compilación Windows
-│   └── ui/
+│   ├── modules/                # Módulos de funcionalidad
+│   │   ├── __init__.py
+│   │   └── calibration.py      # Sistema de calibración lineal
+│   └── ui/                     # Interfaces de usuario
 │       ├── __init__.py
-│       └── main_window.py      # Interfaz gráfica principal
+│       ├── main_window.py      # Interfaz gráfica principal
+│       ├── calibration_dialog.py  # Diálogo de calibración
+│       └── sensors/            # Módulos específicos de sensores
+│           ├── __init__.py
+│           ├── base_sensor.py  # Clase base para sensores
+│           ├── angulo_simple.py    # Sensor de ángulo simple
+│           ├── brazo_robotico.py   # Sensor de brazo robótico
+│           ├── distancia_capacitivo.py  # Sensor capacitivo
+│           ├── distancia_ir.py      # Sensor infrarrojo
+│           └── distancia_ultrasonico.py # Sensor ultrasónico
 └── SensoraCoreESP32/           # Código para ESP32 (MicroPython)
     ├── main.py                 # Servidor principal del ESP32
     ├── main_brazo.py           # Configuración específica para brazo robótico
@@ -876,6 +1016,6 @@ Para reportar bugs o solicitar funcionalidades:
 
 ---
 
-**Versión**: Alpha 0.2.3
-**Estado**: Funcional con correcciones de interfaces y Excel aplicadas  
+**Versión**: Alpha 0.2.4
+**Estado**: Funcional con Sistema de Calibración Lineal Integrado  
 **Última actualización**: Mayo 29, 2025
