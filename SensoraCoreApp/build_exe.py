@@ -5,9 +5,28 @@ import subprocess
 import shutil
 from datetime import datetime
 
+def get_python_executable():
+    """Detecta el ejecutable de Python correcto (entorno virtual o sistema)"""
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        # Estamos en un entorno virtual
+        return sys.executable
+    else:
+        # Intentar encontrar el entorno virtual en la ruta del proyecto
+        venv_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), '.venv', 'Scripts', 'python.exe'),
+            os.path.join(os.path.dirname(__file__), '.venv', 'Scripts', 'python.exe'),
+            'python.exe'
+        ]
+        
+        for path in venv_paths:
+            if os.path.exists(path):
+                return path
+        
+        return sys.executable
+
 def check_dependencies():
     print(" Verificando dependencias...")
-    required_packages = ['PySide6', 'matplotlib', 'openpyxl', 'pyinstaller']
+    required_packages = ['PySide6', 'matplotlib', 'openpyxl', 'numpy', 'scikit-learn', 'pyinstaller']
     missing_packages = []
     
     for package in required_packages:
@@ -16,6 +35,8 @@ def check_dependencies():
                 __import__('PySide6')
             elif package == 'pyinstaller':
                 __import__('PyInstaller')
+            elif package == 'scikit-learn':
+                __import__('sklearn')
             else:
                 __import__(package.lower())
             print(f" {package}")
@@ -27,7 +48,8 @@ def check_dependencies():
         print(f"\n  Faltan dependencias: {', '.join(missing_packages)}")
         print("Instalando dependencias faltantes...")
         try:
-            result = subprocess.run([sys.executable, "-m", "pip", "install"] + missing_packages, check=True)
+            python_exe = get_python_executable()
+            result = subprocess.run([python_exe, "-m", "pip", "install"] + missing_packages, check=True)
             print(" Dependencias instaladas correctamente")
         except subprocess.CalledProcessError as e:
             print(f" Error al instalar dependencias: {e}")
@@ -110,7 +132,11 @@ def build_executable(exe_name):
         "--hidden-import=PySide6.QtWidgets",
         "--hidden-import=PySide6.QtGui",
         "--hidden-import=matplotlib.backends.backend_qt5agg",
+        "--hidden-import=numpy",
+        "--hidden-import=sklearn",
+        "--hidden-import=sklearn.linear_model",
         "--collect-all=matplotlib",
+        "--collect-all=sklearn",
         "main.py"
     ]
     

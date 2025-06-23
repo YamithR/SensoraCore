@@ -19,7 +19,18 @@ if not exist "main.py" (
 )
 
 echo Iniciando compilación...
-python build_exe.py
+
+REM Detectar y usar el entorno virtual si existe
+if exist "..\\.venv\\Scripts\\python.exe" (
+    echo Usando entorno virtual detectado...
+    "..\\.venv\\Scripts\\python.exe" build_exe.py
+) else if exist ".venv\\Scripts\\python.exe" (
+    echo Usando entorno virtual local...
+    ".venv\\Scripts\\python.exe" build_exe.py
+) else (
+    echo Usando Python del sistema...
+    python build_exe.py
+)
 
 echo.
 echo ========================================
