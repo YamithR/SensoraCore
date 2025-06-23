@@ -1,4 +1,4 @@
-# SensoraCore Alpha 0.2.4
+# SensoraCore Alpha 0.2.4 pre Rework
 
 **Sistema de Monitoreo de Sensores WiFi ESP32 + PySide6** 🚀
 
