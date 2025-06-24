@@ -1,6 +1,4 @@
-# network_client.py
-# Lógica para conectar y comunicarse con el ESP32 por WiFi
-import socket
+from IMPORTACIONES import *
 
 class ESP32Client:
     def __init__(self, esp32_ip, port=8080):
@@ -18,8 +16,7 @@ class ESP32Client:
         except Exception as e:
             return f"ERROR: {e}"
 
-    def get_pot_value(self):
-        return self.send_command('GET_POT')
+
 
     def led_on(self):
         return self.send_command('LED_ON')

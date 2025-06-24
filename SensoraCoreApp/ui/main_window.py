@@ -5,156 +5,9 @@
 # Función: Define la ventana principal y todas las interfaces de los sensores
 # Autor: Sistema SensoraCore
 # Propósito: Crear una aplicación desktop para monitoreo de sensores ESP32
+from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
+from Modulos.SENSORA_SIMPLE_ANGLE import (LinearCalibration, anguloSimple_UI, AnguloSimpleMonitor)
 
-# =====================================================================================
-# IMPORTACIONES DE BIBLIOTECAS NECESARIAS
-# =====================================================================================
-
-# --- Bibliotecas para la interfaz gráfica (PySide6) ---
-from PySide6.QtWidgets import (QMainWindow,        # Ventana principal de la aplicación
-                               QLabel,             # Etiquetas de texto
-                               QVBoxLayout,        # Layout vertical (elementos apilados verticalmente)
-                               QWidget,            # Widget base para todos los elementos
-                               QPushButton,        # Botones clickeables
-                               QLineEdit,          # Campo de entrada de texto
-                               QMessageBox,        # Ventanas de diálogo (alertas, confirmaciones)
-                               QDialog,            # Diálogo base para ventanas modales
-                               QGroupBox,          # Cajas agrupadas con borde y título
-                               QHBoxLayout,        # Layout horizontal (elementos lado a lado)
-                               QFileDialog,        # Diálogo para seleccionar archivos
-                               QScrollArea,        # Área con scroll para contenido largo
-                               QFrame,             # Marco/contenedor visual
-                               QListWidget,        # Lista de elementos seleccionables
-                               QListWidgetItem,    # Elementos individuales de la lista
-                               QSplitter,          # Divisor ajustable entre paneles
-                               QGraphicsOpacityEffect) # Efectos de opacidad
-
-# --- Bibliotecas para funcionalidad central (PySide6) ---
-from PySide6.QtCore import (QThread,              # Hilos para operaciones en segundo plano
-                           Signal,                # Señales para comunicación entre objetos
-                           Qt,                    # Constantes y configuraciones de Qt
-                           QEasingCurve,          # Curvas de animación
-                           QPropertyAnimation,    # Animaciones de propiedades
-                           QRect,                 # Rectángulos para posicionamiento
-                           QTimer)                # Timer para operaciones periódicas
-
-# --- Bibliotecas para gráficos y estilo (PySide6) ---
-from PySide6.QtGui import (QFont,                 # Configuración de fuentes
-                          QPalette,               # Paleta de colores
-                          QColor)                 # Definición de colores
-
-# --- Módulo personalizado para comunicación ESP32 ---
-from network_client import ESP32Client            # Cliente para conectar con ESP32
-
-# --- Módulos personalizados para calibración ---
-from modules.calibration import LinearCalibration # Sistema de calibración lineal
-from ui.calibration_dialog import CalibrationDialog # Diálogo de calibración
-
-# --- Bibliotecas estándar de Python ---
-import socket                                     # Comunicación de red TCP/IP
-
-# --- Bibliotecas para gráficas científicas ---
-import matplotlib                                 # Biblioteca principal para gráficas
-matplotlib.use('Qt5Agg')                        # Backend optimizado para Qt (mejor rendimiento)
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas  # Canvas para integrar matplotlib en Qt
-from matplotlib.figure import Figure             # Figura contenedora de gráficas
-
-# --- Bibliotecas para exportar datos a Excel ---
-import openpyxl                                  # Manipulación de archivos Excel
-from openpyxl.chart import LineChart, Reference  # Gráficas y referencias en Excel
-
-# --- Bibliotecas para manejo de tiempo y archivos ---
-from datetime import datetime                    # Manejo de fechas y horas
-import os                                       # Operaciones del sistema operativo
-
-# =====================================================================================
-# CLASE: HILO PARA SENSOR DE ÁNGULO SIMPLE
-# =====================================================================================
-# Propósito: Maneja la comunicación con ESP32 para el sensor de ángulo simple
-# Funcionalidad: Recibe datos de potenciómetro y los convierte a ángulos
-# Hereda de: QThread (permite ejecución en segundo plano sin bloquear UI)
-
-class AnguloSimpleThread(QThread):
-    # --- SEÑAL PERSONALIZADA ---
-    # Definir señal que emitirá datos cuando lleguen del ESP32
-    # Signal(int, int) significa: (lectura_potenciometro, angulo_calculado)
-    data_received = Signal(int, int)  # lectura, angulo
-    
-    def __init__(self, esp32_ip, port=8080):
-        """
-        Constructor del hilo para sensor de ángulo simple
-        
-        Parámetros:
-        - esp32_ip: Dirección IP del ESP32 (ej: "192.168.1.100")
-        - port: Puerto de comunicación TCP (por defecto 8080)
-        """
-        super().__init__()                        # Inicializar la clase padre QThread
-        self.esp32_ip = esp32_ip                 # Guardar IP del ESP32 para conectar
-        self.port = port                         # Guardar puerto de comunicación
-        self.running = False                     # Flag para controlar el bucle principal
-        self.sock = None                         # Variable para el socket de conexión
-    
-    def run(self):
-        """
-        Método principal del hilo - se ejecuta cuando se llama start()
-        Este método corre en segundo plano y maneja toda la comunicación
-        """
-        self.running = True                      # Activar flag de ejecución
-        try:
-            # --- ESTABLECER CONEXIÓN TCP ---
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Crear socket TCP
-            self.sock.settimeout(3)              # Timeout de 3 segundos para conexión inicial
-            self.sock.connect((self.esp32_ip, self.port))  # Conectar al ESP32
-            
-            # --- CONFIGURAR MODO DE SENSOR ---
-            self.sock.sendall(b'MODO:ANGULO_SIMPLE')  # Enviar comando para activar modo ángulo simple
-            self.sock.settimeout(1)              # Timeout de 1 segundo para recepción de datos
-            
-            # --- BUCLE PRINCIPAL DE RECEPCIÓN ---
-            while self.running:                  # Continuar mientras el hilo esté activo
-                try:
-                    # Recibir datos del ESP32 (máximo 64 bytes)
-                    data = self.sock.recv(64)
-                    if not data:                 # Si no llegan datos, terminar conexión
-                        break
-                    
-                    # --- PROCESAR DATOS RECIBIDOS ---
-                    msg = data.decode(errors='ignore').strip()  # Convertir bytes a string y limpiar
-                    for line in msg.split('\n'):               # Procesar cada línea por separado
-                        if line.startswith('POT:'):             # Buscar líneas con datos del potenciómetro
-                            try:
-                                # Parsear formato: "POT:1234,ANG:90"
-                                parts = line.replace('POT:', '').split(',ANG:')  # Separar lectura y ángulo
-                                lectura = int(parts[0])          # Convertir lectura a entero
-                                angulo = int(parts[1])           # Convertir ángulo a entero
-                                
-                                # --- EMITIR SEÑAL CON DATOS ---
-                                self.data_received.emit(lectura, angulo)  # Enviar datos a la interfaz principal
-                            except:
-                                pass                             # Ignorar errores de formato
-                                
-                except socket.timeout:                          # Si hay timeout, continuar esperando
-                    continue
-                    
-        except Exception as e:                                  # Capturar cualquier error de conexión
-            pass                                                # Ignorar errores (conexión perdida, etc.)
-            
-        finally:
-            # --- LIMPIEZA AL TERMINAR ---
-            if self.sock:                                       # Si hay socket activo
-                try:
-                    self.sock.sendall(b'STOP')                 # Enviar comando de parada al ESP32
-                except:
-                    pass                                        # Ignorar errores al enviar STOP
-                self.sock.close()                              # Cerrar conexión TCP
-    
-    def stop(self):
-        """
-        Método para detener el hilo de forma segura
-        Se llama desde el hilo principal para terminar la ejecución
-        """
-        self.running = False                                   # Desactivar flag de ejecución
-        self.wait()                                           # Esperar a que termine el hilo
 
 # =====================================================================================
 # CLASE: HILO PARA SENSOR DE BRAZO CON MÚLTIPLES ÁNGULOS
@@ -510,7 +363,7 @@ class DistanciaUltrasonicThread(QThread):
 # Funcionalidad: Gestiona conexión ESP32, selección de sensores, y visualización de datos
 # Hereda de: QMainWindow (ventana principal de Qt con menús, barras de herramientas, etc.)
 
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, AnguloSimpleMonitor):
     def __init__(self):
         """
         Constructor de la ventana principal
@@ -536,14 +389,15 @@ class MainWindow(QMainWindow):
           # --- Banderas de estado general ---
         self.is_connected = False               # True cuando ESP32 está conectado
         self.is_monitoring = False              # True cuando algún sensor está monitoreando
-        
+
+       
         # =====================================================================================
         # SISTEMA DE CALIBRACIÓN
         # =====================================================================================
         
         # --- Instancia de calibración para sensor de ángulo simple ---
         self.angulo_calibration = LinearCalibration()  # Sistema de calibración lineal
-          # =====================================================================================
+        # =====================================================================================
         # VARIABLES PARA DATOS DE SENSOR DE ÁNGULO SIMPLE (con optimización de memoria)
         # =====================================================================================
         
@@ -1078,7 +932,7 @@ class MainWindow(QMainWindow):
         
         # --- MOSTRAR INTERFAZ ESPECÍFICA SEGÚN SENSOR ---
         if sensor_id == "angulo_simple":         # Sensor de ángulo con potenciómetro simple
-            self.show_angulo_simple_interface()
+            anguloSimple_UI(self)  # Mostrar la interfaz de sensor simple
         elif sensor_id == "brazo_angulo":        # Brazo robótico con múltiples sensores
             self.show_brazo_angulo_interface()
         elif sensor_id == "distancia_ir":        # Sensor de distancia infrarrojo
@@ -1090,218 +944,7 @@ class MainWindow(QMainWindow):
         else:                                    # Sensores no implementados aún
             QMessageBox.information(self, "Próximamente", 
                                   "Esta función será implementada en futuras versiones")
-    # =====================================================================================
-    # MÉTODO: INTERFAZ DEL SENSOR DE ÁNGULO SIMPLE
-    # =====================================================================================
-    def show_angulo_simple_interface(self):
-        """
-        Crea y muestra la interfaz específica para el sensor de ángulo simple
-        
-        Propósito: Interfaz completa para monitorear potenciómetro conectado al ESP32
-        Funcionalidad: Diagrama de conexiones, controles de monitoreo, visualización de datos
-        Sensor: Potenciómetro 10kΩ en GPIO 32 del ESP32
-        """
-        
-        # --- OCULTAR PANTALLA DE BIENVENIDA ---
-        self.welcome_widget.setVisible(False)   # Esconder mensaje inicial
-        
-        # --- CREAR WIDGET PRINCIPAL DEL SENSOR ---
-        sensor_widget = QWidget()               # Contenedor principal de la interfaz
-        layout = QVBoxLayout(sensor_widget)     # Layout vertical para organizar elementos
-        layout.setSpacing(20)                   # Espacio entre secciones: 20px
-        
-        # =====================================================================================
-        # SECCIÓN: TÍTULO Y DESCRIPCIÓN DEL SENSOR
-        # =====================================================================================
-        
-        # --- TÍTULO PRINCIPAL ---
-        title = QLabel("🎛️ Sensor de Ángulo Simple")  # Título con emoji identificativo
-        title.setStyleSheet("""
-            font-size: 20px;                    /* Tamaño grande para destacar */
-            font-weight: bold;                  /* Negrita para jerarquía visual */
-            color: #007bff;                     /* Azul corporativo */
-            margin-bottom: 10px;                /* Separación inferior */
-        """)
-        layout.addWidget(title)                 # Agregar título al layout principal
-        
-        # --- DESCRIPCIÓN FUNCIONAL ---
-        description = QLabel("Monitorea el ángulo en tiempo real usando un potenciómetro conectado al GPIO 32 del ESP32")
-        description.setStyleSheet("""
-            font-size: 14px;                    /* Tamaño legible */
-            color: #6c757d;                     /* Gris suave */
-            margin-bottom: 20px;                /* Separación inferior generosa */
-        """)
-        description.setWordWrap(True)           # Permitir salto de línea automático
-        layout.addWidget(description)           # Agregar descripción al layout
-        
-        # =====================================================================================
-        # SECCIÓN: DIAGRAMA DE CONEXIONES ESP32
-        # =====================================================================================
-        
-        # --- GRUPO DEL DIAGRAMA ---
-        diagram_group = QGroupBox("🔌 Diagrama de Conexiones ESP32")  # Caja agrupada con título
-        diagram_layout = QVBoxLayout(diagram_group)  # Layout vertical para el contenido
-        
-        # --- DIAGRAMA ASCII DETALLADO ---
-        diagram_text = QLabel("""
-<pre style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #495057;">
-┌─────────────────────────────────┐
-│  ESP32 DevKit V1                │
-│                                 │
-│  3V3  ○ ←── Potenciómetro (+)   │
-│  D32  ○ ←── Potenciómetro (S)   │
-│  GND  ○ ←── Potenciómetro (-)   │
-│                                 │
-│  LED integrado: GPIO 2          │
-└─────────────────────────────────┘
 
-<b>Potenciómetro 10kΩ:</b>
-• Pin (+): Alimentación 3.3V
-• Pin (-): Tierra (GND)  
-• Pin (S): Señal analógica → GPIO 32
-</pre>
-        """)       
-        diagram_text.setWordWrap(True)          # Permitir ajuste de texto
-        diagram_text.setStyleSheet("""
-            background-color: #f8f9fa;          /* Fondo gris muy claro para diagrama */
-            border: 2px solid #dee2e6;          /* Borde gris para definir área */
-            border-radius: 6px;                 /* Esquinas redondeadas */
-            padding: 15px;                      /* Espacio interno generoso */
-            margin: 5px;                        /* Margen exterior pequeño */
-        """)
-        diagram_layout.addWidget(diagram_text)  # Agregar diagrama al grupo
-        
-        # --- NOTA IMPORTANTE DE SEGURIDAD ---
-        note_label = QLabel("💡 <b>Nota:</b> Asegúrate de conectar el potenciómetro correctamente antes de iniciar el monitoreo")
-        note_label.setStyleSheet("""
-            font-size: 13px;                    /* Tamaño menor para nota */
-            color: #856404;                     /* Color ámbar oscuro */
-            background-color: #fff3cd;          /* Fondo ámbar claro (alerta) */
-            border: 1px solid #ffeaa7;          /* Borde ámbar */
-            border-radius: 4px;                 /* Esquinas redondeadas */
-            padding: 8px;                       /* Espacio interno */
-            margin-top: 5px;                    /* Separación superior */
-        """)
-        note_label.setWordWrap(True)            # Permitir ajuste de línea
-        diagram_layout.addWidget(note_label)    # Agregar nota al grupo
-        
-        layout.addWidget(diagram_group)         # Agregar grupo completo al layout principal
-        
-        # =====================================================================================
-        # SECCIÓN: CONTROLES DE MONITOREO
-        # =====================================================================================
-        
-        # --- GRUPO DE CONTROLES ---
-        controls_group = QGroupBox("Controles")  # Caja agrupada para controles
-        controls_layout = QVBoxLayout(controls_group)  # Layout vertical para controles
-          # --- ETIQUETA DE ESTADO EN TIEMPO REAL ---
-        # Muestra lectura ADC y ángulo calculado en tiempo real
-        self.angulo_label = QLabel("Lectura ADC: -- | Ángulo: --")  # Texto inicial placeholder
-        self.angulo_label.setStyleSheet("""
-            font-size: 16px;                    /* Tamaño de fuente: 16px para visibilidad */
-            font-weight: bold;                  /* Texto en negrita para destacar */
-            color: #495057;                     /* Color gris oscuro para legibilidad */
-            padding: 10px;                      /* Espacio interno: 10px en todos los lados */
-            background-color: #f8f9fa;          /* Fondo gris muy claro */
-            border-radius: 6px;                 /* Esquinas redondeadas modernas */
-            border: 2px solid #dee2e6;          /* Borde gris claro de 2px */
-        """)
-        controls_layout.addWidget(self.angulo_label)  # Agregar etiqueta a controles
-        
-        # --- ETIQUETA DE CALIBRACIÓN ---
-        # Muestra el estado de calibración y valores calibrados
-        self.calibration_status_label = QLabel("Calibración: No aplicada")  # Estado inicial
-        self.calibration_status_label.setStyleSheet("""
-            font-size: 14px;                    /* Tamaño menor para información secundaria */
-            font-weight: bold;                  /* Texto en negrita */
-            color: #856404;                     /* Color ámbar para indicar estado */
-            padding: 8px;                       /* Espacio interno menor */
-            background-color: #fff3cd;          /* Fondo ámbar claro */
-            border-radius: 4px;                 /* Esquinas redondeadas menores */
-            border: 1px solid #ffeaa7;          /* Borde ámbar */
-            margin-top: 5px;                    /* Separación superior */
-        """)
-        controls_layout.addWidget(self.calibration_status_label)  # Agregar etiqueta de calibración
-        
-        # --- BOTONES DE CONTROL PRINCIPAL ---
-        buttons_layout = QHBoxLayout()           # Layout horizontal para botones principales
-          # BOTÓN INICIAR - Color verde para indicar acción positiva
-        self.start_btn = QPushButton("▶️ Iniciar Monitoreo")  # Botón con emoji de play
-        self.start_btn.clicked.connect(self.toggle_angulo_monitoring)  # Conectar a método de control        
-        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde Bootstrap
-        buttons_layout.addWidget(self.start_btn)  # Agregar al layout de botones
-        
-        # BOTÓN CALIBRACIÓN - Color azul para función de configuración
-        self.calibrate_btn = QPushButton("⚙️ Calibrar Sensor")  # Botón con emoji de configuración
-        self.calibrate_btn.clicked.connect(self.open_calibration_dialog)  # Conectar a método de calibración
-        self.calibrate_btn.setStyleSheet("QPushButton { background-color: #007bff; border-color: #007bff; color: white; padding: 10px; }")  # Azul Bootstrap
-        buttons_layout.addWidget(self.calibrate_btn)  # Agregar al layout de botones
-        
-        controls_layout.addLayout(buttons_layout)  # Agregar botones principales a controles
-        
-        # --- BOTONES DE ACCIONES SECUNDARIAS ---
-        actions_layout = QHBoxLayout()           # Layout horizontal para acciones secundarias
-        
-        # BOTÓN LIMPIAR - Para borrar datos de la gráfica
-        self.clear_btn = QPushButton("🗑️ Limpiar Gráfica")  # Botón con emoji de papelera
-        self.clear_btn.clicked.connect(self.clear_graph)  # Conectar a método de limpieza
-        actions_layout.addWidget(self.clear_btn)  # Agregar al layout de acciones
-          # BOTÓN EXPORTAR - Para guardar datos en Excel
-        self.export_btn = QPushButton("📊 Exportar Excel")  # Botón con emoji de gráfica
-        self.export_btn.clicked.connect(self.export_to_excel)  # Conectar a método de exportación
-        self.export_btn.setEnabled(False)       # Se habilita solo cuando hay datos
-        actions_layout.addWidget(self.export_btn)  # Agregar al layout de acciones
-        
-        controls_layout.addLayout(actions_layout)  # Agregar acciones secundarias a controles
-        layout.addWidget(controls_group)         # Agregar grupo de controles al layout principal
-        
-        # =====================================================================================
-        # SECCIÓN: GRÁFICA EN TIEMPO REAL
-        # =====================================================================================
-        
-        # --- GRUPO DE GRÁFICA ---
-        graph_group = QGroupBox("Gráfica en Tiempo Real")  # Caja agrupada para la gráfica
-        graph_layout = QVBoxLayout(graph_group)  # Layout vertical para la gráfica
-        
-        # --- CONFIGURAR MATPLOTLIB CON COLORES MEJORADOS ---
-        self.figure = Figure(figsize=(10, 6), dpi=100, facecolor='white')  # Figura de matplotlib
-        self.canvas = FigureCanvas(self.figure)  # Canvas para renderizar la figura
-        self.ax = self.figure.add_subplot(111)   # Subplot principal (1 fila, 1 columna, posición 1)
-        
-        # --- PERSONALIZACIÓN VISUAL DE LA GRÁFICA ---
-        self.ax.set_facecolor('#f8f9fa')         # Fondo gris muy claro
-        self.ax.grid(True, linestyle='--', alpha=0.7, color='#dee2e6')  # Grid con líneas punteadas
-        self.ax.set_xlabel('Muestras', fontsize=12, fontweight='bold', color='#495057')  # Etiqueta eje X
-        self.ax.set_ylabel('Ángulo (°)', fontsize=12, fontweight='bold', color='#495057')  # Etiqueta eje Y
-        self.ax.set_title('Monitoreo de Ángulo en Tiempo Real', fontsize=14, fontweight='bold', color='#007bff')  # Título
-        
-        # --- LÍNEA DE DATOS CON ESTILO DESTACADO ---
-        self.line, = self.ax.plot([], [], 'o-', linewidth=3, markersize=6,  # Línea con marcadores circulares
-                                 color='#007bff', markerfacecolor='#0056b3',  # Colores azules
-                                 markeredgecolor='white', markeredgewidth=2)  # Borde blanco en marcadores
-        
-        # --- CONFIGURAR LÍMITES INICIALES ---
-        self.ax.set_xlim(0, 100)                 # Eje X: 0 a 100 muestras
-        self.ax.set_ylim(-135, 135)                 # Eje Y: -135 a 135 grados (rango del potenciómetro)
-        
-        # --- OPTIMIZAR LAYOUT DE LA GRÁFICA ---
-        self.figure.tight_layout(pad=2.0)        # Ajuste automático con padding de 2.0
-        
-        # --- INICIALIZAR CANVAS CON DIBUJO INICIAL ---
-        self.canvas.draw()                       # Renderizar gráfica inicial vacía
-        
-        graph_layout.addWidget(self.canvas)      # Agregar canvas al grupo de gráfica
-        layout.addWidget(graph_group)           # Agregar grupo de gráfica al layout principal
-        
-        # =====================================================================================
-        # FINALIZACIÓN: MOSTRAR INTERFAZ EN PANEL DERECHO
-        # =====================================================================================
-          # --- CONFIGURAR PANEL DERECHO ---
-        self.sensor_details.setWidget(sensor_widget)  # Establecer widget como contenido del área de scroll
-        self.sensor_details.setVisible(True)     # Hacer visible el área de detalles del sensor
-        
-        # --- ACTUALIZAR ESTADO DE CALIBRACIÓN ---
-        self.update_calibration_status()         # Mostrar estado actual de calibración
     # =====================================================================================
     # MÉTODO: INTERFAZ DEL SENSOR DE BRAZO CON MÚLTIPLES ÁNGULOS
     # =====================================================================================
@@ -1489,7 +1132,7 @@ class MainWindow(QMainWindow):
         
         # Configurar matplotlib con colores mejorados para múltiples líneas
         self.brazo_figure = Figure(figsize=(10, 6), dpi=100, facecolor='white')
-        self.brazo_canvas = FigureCanvas(self.brazo_figure)
+        self.brazo_canvas = FigureCanvasQTAgg(self.brazo_figure)
         self.brazo_ax = self.brazo_figure.add_subplot(111)
         
         # Mejorar colores y estilo del gráfico
@@ -1767,7 +1410,8 @@ class MainWindow(QMainWindow):
         • Pull-up interno: Activo<br>
         • Detección: Presencia/Ausencia
         </div>
-        """        # ==================== DIAGRAMA DE CONEXIÓN CAPACITIVO ====================
+        """        
+        # ==================== DIAGRAMA DE CONEXIÓN CAPACITIVO ====================
         connection_diagram.setText(connection_text)
         connection_diagram.setWordWrap(True)
         # ESTILO PARA DIAGRAMA - Marco azul temático del sensor capacitivo
@@ -2047,7 +1691,7 @@ class MainWindow(QMainWindow):
           # ==================== CONFIGURACIÓN GRÁFICA ULTRASÓNICA ====================
         # Configurar matplotlib para sensor ultrasónico con tema cyan
         self.figure_ultra = Figure(figsize=(10, 6), dpi=100, facecolor='white')
-        self.canvas_ultra = FigureCanvas(self.figure_ultra)
+        self.canvas_ultra = FigureCanvasQTAgg(self.figure_ultra)
         self.ax_ultra = self.figure_ultra.add_subplot(111)
         
         # CONFIGURACIÓN DE ESTILO PARA GRÁFICA ULTRASÓNICA
@@ -2287,320 +1931,7 @@ class MainWindow(QMainWindow):
         
         # --- INICIAR ANIMACIÓN ---
         self.animation.start()                   # Ejecutar efecto de desvanecimiento
-    # =====================================================================================
-    # SECCIÓN: FUNCIONES DE MONITOREO - SENSOR DE ÁNGULO SIMPLE
-    # =====================================================================================
-    
-    # =====================================================================================
-    # MÉTODO: ALTERNAR MONITOREO DEL SENSOR DE ÁNGULO
-    # =====================================================================================
-    def toggle_angulo_monitoring(self):
-        """
-        Alterna entre iniciar y detener el monitoreo del sensor de ángulo simple
-        
-        Propósito: Función de conveniencia para un solo botón de control
-        Lógica: Verifica estado actual y ejecuta acción opuesta
-        UI: Permite usar un solo botón para iniciar/pausar monitoreo
-        Estado: Basado en flag self.is_monitoring
-        """
-        
-        if not self.is_monitoring:               # Si no está monitoreando
-            self.start_angulo_monitoring()       # Iniciar monitoreo
-        else:                                    # Si ya está monitoreando
-            self.stop_angulo_monitoring()        # Detener monitoreo
-    
-    # =====================================================================================
-    # MÉTODO: INICIAR MONITOREO DEL SENSOR DE ÁNGULO
-    # =====================================================================================
-    def start_angulo_monitoring(self):
-        """
-        Inicia el monitoreo en tiempo real del sensor de ángulo simple
-        
-        Propósito: Comenzar adquisición continua de datos del potenciómetro
-        Thread: Crea AnguloSimpleThread para comunicación asíncrona con ESP32
-        Datos: Recibe lecturas ADC y convierte a grados (-135° a +135°)
-        UI: Actualiza botones y habilita exportación
-        Gráfica: Inicia timer de actualización visual
-        """
-        
-        # --- VERIFICAR CONEXIÓN REQUERIDA ---
-        if not self.is_connected:                # Verificar conexión TCP activa
-            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
-            return                               # Salir si no hay conexión
-        
-        try:
-            # --- CREAR Y CONFIGURAR THREAD DE MONITOREO ---
-            self.angulo_thread = AnguloSimpleThread(self.esp_client.esp32_ip)  # Thread con IP
-            self.angulo_thread.data_received.connect(self.update_angulo_data)  # Conectar señal
-            
-            # --- INICIAR MONITOREO ASÍNCRONO ---
-            self.angulo_thread.start()           # Iniciar thread de comunicación
-            self.is_monitoring = True            # Marcar estado como monitoreando
-              # --- ACTUALIZAR INTERFAZ DE CONTROL ---
-            self.start_btn.setText("⏸️ Pausar")   # Cambiar botón a pausar
-            self.start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; }")  # Amarillo pausa
-            self.export_btn.setEnabled(True)     # Habilitar exportación
-              # --- INICIAR ACTUALIZACIÓN GRÁFICA ---
-            self.manage_graph_timer()           # Gestionar timer compartido inteligentemente
-            
-        except Exception as e:
-            # --- MANEJAR ERRORES DE INICIALIZACIÓN ---
-            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
-    
-    # =====================================================================================
-    # MÉTODO: DETENER MONITOREO DEL SENSOR DE ÁNGULO
-    # =====================================================================================
-    def stop_angulo_monitoring(self):
-        """
-        Detiene el monitoreo del sensor de ángulo simple y limpia recursos
-        
-        Propósito: Parar adquisición de datos y liberar thread
-        Thread: Detiene AnguloSimpleThread de forma segura
-        UI: Restaura botones a estado inicial
-        Recursos: Limpia objetos para evitar memory leaks
-        """
-        
-        # --- DETENER THREAD DE MONITOREO ---
-        if self.angulo_thread and self.angulo_thread.isRunning():  # Si existe y está corriendo
-            self.angulo_thread.stop()            # Detener thread de forma segura
-            self.angulo_thread = None            # Limpiar referencia
-          # --- ACTUALIZAR ESTADO Y TIMERS ---
-        self.is_monitoring = False               # Marcar como no monitoreando
-        self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
-          # --- RESTAURAR INTERFAZ DE CONTROL ---
-        self.start_btn.setText("▶️ Iniciar Monitoreo")  # Restaurar texto inicial
-        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde inicial
-    # =====================================================================================
-    # MÉTODO: ACTUALIZAR DATOS DEL SENSOR DE ÁNGULO
-    # =====================================================================================
-    def update_angulo_data(self, lectura, angulo):
-        """
-        Procesa y actualiza los datos recibidos del sensor de ángulo simple
-        
-        Propósito: Manejar datos en tiempo real del thread de comunicación
-        Parámetros: lectura (int) - Valor ADC crudo (0-4095)
-                   angulo (float) - Ángulo calculado en grados (-135° a +135°)
-        Almacenamiento: Mantiene listas con historial limitado de datos
-        UI: Actualiza etiquetas de lectura actual
-        Gráfica: Prepara datos para redibujado optimizado
-        """
-          # --- ALMACENAR DATOS EN HISTORIAL ---
-        self.lecturas.append(lectura)            # Agregar lectura ADC a lista
-        
-        # --- APLICAR CALIBRACIÓN SI ESTÁ DISPONIBLE ---
-        if self.angulo_calibration.is_calibrated:  # Si hay calibración activa
-            angulo_calibrado = self.angulo_calibration.calibrate_value(lectura)  # Aplicar calibración a lectura cruda
-            self.angulos.append(angulo_calibrado)    # Usar ángulo calibrado para gráfica y almacenamiento
-        else:
-            self.angulos.append(angulo)              # Usar ángulo original si no hay calibración
-        
-        # --- MANTENER LÍMITE DE PUNTOS EN MEMORIA ---
-        if len(self.lecturas) > self.max_points:  # Si excede límite máximo
-            self.lecturas.pop(0)                 # Eliminar primer elemento (más antiguo)
-            self.angulos.pop(0)                  # Eliminar primer ángulo        # --- ACTUALIZAR ETIQUETA DE LECTURA ACTUAL CON VERIFICACIÓN DEFENSIVA ---
-        try:
-            if hasattr(self, 'angulo_label') and self.angulo_label is not None:
-                if self.angulo_calibration.is_calibrated:  # Si hay calibración activa
-                    angulo_calibrado = self.angulo_calibration.calibrate_value(lectura)  # Calcular valor calibrado
-                    self.angulo_label.setText(
-                        f"Lectura: {lectura} | Ángulo: {angulo}° | Calibrado: {angulo_calibrado:.1f}°"
-                    )
-                else:
-                    self.angulo_label.setText(f"Lectura: {lectura} | Ángulo: {angulo}°")  # Sin calibración
-        except RuntimeError:
-            # Widget has been deleted, stop monitoring
-            if hasattr(self, 'is_monitoring'):
-                self.is_monitoring = False
-            return
-        
-        # --- PREPARAR DATOS PARA GRÁFICA ---
-        # Actualizar gráfica de forma optimizada
-        if hasattr(self, 'line'):                # Verificar que existe línea de datos
-            x_data = list(range(len(self.angulos)))  # Índices para eje X
-            self.line.set_data(x_data, self.angulos)  # Actualizar datos de línea
-            
-            # --- AJUSTAR LÍMITES DINÁMICOS DEL EJE X ---
-            if len(x_data) > 0:                  # Si hay datos que mostrar
-                self.ax.set_xlim(0, max(100, len(x_data)))  # Mínimo 100 puntos visibles
-          # --- MARCAR PARA ACTUALIZACIÓN GRÁFICA ---
-        self.pending_updates = True              # Flag para redibujado pendiente
-        self.pending_simple_data = (lectura, angulo)  # Datos específicos pendientes
-    
-    # =====================================================================================
-    # MÉTODO: ABRIR DIÁLOGO DE CALIBRACIÓN
-    # =====================================================================================
-    def open_calibration_dialog(self):
-        """
-        Abre el diálogo de calibración para el sensor de ángulo simple
-        
-        Propósito: Permitir al usuario configurar la calibración lineal del sensor
-        Funcionalidad: Crear puntos de calibración, realizar regresión lineal, guardar/cargar calibraciones
-        UI: Diálogo modal con tabla de puntos, gráfica en tiempo real y controles
-        Calibración: Sistema de regresión lineal que mejora la precisión del sensor
-        """        # --- CREAR DIÁLOGO DE CALIBRACIÓN ---
-        dialog = CalibrationDialog("Ángulo Simple", self.angulo_calibration, self)  # Pasar nombre del sensor, calibración y ventana padre
-        
-        # --- MOSTRAR DIÁLOGO Y PROCESAR RESULTADO ---
-        if dialog.exec() == QDialog.Accepted:    # Si el usuario presiona OK/Aplicar
-            # Actualizar estado de calibración en la interfaz
-            self.update_calibration_status()
-    
-    # =====================================================================================
-    # MÉTODO: ACTUALIZAR ESTADO DE CALIBRACIÓN EN LA INTERFAZ
-    # =====================================================================================
-    def update_calibration_status(self):
-        """
-        Actualiza la etiqueta de estado de calibración en la interfaz
-        
-        Propósito: Mostrar al usuario si hay calibración activa y sus estadísticas
-        Estado: Indica si la calibración está aplicada y muestra información relevante
-        UI: Actualiza color y texto de la etiqueta según el estado de calibración
-        """
-        
-        if hasattr(self, 'calibration_status_label'):  # Verificar que existe la etiqueta
-            if self.angulo_calibration.is_calibrated:   # Si hay calibración activa
-                stats = self.angulo_calibration.get_calibration_stats()  # Obtener estadísticas
-                if stats and 'r_squared' in stats and 'equation' in stats:
-                    # Mostrar información de calibración activa
-                    r2_percent = stats['r_squared'] * 100
-                    self.calibration_status_label.setText(
-                        f"Calibración: ✓ Activa | R² = {r2_percent:.1f}% | {stats['equation']}"
-                    )
-                    # Cambiar estilo a verde para indicar calibración activa
-                    self.calibration_status_label.setStyleSheet("""
-                        font-size: 14px;
-                        font-weight: bold;
-                        color: #155724;
-                        padding: 8px;
-                        background-color: #d4edda;
-                        border-radius: 4px;
-                        border: 1px solid #c3e6cb;
-                        margin-top: 5px;
-                    """)
-                else:
-                    # Calibración sin estadísticas válidas
-                    self.calibration_status_label.setText("Calibración: ⚠️ Aplicada (sin estadísticas)")
-                    self.calibration_status_label.setStyleSheet("""
-                        font-size: 14px;
-                        font-weight: bold;
-                        color: #856404;
-                        padding: 8px;
-                        background-color: #fff3cd;
-                        border-radius: 4px;
-                        border: 1px solid #ffeaa7;
-                        margin-top: 5px;
-                    """)
-            else:
-                # Sin calibración activa
-                self.calibration_status_label.setText("Calibración: No aplicada")
-                self.calibration_status_label.setStyleSheet("""
-                    font-size: 14px;
-                    font-weight: bold;
-                    color: #856404;
-                    padding: 8px;
-                    background-color: #fff3cd;
-                    border-radius: 4px;
-                    border: 1px solid #ffeaa7;
-                    margin-top: 5px;
-                """)
-    
-    # =====================================================================================
-    # MÉTODO: LIMPIAR GRÁFICA DEL SENSOR DE ÁNGULO
-    # =====================================================================================
-    def clear_graph(self):
-        """
-        Limpia todos los datos y gráfica del sensor de ángulo simple
-        
-        Propósito: Resetear visualización y datos almacenados
-        Datos: Borra historial completo de lecturas y ángulos
-        Gráfica: Resetea líneas de datos y límites de ejes
-        UI: Restaura etiquetas a estado inicial
-        Exportación: Deshabilita botón hasta que haya nuevos datos
-        """
-        
-        # --- LIMPIAR DATOS ALMACENADOS ---
-        self.lecturas.clear()                    # Borrar todas las lecturas ADC
-        self.angulos.clear()                     # Borrar todos los ángulos
-        
-        # --- RESETEAR GRÁFICA ---
-        if hasattr(self, 'line'):                # Si existe línea de datos
-            self.line.set_data([], [])           # Limpiar datos de la línea
-            self.ax.set_xlim(0, 100)             # Restaurar límites iniciales
-            self.canvas.draw()                   # Redibujar canvas limpio
-        
-        # --- RESTAURAR ETIQUETAS ---
-        self.angulo_label.setText("Lectura: -- | Ángulo: --°")  # Texto inicial
-        self.export_btn.setEnabled(False)       # Deshabilitar exportación sin datos
-    
-    # =====================================================================================
-    # MÉTODO: EXPORTAR DATOS A EXCEL
-    # =====================================================================================
-    def export_to_excel(self):
-        """
-        Exporta todos los datos del sensor de ángulo simple a archivo Excel
-        
-        Propósito: Permitir análisis posterior y respaldo de datos
-        Formato: Archivo .xlsx con múltiples columnas y gráfica integrada
-        Datos: Lecturas ADC, ángulos calculados, timestamps, numeración
-        Gráfica: Incluye gráfico de líneas dentro del archivo Excel
-        Validación: Verifica que existan datos antes de exportar
-        """
-        
-        # --- VERIFICAR DATOS DISPONIBLES ---
-        if not self.lecturas:                    # Si no hay datos que exportar
-            QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
-            return                               # Salir sin hacer nada
-        
-        try:
-            # --- GENERAR NOMBRE DE ARCHIVO ÚNICO ---
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Formato: YYYYMMDD_HHMMSS
-            filename, _ = QFileDialog.getSaveFileName(
-                self, "Guardar datos",           # Título del diálogo
-                f"SensoraCore_Angulo_{timestamp}.xlsx",  # Nombre sugerido
-                "Excel files (*.xlsx)"           # Filtro de archivos
-            )
-            
-            if filename:                         # Si usuario seleccionó archivo
-                # --- CREAR WORKBOOK Y WORKSHEET ---
-                wb = openpyxl.Workbook()         # Nuevo libro de Excel
-                ws = wb.active                   # Hoja activa
-                ws.title = "Datos Ángulo Simple"  # Título de la hoja
-                
-                # --- CREAR HEADERS DE COLUMNAS ---
-                ws['A1'] = "Muestra"             # Número de muestra
-                ws['B1'] = "Lectura ADC"         # Valor ADC crudo
-                ws['C1'] = "Ángulo (°)"          # Ángulo calculado
-                ws['D1'] = "Timestamp"           # Fecha y hora
-                
-                # --- ESCRIBIR DATOS FILA POR FILA ---
-                for i, (lectura, angulo) in enumerate(zip(self.lecturas, self.angulos)):
-                    ws[f'A{i+2}'] = i+1          # Número de muestra (1, 2, 3...)
-                    ws[f'B{i+2}'] = lectura      # Lectura ADC
-                    ws[f'C{i+2}'] = angulo       # Ángulo en grados
-                    ws[f'D{i+2}'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Timestamp
-                
-                # --- CREAR GRÁFICA EN EXCEL ---
-                chart = LineChart()              # Gráfico de líneas
-                chart.title = "Ángulo vs Tiempo"  # Título del gráfico
-                chart.y_axis.title = "Ángulo (°)"  # Etiqueta eje Y
-                chart.x_axis.title = "Muestra"   # Etiqueta eje X
-                
-                # --- CONFIGURAR DATOS DEL GRÁFICO ---
-                data = Reference(ws, min_col=3, min_row=1, max_row=len(self.angulos)+1)  # Columna C
-                categories = Reference(ws, min_col=1, min_row=2, max_row=len(self.angulos)+1)  # Columna A
-                chart.add_data(data, titles_from_data=True)  # Agregar datos
-                chart.set_categories(categories)  # Establecer categorías
-                
-                # --- INSERTAR GRÁFICO EN HOJA ---
-                ws.add_chart(chart, "F2")        # Posición F2 para el gráfico
-                
-                # --- GUARDAR ARCHIVO ---
-                wb.save(filename)                # Guardar en ubicación seleccionada
-                QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
-                
-        except Exception as e:
-            # --- MANEJAR ERRORES DE EXPORTACIÓN ---
-            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")    
+
     # =====================================================================================
     # SECCIÓN: FUNCIONES DE MONITOREO - BRAZO ROBÓTICO MULTI-SENSOR
     # =====================================================================================
@@ -3507,7 +2838,7 @@ class MainWindow(QMainWindow):
                                 "Instálalo con: pip install openpyxl")
         except Exception as e:        # --- MANEJAR ERRORES GENERALES ---
             QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
-      # ============================================================================
+    # ============================================================================
     # MÉTODO: DETENER TODOS LOS THREADS DE MONITOREO
     # ============================================================================
     def stop_all_monitoring_threads(self):
