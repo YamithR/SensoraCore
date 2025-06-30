@@ -1,8 +1,6 @@
 # =====================================================================================
 # IMPORTACIONES DE BIBLIOTECAS NECESARIAS
 # =====================================================================================
-
-
 # --- Bibliotecas estándar de Python ---
 import json
 import os
@@ -27,15 +25,17 @@ from openpyxl.chart import LineChart, Reference
 from sklearn.linear_model import LinearRegression
 
 # --- Bibliotecas para la interfaz gráfica (PySide6) ---
-from PySide6.QtCore import (QEasingCurve, QPropertyAnimation, QRect, QThread, 
-                           QTimer, Qt, Signal)
+from PySide6.QtCore import (QEasingCurve, QPropertyAnimation, 
+                            QRect, QThread,QTimer, Qt, Signal)
 from PySide6.QtGui import (QColor, QFont, QPalette)
 from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QFrame, 
-                              QGraphicsOpacityEffect, QGridLayout, QGroupBox, 
+                              QGraphicsOpacityEffect, 
+                              QGridLayout, QGroupBox, 
                               QHBoxLayout, QHeaderView, QLabel, QLineEdit, 
                               QListWidget, QListWidgetItem, QMainWindow, 
-                              QMessageBox, QPushButton, QScrollArea, QSplitter, 
-                              QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+                              QMessageBox, QPushButton, QScrollArea, 
+                              QSplitter, QTableWidget, 
+                              QTableWidgetItem, QVBoxLayout, QWidget)
 
 # --- Módulos personalizados ---
 from network_client import ESP32Client

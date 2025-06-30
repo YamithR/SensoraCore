@@ -158,7 +158,7 @@ def anguloSimple_UI(self):
     
     # BOTÓN LIMPIAR - Para borrar datos de la gráfica
     self.clear_btn = QPushButton("🗑️ Limpiar Gráfica")  # Botón con emoji de papelera
-    self.clear_btn.clicked.connect(self.clear_graph)  # Conectar a método de limpieza
+    self.clear_btn.clicked.connect(self.clear_graph_SIMPLE_ANGLE)  # Conectar a método de limpieza
     actions_layout.addWidget(self.clear_btn)  # Agregar al layout de acciones
     # BOTÓN EXPORTAR - Para guardar datos en Excel
     self.export_btn = QPushButton("📊 Exportar Excel")  # Botón con emoji de gráfica
@@ -584,8 +584,16 @@ class CalibrationDialog(QDialog):
         self.figure.tight_layout()
         self.canvas.draw()
     
-    def save_calibration(self):
-        """Guarda la calibración actual en archivo"""
+    def save_calibration(self, filepath: str) -> bool:
+        """
+        Guarda la calibración actual en archivo
+        
+        Args:
+            filepath: Ruta donde guardar el archivo
+            
+        Returns:
+            bool: True si se guardó exitosamente
+        """
         if not self.calibration.is_calibrated:
             QMessageBox.warning(self, "Sin Calibración", 
                               "❌ No hay calibración activa para guardar.\n\n"
@@ -935,6 +943,40 @@ class LinearCalibration:
 #|------------------------------------------------------------|
 
 class AnguloSimpleMonitor:
+    def __init__(self):
+        """        Inicializa el monitor de sensor de ángulo simple
+        Propósito: Configurar variables y objetos necesarios para monitoreo
+        Lógica: Prepara sistema de calibración y variables para almacenar datos
+        """
+        # =====================================================================================
+        # SISTEMA DE CALIBRACIÓN
+        # =====================================================================================
+        
+        # --- Instancia de calibración para sensor de ángulo simple ---
+        self.angulo_calibration = LinearCalibration()  # Sistema de calibración lineal
+        # =====================================================================================
+        # VARIABLES PARA DATOS DE SENSOR DE ÁNGULO SIMPLE 
+        # =====================================================================================
+        
+        self.angulos = []                       # Lista para almacenar ángulos medidos
+        self.lecturas = []                      # Lista para almacenar lecturas ADC
+        self.max_points = 100                   # Límite máximo de puntos en gráfica
+        
+        # =====================================================================================
+        # SISTEMA DE ACTUALIZACIONES 
+        # =====================================================================================
+ 
+        self.thread_SIMPLE_ANGLE = None            # Thread para monitoreo de sensor de ángulo
+        self.monitoreando_SIMPLE_ANGLE = False              # True cuando el sensor está monitoreando
+        self.pending_updates = False            # Flag para indicar si hay actualizaciones pendientes
+        self.pending_simpleAngle_data =None
+ 
+        self.timer = QTimer()                # Timer para actualizaciones periódicas de gráfica
+        self.timer.timeout.connect(self.on_timer_update_graph)  # Conectar a nuevo método
+        self.timer.setInterval(100)           # Intervalo de actualización (100 ms)
+
+
+
     # =====================================================================================
     # MÉTODO: ALTERNAR MONITOREO DEL SENSOR DE ÁNGULO
     # =====================================================================================
@@ -945,10 +987,10 @@ class AnguloSimpleMonitor:
         Propósito: Función de conveniencia para un solo botón de control
         Lógica: Verifica estado actual y ejecuta acción opuesta
         UI: Permite usar un solo botón para iniciar/pausar monitoreo
-        Estado: Basado en flag self.is_monitoring
+        Estado: Basado en flag self.monitoreando_SIMPLE_ANGLE
         """
         
-        if not self.is_monitoring:               # Si no está monitoreando
+        if not self.monitoreando_SIMPLE_ANGLE:               # Si no está monitoreando
             self.start_angulo_monitoring()       # Iniciar monitoreo
         else:                                    # Si ya está monitoreando
             self.stop_angulo_monitoring()        # Detener monitoreo
@@ -973,19 +1015,18 @@ class AnguloSimpleMonitor:
         
         try:
             # --- CREAR Y CONFIGURAR THREAD DE MONITOREO ---
-            self.angulo_thread = AnguloSimpleThread(self.esp_client.esp32_ip)  # Thread con IP
-            self.angulo_thread.data_received.connect(self.update_angulo_data)  # Conectar señal
+            self.thread_SIMPLE_ANGLE = AnguloSimpleThread(self.esp_client.esp32_ip)  # Thread con IP
+            self.thread_SIMPLE_ANGLE.data_received.connect(self.update_angulo_data)  # Conectar señal
             
             # --- INICIAR MONITOREO ASÍNCRONO ---
-            self.angulo_thread.start()           # Iniciar thread de comunicación
-            self.is_monitoring = True            # Marcar estado como monitoreando
-                # --- ACTUALIZAR INTERFAZ DE CONTROL ---
+            self.thread_SIMPLE_ANGLE.start()           # Iniciar thread de comunicación
+            self.monitoreando_SIMPLE_ANGLE = True            # Marcar estado como monitoreando
+            # --- ACTUALIZAR INTERFAZ DE CONTROL ---
             self.start_btn.setText("⏸️ Pausar")   # Cambiar botón a pausar
             self.start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; }")  # Amarillo pausa
             self.export_btn.setEnabled(True)     # Habilitar exportación
-                # --- INICIAR ACTUALIZACIÓN GRÁFICA ---
-            self.manage_graph_timer()           # Gestionar timer compartido inteligentemente
-            
+            # --- INICIAR ACTUALIZACIÓN GRÁFICA ---
+            self.timer.start()  # <--- Iniciar el timer de actualización de gráfica
         except Exception as e:
             # --- MANEJAR ERRORES DE INICIALIZACIÓN ---
             QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
@@ -1003,13 +1044,13 @@ class AnguloSimpleMonitor:
         """
         
         # --- DETENER THREAD DE MONITOREO ---
-        if self.angulo_thread and self.angulo_thread.isRunning():  # Si existe y está corriendo
-            self.angulo_thread.stop()            # Detener thread de forma segura
-            self.angulo_thread = None            # Limpiar referencia
+        if self.thread_SIMPLE_ANGLE and self.thread_SIMPLE_ANGLE.isRunning():  # Si existe y está corriendo
+            self.thread_SIMPLE_ANGLE.stop()            # Detener thread de forma segura
+            self.thread_SIMPLE_ANGLE = None            # Limpiar referencia
             # --- ACTUALIZAR ESTADO Y TIMERS ---
-        self.is_monitoring = False               # Marcar como no monitoreando
-        self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
-            # --- RESTAURAR INTERFAZ DE CONTROL ---
+        self.monitoreando_SIMPLE_ANGLE = False               # Marcar como no monitoreando
+        self.timer.stop()  # <--- Detener el timer al pausar el monitoreo
+        # --- RESTAURAR INTERFAZ DE CONTROL ---
         self.start_btn.setText("▶️ Iniciar Monitoreo")  # Restaurar texto inicial
         self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde inicial
     # =====================================================================================
@@ -1051,8 +1092,8 @@ class AnguloSimpleMonitor:
                     self.angulo_label.setText(f"Lectura: {lectura} | Ángulo: {angulo}°")  # Sin calibración
         except RuntimeError:
             # Widget has been deleted, stop monitoring
-            if hasattr(self, 'is_monitoring'):
-                self.is_monitoring = False
+            if hasattr(self, 'monitoreando_SIMPLE_ANGLE'):
+                self.monitoreando_SIMPLE_ANGLE = False
             return
         
         # --- PREPARAR DATOS PARA GRÁFICA ---
@@ -1066,7 +1107,7 @@ class AnguloSimpleMonitor:
                 self.ax.set_xlim(0, max(100, len(x_data)))  # Mínimo 100 puntos visibles
             # --- MARCAR PARA ACTUALIZACIÓN GRÁFICA ---
         self.pending_updates = True              # Flag para redibujado pendiente
-        self.pending_simple_data = (lectura, angulo)  # Datos específicos pendientes
+        self.pending_simpleAngle_data = (lectura, angulo)  # Datos específicos pendientes
     # =====================================================================================
     # MÉTODO: ABRIR DIÁLOGO DE CALIBRACIÓN
     # =====================================================================================
@@ -1146,7 +1187,7 @@ class AnguloSimpleMonitor:
     # =====================================================================================
     # MÉTODO: LIMPIAR GRÁFICA DEL SENSOR DE ÁNGULO
     # =====================================================================================
-    def clear_graph(self):
+    def clear_graph_SIMPLE_ANGLE(self):
         """
         Limpia todos los datos y gráfica del sensor de ángulo simple
         
@@ -1238,4 +1279,45 @@ class AnguloSimpleMonitor:
                     
             except Exception as e:
                 # --- MANEJAR ERRORES DE EXPORTACIÓN ---
-                QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")    
+                QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
+        # =====================================================================================
+    # MÉTODO: ACTUALIZACIÓN OPTIMIZADA DE GRÁFICAS
+    # =====================================================================================
+    def update_graph_display(self):
+        """
+        Actualiza todas las gráficas de sensores usando timer
+        
+        Propósito: Centralizar y optimizar la actualización de múltiples gráficas
+        Funcionamiento: Usa flags de datos pendientes para evitar actualizaciones innecesarias
+        Optimización: Solo redibuja canvas cuando hay datos nuevos pendientes
+        Rendimiento: Evita bloqueos de UI con actualizaciones frecuentes
+        Sensores: Ángulo simple, brazo robótico, IR, capacitivo, ultrasónico
+        """
+        
+        # --- VERIFICAR SI HAY DATOS PENDIENTES ---
+        # Solo actualizar si hay datos pendientes y la aplicación está activa
+        if not self.pending_updates:           # Si no hay actualizaciones pendientes
+            return                             # Salir sin procesar nada
+            
+        try:
+            # ==================== ACTUALIZAR GRÁFICA ÁNGULO SIMPLE ====================
+            # Actualizar gráfica de ángulo simple si hay datos pendientes
+            if (self.pending_simpleAngle_data is not None and 
+                hasattr(self, 'canvas') and hasattr(self, 'line')):
+                self.canvas.draw()             # Redibujar canvas del sensor de ángulo                
+                           
+            # --- LIMPIAR FLAGS DE ACTUALIZACIÓN ---
+            # Limpiar flags de datos pendientes para próxima iteración
+            self.pending_updates = False              # Resetear flag principal de actualizaciones
+            self.pending_simpleAngle_data = None           # Limpiar datos del ángulo simple
+        except Exception as e:
+            # --- MANEJO DE ERRORES SILENCIOSO ---
+            # Continuar silenciosamente si hay errores de actualización gráfica
+            # Esto evita crashes por problemas temporales de rendering
+            pass
+    
+    def on_timer_update_graph(self):
+        """
+        Método llamado periódicamente por el timer para actualizar la gráfica si hay datos nuevos.
+        """
+        self.update_graph_display()
