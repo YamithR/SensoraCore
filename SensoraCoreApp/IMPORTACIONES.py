@@ -38,5 +38,4 @@ from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QFrame,
                               QTableWidgetItem, QVBoxLayout, QWidget)
 
 # --- Módulos personalizados ---
-from network_client import ESP32Client
-from ui.main_window import MainWindow
+from main_window import MainWindow

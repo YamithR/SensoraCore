@@ -11,7 +11,7 @@ from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de im
 def anguloSimple_UI(self):
     """
     Crea y muestra la interfaz específica para el sensor de ángulo simple
-    
+
     Propósito: Interfaz completa para monitorear potenciómetro conectado al ESP32
     Funcionalidad: Diagrama de conexiones, controles de monitoreo, visualización de datos
     Sensor: Potenciómetro 10kΩ en GPIO 32 del ESP32
@@ -236,7 +236,7 @@ class CalibrationDialog(QDialog):
         - Guardar/cargar calibraciones
         - Mostrar estadísticas de calibración
     """
-      # Señal para notificar cambios de calibración a la ventana principal
+    # Señal para notificar cambios de calibración a la ventana principal
     calibration_updated = Signal(object)
     
     def __init__(self, sensor_name="Sensor", calibration_instance=None, parent=None):
@@ -663,6 +663,7 @@ class AnguloSimpleThread(QThread):
     # --- SEÑAL PERSONALIZADA ---
     # Definir señal que emitirá datos cuando lleguen del ESP32
     # Signal(int, int) significa: (lectura_potenciometro, angulo_calculado)
+        
     data_received = Signal(int, int)  # lectura, angulo
     
     def __init__(self, esp32_ip, port=8080):
@@ -974,9 +975,6 @@ class AnguloSimpleMonitor:
         self.timer = QTimer()                # Timer para actualizaciones periódicas de gráfica
         self.timer.timeout.connect(self.on_timer_update_graph)  # Conectar a nuevo método
         self.timer.setInterval(100)           # Intervalo de actualización (100 ms)
-
-
-
     # =====================================================================================
     # MÉTODO: ALTERNAR MONITOREO DEL SENSOR DE ÁNGULO
     # =====================================================================================

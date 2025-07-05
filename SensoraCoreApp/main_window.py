@@ -8,6 +8,37 @@
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 from Modulos.SENSORA_SIMPLE_ANGLE import (LinearCalibration, anguloSimple_UI, AnguloSimpleMonitor)
 
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
+
+
+class ESP32Client:
+    def __init__(self, esp32_ip, port=8080):
+        self.esp32_ip = esp32_ip
+        self.port = port
+
+    def send_command(self, command):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(3)
+                s.connect((self.esp32_ip, self.port))
+                s.sendall(command.encode())
+                data = s.recv(1024)
+                return data.decode()
+        except Exception as e:
+            return f"ERROR: {e}"
+
+
+
+    def led_on(self):
+        return self.send_command('LED_ON')
+
+    def led_off(self):
+        return self.send_command('LED_OFF')
+
 # =====================================================================================
 # CLASE PRINCIPAL: VENTANA PRINCIPAL DE LA APLICACIÓN SENSORACORE
 # =====================================================================================
@@ -48,12 +79,6 @@ class MainWindow(QMainWindow, AnguloSimpleMonitor):
         self.setup_ui()
 
     # =====================================================================================
-    # MÉTODO AUXILIAR: GESTIÓN DEL TIMER DE GRÁFICAS
-    # =====================================================================================
-    
-
-
-      # =====================================================================================
     # MÉTODO: CONFIGURACIÓN DE ESTILOS VISUALES
     # =====================================================================================
     def setup_styles(self):
@@ -499,12 +524,7 @@ class MainWindow(QMainWindow, AnguloSimpleMonitor):
             QMessageBox.information(self, "Próximamente", 
                                   "Esta función será implementada en futuras versiones")
 
-    # =====================================================================================
-    # SECCIÓN: FUNCIONES DE CONEXIÓN Y GESTIÓN DEL ESP32
-    # =====================================================================================    
-    # ============================================================================
-    # FUNCIONES DE CONEXIÓN Y MONITOREO
-    # ============================================================================
+
     
     # =====================================================================================
     # MÉTODO: PROBAR CONEXIÓN CON ESP32
