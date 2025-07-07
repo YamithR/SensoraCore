@@ -26,16 +26,15 @@ from sklearn.linear_model import LinearRegression
 
 # --- Bibliotecas para la interfaz gráfica (PySide6) ---
 from PySide6.QtCore import (QEasingCurve, QPropertyAnimation, 
-                            QRect, QThread,QTimer, Qt, Signal)
-from PySide6.QtGui import (QColor, QFont, QPalette)
+                            QRect, QThread,QTimer, Qt, Signal,Qt, QPointF )
+from PySide6.QtGui import (QColor, QFont, QPalette,QPainter, QPen )
 from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QFrame, 
-                              QGraphicsOpacityEffect, 
+                              QGraphicsOpacityEffect, QSlider,QStylePainter,
                               QGridLayout, QGroupBox, 
                               QHBoxLayout, QHeaderView, QLabel, QLineEdit, 
                               QListWidget, QListWidgetItem, QMainWindow, 
                               QMessageBox, QPushButton, QScrollArea, 
-                              QSplitter, QTableWidget, 
+                              QSplitter, QTableWidget, QStackedWidget,
                               QTableWidgetItem, QVBoxLayout, QWidget)
-
 # --- Módulos personalizados ---
 from main_window import MainWindow

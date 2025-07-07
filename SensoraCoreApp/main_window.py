@@ -6,7 +6,8 @@
 # Autor: Sistema SensoraCore
 # Propósito: Crear una aplicación desktop para monitoreo de sensores ESP32
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
-from Modulos.SENSORA_SIMPLE_ANGLE import (LinearCalibration, anguloSimple_UI, AnguloSimpleMonitor)
+from Modulos.SENSORA_SIMPLEANGLE import (anguloSimple_UI, AnguloSimpleMonitor)
+from Modulos.SENSORA_ANGLEARM import (brazoAngulo_UI)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -513,7 +514,7 @@ class MainWindow(QMainWindow, AnguloSimpleMonitor):
         if sensor_id == "angulo_simple":         # Sensor de ángulo con potenciómetro simple
             anguloSimple_UI(self)  # Mostrar la interfaz de sensor simple
         elif sensor_id == "brazo_angulo":        # Brazo robótico con múltiples sensores
-            self.show_brazo_angulo_interface()
+            brazoAngulo_UI(self)  # Mostrar la interfaz del brazo robótico
         elif sensor_id == "distancia_ir":        # Sensor de distancia infrarrojo
             self.show_distancia_ir_interface()
         elif sensor_id == "distancia_cap":       # Sensor de distancia capacitivo

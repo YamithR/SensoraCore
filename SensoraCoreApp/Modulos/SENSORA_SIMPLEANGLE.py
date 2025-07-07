@@ -1,13 +1,13 @@
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 
-#|------------------------|
-#| Interfaz del programa: |
-#|------------------------|
+#| Despcripción del software: |
+"""
+El software SENSORA_SIMPLE_ANGLE es un módulo que forma parte del ecosistema SensoraCore, diseñado para la monitorización de sensores angulares mediante potenciómetros conectados al ESP32 DevKit V1. A través de esta plataforma, el ESP32 ejecuta firmware en MicroPython que lee valores analógicos del potenciómetro conectado a un pin GPIO y los transmite mediante socket TCP a través de WiFi. La interacción con el sistema se realiza mediante una aplicación de escritorio desarrollada en Python con PySide6 que actúa como cliente TCP para recibir y procesar los datos.
+"""
 
 # =====================================================================================
 # MÉTODO: INTERFAZ DEL SENSOR DE ÁNGULO SIMPLE
 # =====================================================================================
-
 def anguloSimple_UI(self):
     """
     Crea y muestra la interfaz específica para el sensor de ángulo simple
@@ -22,12 +22,18 @@ def anguloSimple_UI(self):
     # --- CREAR WIDGET PRINCIPAL DEL SENSOR ---
     sensor_widget = QWidget()               # Contenedor principal de la interfaz
     layout = QVBoxLayout(sensor_widget)     # Layout vertical para organizar elementos
-    layout.setSpacing(20)                   # Espacio entre secciones: 20px
-    
+    layout.setSpacing(10)                   # Espacio entre secciones: 20px
+    # Añadir borde azul oscuro y redondeo al widget principal
+    sensor_widget.setStyleSheet
+    ("""background-color: #e2f4ff;
+    border: 2px solid #0056b3;
+    border-radius: 12px;""")
+
+
     # =====================================================================================
     # SECCIÓN: TÍTULO Y DESCRIPCIÓN DEL SENSOR
     # =====================================================================================
-    
+
     # --- TÍTULO PRINCIPAL ---
     title = QLabel("🎛️ Sensor de Ángulo Simple")  # Título con emoji identificativo
     title.setStyleSheet("""
@@ -58,22 +64,22 @@ def anguloSimple_UI(self):
     
     # --- DIAGRAMA ASCII DETALLADO ---
     diagram_text = QLabel("""
-<pre style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #495057;">
-┌─────────────────────────────────┐
-│  ESP32 DevKit V1                │
-│                                 │
-│  3V3  ○ ←── Potenciómetro (+)   │
-│  D32  ○ ←── Potenciómetro (S)   │
-│  GND  ○ ←── Potenciómetro (-)   │
-│                                 │
-│  LED integrado: GPIO 2          │
-└─────────────────────────────────┘
+    <pre style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #495057;">
+    ┌─────────────────────────────────┐
+    │  ESP32 DevKit V1                │
+    │                                 │
+    │  3V3  ○ ←── Potenciómetro (+)   │
+    │  D32  ○ ←── Potenciómetro (S)   │
+    │  GND  ○ ←── Potenciómetro (-)   │
+    │                                 │
+    │  LED integrado: GPIO 2          │
+    └─────────────────────────────────┘
 
-<b>Potenciómetro 10kΩ:</b>
-• Pin (+): Alimentación 3.3V
-• Pin (-): Tierra (GND)  
-• Pin (S): Señal analógica → GPIO 32
-</pre>
+    <b>Potenciómetro 10kΩ:</b>
+    • Pin (+): Alimentación 3.3V
+    • Pin (-): Tierra (GND)  
+    • Pin (S): Señal analógica → GPIO 32
+    </pre>
     """)       
     diagram_text.setWordWrap(True)          # Permitir ajuste de texto
     diagram_text.setStyleSheet("""
@@ -228,7 +234,7 @@ class CalibrationDialog(QDialog):
     """
     Diálogo para calibración por regresión lineal de sensores
     
-    Propósito: Interfaz gráfica completa para calibrar sensores analógicos
+    Propósito: Interfaz gráfica para calibrar sensores analógicos
     Funcionalidad: 
         - Agregar puntos de calibración manualmente
         - Visualizar datos y regresión en tiempo real
@@ -245,12 +251,12 @@ class CalibrationDialog(QDialog):
         
         Args:
             sensor_name: Nombre del sensor para personalizar la interfaz
-            calibration_instance: Instancia de LinearCalibration existente (opcional)
+            calibration_instance: Instancia de SimpleAngle_LinearCalibration existente (opcional)
             parent: Ventana padre
         """
         super().__init__(parent)
         self.sensor_name = sensor_name
-        self.calibration = calibration_instance if calibration_instance else LinearCalibration()
+        self.calibration = calibration_instance if calibration_instance else SimpleAngle_LinearCalibration()
         self.setup_ui()
         self.update_plot()
     
@@ -669,7 +675,6 @@ class AnguloSimpleThread(QThread):
     def __init__(self, esp32_ip, port=8080):
         """
         Constructor del hilo para sensor de ángulo simple
-        
         Parámetros:
         - esp32_ip: Dirección IP del ESP32 (ej: "192.168.1.100")
         - port: Puerto de comunicación TCP (por defecto 8080)
@@ -749,7 +754,7 @@ class AnguloSimpleThread(QThread):
 # Propósito: Mejorar precisión de lecturas de sensores mediante calibración
 # Función: Implementa calibración por regresión lineal para sensores analógicos
 
-class LinearCalibration:
+class SimpleAngle_LinearCalibration:
     """
     Clase para manejar calibración por regresión lineal de sensores
     
@@ -954,7 +959,7 @@ class AnguloSimpleMonitor:
         # =====================================================================================
         
         # --- Instancia de calibración para sensor de ángulo simple ---
-        self.angulo_calibration = LinearCalibration()  # Sistema de calibración lineal
+        self.angulo_calibration = SimpleAngle_LinearCalibration()  # Sistema de calibración lineal
         # =====================================================================================
         # VARIABLES PARA DATOS DE SENSOR DE ÁNGULO SIMPLE 
         # =====================================================================================
@@ -1278,8 +1283,8 @@ class AnguloSimpleMonitor:
             except Exception as e:
                 # --- MANEJAR ERRORES DE EXPORTACIÓN ---
                 QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
-        # =====================================================================================
-    # MÉTODO: ACTUALIZACIÓN OPTIMIZADA DE GRÁFICAS
+    # =====================================================================================
+    # MÉTODO: ACTUALIZACIÓN DE GRÁFICAS
     # =====================================================================================
     def update_graph_display(self):
         """
@@ -1313,7 +1318,7 @@ class AnguloSimpleMonitor:
             # Continuar silenciosamente si hay errores de actualización gráfica
             # Esto evita crashes por problemas temporales de rendering
             pass
-    
+    # TIMER DE ACTUALIZACIÓN GRÁFICA
     def on_timer_update_graph(self):
         """
         Método llamado periódicamente por el timer para actualizar la gráfica si hay datos nuevos.
