@@ -28,7 +28,7 @@ from sklearn.linear_model import LinearRegression
 from PySide6.QtCore import (QEasingCurve, QPropertyAnimation, 
                             QRect, QThread,QTimer, Qt, Signal,Qt, QPointF )
 from PySide6.QtGui import (QColor, QFont, QPalette,QPainter, QPen )
-from PySide6.QtWidgets import (QApplication, QDialog, QFileDialog, QFrame, 
+from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QFileDialog, QFrame, 
                               QGraphicsOpacityEffect, QSlider,QStylePainter,
                               QGridLayout, QGroupBox, 
                               QHBoxLayout, QHeaderView, QLabel, QLineEdit, 
