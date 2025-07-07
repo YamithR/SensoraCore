@@ -7,7 +7,7 @@
 # Propósito: Crear una aplicación desktop para monitoreo de sensores ESP32
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 from Modulos.SENSORA_SIMPLEANGLE import (anguloSimple_UI, AnguloSimpleMonitor)
-from Modulos.SENSORA_ANGLEARM import (brazoAngulo_UI)
+from Modulos.SENSORA_ANGLEARM import (brazoAngulo_UI, BrazoAnguloMonitor)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -48,7 +48,7 @@ class ESP32Client:
 # Hereda de: QMainWindow (ventana principal de Qt con menús, barras de herramientas, etc.)
 
 
-class MainWindow(QMainWindow, AnguloSimpleMonitor):
+class MainWindow(QMainWindow, AnguloSimpleMonitor, BrazoAnguloMonitor):
     def __init__(self):
         """
         Constructor de la ventana principal
@@ -58,7 +58,7 @@ class MainWindow(QMainWindow, AnguloSimpleMonitor):
         
         # --- CONFIGURACIÓN BÁSICA DE VENTANA ---
         self.setWindowTitle("SensoraCore")       # Título que aparece en la barra de título
-        self.setMinimumSize(1000, 700)          # Tamaño mínimo permitido (ancho x alto)
+        self.setMinimumSize(500, 500)          # Tamaño mínimo permitido (ancho x alto)
         self.resize(1200, 800)                  # Tamaño inicial de la ventana
         
         # =====================================================================================
@@ -670,7 +670,7 @@ class MainWindow(QMainWindow, AnguloSimpleMonitor):
         # --- INICIAR ANIMACIÓN ---
         self.animation.start()                   # Ejecutar efecto de desvanecimiento
 
-# ============================================================================
+    # ============================================================================
     # MÉTODO: DETENER TODOS LOS THREADS DE MONITOREO
     # ============================================================================
     def stop_all_monitoring_threads(self):

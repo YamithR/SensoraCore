@@ -90,7 +90,6 @@ def anguloSimple_UI(self):
         margin: 5px;                        /* Margen exterior pequeño */
     """)
     diagram_layout.addWidget(diagram_text)  # Agregar diagrama al grupo
-    
     # --- NOTA IMPORTANTE DE SEGURIDAD ---
     note_label = QLabel("💡 <b>Nota:</b> Asegúrate de conectar el potenciómetro correctamente antes de iniciar el monitoreo")
     note_label.setStyleSheet("""
@@ -106,11 +105,7 @@ def anguloSimple_UI(self):
     diagram_layout.addWidget(note_label)    # Agregar nota al grupo
     
     layout.addWidget(diagram_group)         # Agregar grupo completo al layout principal
-    
-    # =====================================================================================
     # SECCIÓN: CONTROLES DE MONITOREO
-    # =====================================================================================
-    
     # --- GRUPO DE CONTROLES ---
     controls_group = QGroupBox("Controles")  # Caja agrupada para controles
     controls_layout = QVBoxLayout(controls_group)  # Layout vertical para controles
@@ -127,7 +122,6 @@ def anguloSimple_UI(self):
         border: 2px solid #dee2e6;          /* Borde gris claro de 2px */
     """)
     controls_layout.addWidget(self.angulo_label)  # Agregar etiqueta a controles
-    
     # --- ETIQUETA DE CALIBRACIÓN ---
     # Muestra el estado de calibración y valores calibrados
     self.calibration_status_label = QLabel("Calibración: No aplicada")  # Estado inicial
@@ -142,7 +136,6 @@ def anguloSimple_UI(self):
         margin-top: 5px;                    /* Separación superior */
     """)
     controls_layout.addWidget(self.calibration_status_label)  # Agregar etiqueta de calibración
-    
     # --- BOTONES DE CONTROL PRINCIPAL ---
     buttons_layout = QHBoxLayout()           # Layout horizontal para botones principales
     # BOTÓN INICIAR - Color verde para indicar acción positiva
@@ -1021,7 +1014,7 @@ class AnguloSimpleMonitor:
             self.thread_SIMPLE_ANGLE = AnguloSimpleThread(self.esp_client.esp32_ip)  # Thread con IP
             self.thread_SIMPLE_ANGLE.data_received.connect(self.update_angulo_data)  # Conectar señal
             
-            # --- INICIAR MONITOREO ASÍNCRONO ---
+            # --- INICIAR MONITOREO  ---
             self.thread_SIMPLE_ANGLE.start()           # Iniciar thread de comunicación
             self.monitoreando_SIMPLE_ANGLE = True            # Marcar estado como monitoreando
             # --- ACTUALIZAR INTERFAZ DE CONTROL ---

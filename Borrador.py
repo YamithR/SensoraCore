@@ -1,3 +1,160 @@
+# =====================================================================================
+# ARCHIVO PRINCIPAL DE INTERFAZ GRÁFICA PARA SENSORACORE
+# =====================================================================================
+# Ruta del archivo: main_window.py para SensoraCore/ui
+# Función: Define la ventana principal y todas las interfaces de los sensores
+# Autor: Sistema SensoraCore
+# Propósito: Crear una aplicación desktop para monitoreo de sensores ESP32
+
+# =====================================================================================
+# IMPORTACIONES DE BIBLIOTECAS NECESARIAS
+# =====================================================================================
+
+# --- Bibliotecas para la interfaz gráfica (PySide6) ---
+from PySide6.QtWidgets import (QMainWindow,        # Ventana principal de la aplicación
+                               QLabel,             # Etiquetas de texto
+                               QVBoxLayout,        # Layout vertical (elementos apilados verticalmente)
+                               QWidget,            # Widget base para todos los elementos
+                               QPushButton,        # Botones clickeables
+                               QLineEdit,          # Campo de entrada de texto
+                               QMessageBox,        # Ventanas de diálogo (alertas, confirmaciones)
+                               QDialog,            # Diálogo base para ventanas modales
+                               QGroupBox,          # Cajas agrupadas con borde y título
+                               QHBoxLayout,        # Layout horizontal (elementos lado a lado)
+                               QFileDialog,        # Diálogo para seleccionar archivos
+                               QScrollArea,        # Área con scroll para contenido largo
+                               QFrame,             # Marco/contenedor visual
+                               QListWidget,        # Lista de elementos seleccionables
+                               QListWidgetItem,    # Elementos individuales de la lista
+                               QSplitter,          # Divisor ajustable entre paneles
+                               QGraphicsOpacityEffect) # Efectos de opacidad
+
+# --- Bibliotecas para funcionalidad central (PySide6) ---
+from PySide6.QtCore import (QThread,              # Hilos para operaciones en segundo plano
+                           Signal,                # Señales para comunicación entre objetos
+                           Qt,                    # Constantes y configuraciones de Qt
+                           QEasingCurve,          # Curvas de animación
+                           QPropertyAnimation,    # Animaciones de propiedades
+                           QRect,                 # Rectángulos para posicionamiento
+                           QTimer)                # Timer para operaciones periódicas
+
+# --- Bibliotecas para gráficos y estilo (PySide6) ---
+from PySide6.QtGui import (QFont,                 # Configuración de fuentes
+                          QPalette,               # Paleta de colores
+                          QColor)                 # Definición de colores
+
+# --- Módulo personalizado para comunicación ESP32 ---
+from network_client import ESP32Client            # Cliente para conectar con ESP32
+
+# --- Módulos personalizados para calibración ---
+from modules.calibration import LinearCalibration # Sistema de calibración lineal
+from ui.calibration_dialog import CalibrationDialog # Diálogo de calibración
+
+# --- Bibliotecas estándar de Python ---
+import socket                                     # Comunicación de red TCP/IP
+
+# --- Bibliotecas para gráficas científicas ---
+import matplotlib                                 # Biblioteca principal para gráficas
+matplotlib.use('Qt5Agg')                        # Backend optimizado para Qt (mejor rendimiento)
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas  # Canvas para integrar matplotlib en Qt
+from matplotlib.figure import Figure             # Figura contenedora de gráficas
+
+# --- Bibliotecas para exportar datos a Excel ---
+import openpyxl                                  # Manipulación de archivos Excel
+from openpyxl.chart import LineChart, Reference  # Gráficas y referencias en Excel
+
+# --- Bibliotecas para manejo de tiempo y archivos ---
+from datetime import datetime                    # Manejo de fechas y horas
+import os                                       # Operaciones del sistema operativo
+
+# =====================================================================================
+# CLASE: HILO PARA SENSOR DE ÁNGULO SIMPLE
+# =====================================================================================
+# Propósito: Maneja la comunicación con ESP32 para el sensor de ángulo simple
+# Funcionalidad: Recibe datos de potenciómetro y los convierte a ángulos
+# Hereda de: QThread (permite ejecución en segundo plano sin bloquear UI)
+
+class AnguloSimpleThread(QThread):
+    # --- SEÑAL PERSONALIZADA ---
+    # Definir señal que emitirá datos cuando lleguen del ESP32
+    # Signal(int, int) significa: (lectura_potenciometro, angulo_calculado)
+    data_received = Signal(int, int)  # lectura, angulo
+    
+    def __init__(self, esp32_ip, port=8080):
+        """
+        Constructor del hilo para sensor de ángulo simple
+        
+        Parámetros:
+        - esp32_ip: Dirección IP del ESP32 (ej: "192.168.1.100")
+        - port: Puerto de comunicación TCP (por defecto 8080)
+        """
+        super().__init__()                        # Inicializar la clase padre QThread
+        self.esp32_ip = esp32_ip                 # Guardar IP del ESP32 para conectar
+        self.port = port                         # Guardar puerto de comunicación
+        self.running = False                     # Flag para controlar el bucle principal
+        self.sock = None                         # Variable para el socket de conexión
+    
+    def run(self):
+        """
+        Método principal del hilo - se ejecuta cuando se llama start()
+        Este método corre en segundo plano y maneja toda la comunicación
+        """
+        self.running = True                      # Activar flag de ejecución
+        try:
+            # --- ESTABLECER CONEXIÓN TCP ---
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Crear socket TCP
+            self.sock.settimeout(3)              # Timeout de 3 segundos para conexión inicial
+            self.sock.connect((self.esp32_ip, self.port))  # Conectar al ESP32
+            
+            # --- CONFIGURAR MODO DE SENSOR ---
+            self.sock.sendall(b'MODO:ANGULO_SIMPLE')  # Enviar comando para activar modo ángulo simple
+            self.sock.settimeout(1)              # Timeout de 1 segundo para recepción de datos
+            
+            # --- BUCLE PRINCIPAL DE RECEPCIÓN ---
+            while self.running:                  # Continuar mientras el hilo esté activo
+                try:
+                    # Recibir datos del ESP32 (máximo 64 bytes)
+                    data = self.sock.recv(64)
+                    if not data:                 # Si no llegan datos, terminar conexión
+                        break
+                    
+                    # --- PROCESAR DATOS RECIBIDOS ---
+                    msg = data.decode(errors='ignore').strip()  # Convertir bytes a string y limpiar
+                    for line in msg.split('\n'):               # Procesar cada línea por separado
+                        if line.startswith('POT:'):             # Buscar líneas con datos del potenciómetro
+                            try:
+                                # Parsear formato: "POT:1234,ANG:90"
+                                parts = line.replace('POT:', '').split(',ANG:')  # Separar lectura y ángulo
+                                lectura = int(parts[0])          # Convertir lectura a entero
+                                angulo = int(parts[1])           # Convertir ángulo a entero
+                                
+                                # --- EMITIR SEÑAL CON DATOS ---
+                                self.data_received.emit(lectura, angulo)  # Enviar datos a la interfaz principal
+                            except:
+                                pass                             # Ignorar errores de formato
+                                
+                except socket.timeout:                          # Si hay timeout, continuar esperando
+                    continue
+                    
+        except Exception as e:                                  # Capturar cualquier error de conexión
+            pass                                                # Ignorar errores (conexión perdida, etc.)
+            
+        finally:
+            # --- LIMPIEZA AL TERMINAR ---
+            if self.sock:                                       # Si hay socket activo
+                try:
+                    self.sock.sendall(b'STOP')                 # Enviar comando de parada al ESP32
+                except:
+                    pass                                        # Ignorar errores al enviar STOP
+                self.sock.close()                              # Cerrar conexión TCP
+    
+    def stop(self):
+        """
+        Método para detener el hilo de forma segura
+        Se llama desde el hilo principal para terminar la ejecución
+        """
+        self.running = False                                   # Desactivar flag de ejecución
+        self.wait()                                           # Esperar a que termine el hilo
 
 # =====================================================================================
 # CLASE: HILO PARA SENSOR DE BRAZO CON MÚLTIPLES ÁNGULOS
@@ -353,7 +510,798 @@ class DistanciaUltrasonicThread(QThread):
 # Funcionalidad: Gestiona conexión ESP32, selección de sensores, y visualización de datos
 # Hereda de: QMainWindow (ventana principal de Qt con menús, barras de herramientas, etc.)
 
+class MainWindow(QMainWindow):
+    def __init__(self):
+        """
+        Constructor de la ventana principal
+        Inicializa todos los componentes de la interfaz y variables de estado
+        """
+        super().__init__()                       # Inicializar la clase padre QMainWindow
+        
+        # --- CONFIGURACIÓN BÁSICA DE VENTANA ---
+        self.setWindowTitle("SensoraCore")       # Título que aparece en la barra de título
+        self.setMinimumSize(1000, 700)          # Tamaño mínimo permitido (ancho x alto)
+        self.resize(1200, 800)                  # Tamaño inicial de la ventana
+        
+        # =====================================================================================
+        # VARIABLES DE ESTADO PARA CONEXIÓN Y HILOS
+        # =====================================================================================
+        
+        # --- Variables para cliente ESP32 y hilos de sensores ---
+        self.esp_client = None                   # Cliente para comunicación básica con ESP32
+        self.angulo_thread = None               # Hilo para sensor de ángulo simple
+        self.brazo_thread = None                # Hilo para brazo con múltiples sensores
+        self.distancia_ir_thread = None         # Hilo para sensor infrarrojo
+        self.distancia_cap_thread = None        # Hilo para sensor capacitivo
+          # --- Banderas de estado general ---
+        self.is_connected = False               # True cuando ESP32 está conectado
+        self.is_monitoring = False              # True cuando algún sensor está monitoreando
+        
+        # =====================================================================================
+        # SISTEMA DE CALIBRACIÓN
+        # =====================================================================================
+        
+        # --- Instancia de calibración para sensor de ángulo simple ---
+        self.angulo_calibration = LinearCalibration()  # Sistema de calibración lineal
+          # =====================================================================================
+        # VARIABLES PARA DATOS DE SENSOR DE ÁNGULO SIMPLE (con optimización de memoria)
+        # =====================================================================================
+        
+        self.angulos = []                       # Lista para almacenar ángulos medidos
+        self.lecturas = []                      # Lista para almacenar lecturas ADC
+        self.max_points = 100                   # Límite máximo de puntos en gráfica (evita lag)
+        
+        # --- Timer para optimizar actualizaciones de gráfica ---
+        self.graph_update_timer = QTimer()      # Timer para actualizar gráficas
+        self.graph_update_timer.timeout.connect(self.update_graph_display)  # Conectar a método de actualización
+        self.graph_update_timer.setInterval(100)  # Actualizar cada 100ms (10 FPS)
 
+        # =====================================================================================
+        # VARIABLES PARA DATOS DE BRAZO MULTI-SENSOR (con optimización)
+        # =====================================================================================
+        
+        self.brazo_angulos = [[], [], []]       # Listas para 3 ángulos del brazo [ang1, ang2, ang3]
+        self.brazo_lecturas = [[], [], []]      # Listas para 3 lecturas ADC [lec1, lec2, lec3]
+        self.brazo_capacitive_states = []       # Lista para estados del sensor capacitivo
+        self.brazo_max_points = 100              # Límite reducido para mejor rendimiento
+        self.brazo_is_monitoring = False        # Flag específico para monitoreo del brazo
+        
+        # =====================================================================================
+        # VARIABLES PARA SENSORES DE DISTANCIA
+        # =====================================================================================
+        
+        # --- Variables para sensor IR ---
+        self.distancia_ir_lecturas = []         # Lecturas del sensor IR
+        self.distancia_ir_voltajes = []         # Voltajes del sensor IR
+        self.distancia_ir_cm = []               # Distancias calculadas del IR
+          # --- Variables para sensor capacitivo ---
+        self.distancia_cap_lecturas = []        # Lecturas del sensor capacitivo
+        self.distancia_cap_voltajes = []        # Voltajes del sensor capacitivo
+        self.distancia_cap_cm = []              # Distancias del capacitivo
+        
+        # --- Variables para sensor ultrasónico ---
+        self.distancia_ultra_cm = []            # Distancias reales del ultrasónico
+        
+        # --- Configuración común para sensores de distancia ---
+        self.distancia_max_points = 100         # Límite de puntos para sensores de distancia
+        self.distancia_ir_is_monitoring = False # Flag para monitoreo IR
+        self.distancia_cap_is_monitoring = False # Flag para monitoreo capacitivo
+        self.distancia_ultra_is_monitoring = False # Flag para monitoreo ultrasónico
+        
+        # =====================================================================================
+        # SISTEMA DE ACTUALIZACIONES OPTIMIZADO
+        # =====================================================================================
+        
+        # --- Variables para optimizar actualizaciones de interfaz ---
+        self.pending_updates = False            # Flag para evitar actualizaciones excesivas
+        self.pending_simple_data = None         # Datos pendientes del sensor simple
+        self.pending_brazo_data = None          # Datos pendientes del brazo
+        self.pending_distancia_ir_data = None   # Datos pendientes del IR
+        self.pending_distancia_cap_data = None  # Datos pendientes del capacitivo
+        self.pending_distancia_ultra_data = None # Datos pendientes del ultrasónico
+        
+        # =====================================================================================
+        # INICIALIZACIÓN DE LA INTERFAZ
+        # =====================================================================================
+        
+        # Configurar estilo visual de la aplicación
+        self.setup_styles()
+          # Crear todos los elementos de la interfaz de usuario
+        self.setup_ui()
+
+    # =====================================================================================
+    # MÉTODO AUXILIAR: GESTIÓN DEL TIMER DE GRÁFICAS
+    # =====================================================================================
+    
+    def manage_graph_timer(self):
+        """
+        Gestiona el timer de actualización de gráficas basado en el estado de todos los sensores
+        
+        Propósito: Evitar conflictos entre múltiples sensores que comparten el mismo timer
+        Lógica: Solo detiene el timer si TODOS los sensores están inactivos
+        Sensores: Ángulo simple, brazo robótico, IR, capacitivo, ultrasónico
+        Optimización: Evita detener el timer prematuramente causando gráficas estáticas
+        """
+        
+        # --- VERIFICAR ESTADO DE TODOS LOS SENSORES ---
+        sensors_active = (
+            self.is_monitoring or                       # Sensor de ángulo simple
+            self.brazo_is_monitoring or                 # Brazo robótico multi-sensor
+            self.distancia_ir_is_monitoring or          # Sensor infrarrojo
+            self.distancia_cap_is_monitoring or         # Sensor capacitivo
+            self.distancia_ultra_is_monitoring          # Sensor ultrasónico
+        )
+        
+        # --- GESTIONAR TIMER SEGÚN ESTADO GLOBAL ---
+        if sensors_active:
+            # Si hay al menos un sensor activo, asegurar que el timer esté corriendo
+            if not self.graph_update_timer.isActive():
+                self.graph_update_timer.start()
+        else:
+            # Solo detener timer si TODOS los sensores están inactivos
+            if self.graph_update_timer.isActive():
+                self.graph_update_timer.stop()
+
+      # =====================================================================================
+    # MÉTODO: CONFIGURACIÓN DE ESTILOS VISUALES
+    # =====================================================================================
+    def setup_styles(self):
+        """
+        Configura los estilos globales de la aplicación usando CSS-like syntax
+        
+        Propósito: Define la apariencia visual de todos los elementos de la interfaz
+        Tecnología: QSS (Qt Style Sheets) - similar a CSS para web
+        Resultado: Interfaz moderna y profesional con colores consistentes
+        """
+        self.setStyleSheet("""
+            /* ======================== VENTANA PRINCIPAL ======================== */
+            /* Configuración del fondo general de toda la aplicación */
+            QMainWindow {
+                background-color: #f8f9fa;  /* Color de fondo: gris muy claro (#f8f9fa) */
+            }
+            
+            /* ======================== CAJAS DE GRUPO ======================== */
+            /* Estilo para todas las cajas de grupo (secciones) de la aplicación */
+            /* QGroupBox se usa para agrupar controles relacionados con un borde y título */
+            QGroupBox {
+                font-weight: bold;              /* Texto en negrita para destacar títulos */
+                border: 2px solid #dee2e6;     /* Borde sólido gris claro de 2px de grosor */
+                border-radius: 8px;            /* Esquinas redondeadas (8px de radio) */
+                margin-top: 1ex;               /* Margen superior para acomodar el título */
+                padding-top: 10px;             /* Espacio interno superior (10px) */
+                background-color: white;       /* Fondo blanco para contraste */
+            }
+            
+            /* Estilo específico para los títulos de las cajas de grupo */
+            QGroupBox::title {
+                subcontrol-origin: margin;     /* El título se origina desde el margen */
+                left: 10px;                    /* Posición izquierda del título (10px desde borde) */
+                padding: 0 8px 0 8px;         /* Padding: arriba=0, derecha=8px, abajo=0, izquierda=8px */
+                color: #495057;               /* Color del texto: gris oscuro profesional */
+                background-color: white;       /* Fondo blanco para que se vea sobre el borde */
+            }
+            
+            /* ======================== BOTONES ESTÁNDAR ======================== */
+            /* Estilo base para todos los botones de la aplicación */
+            QPushButton {
+                border: 2px solid #007bff;     /* Borde azul Bootstrap de 2px */
+                border-radius: 6px;            /* Esquinas redondeadas moderadas */
+                padding: 8px 16px;             /* Padding interno: 8px vertical, 16px horizontal */
+                background-color: #007bff;     /* Fondo azul primario Bootstrap */
+                color: black;                  /* Texto negro para máximo contraste */
+                font-weight: bold;             /* Texto en negrita para legibilidad */
+                min-height: 20px;             /* Altura mínima para botones uniformes */
+            }
+            
+            /* Estilo cuando el mouse pasa por encima del botón (hover effect) */
+            QPushButton:hover {
+                background-color: #0056b3;     /* Azul más oscuro al hacer hover */
+                border-color: #0056b3;         /* Borde también más oscuro */
+            }
+            
+            /* Estilo cuando el botón está siendo presionado (pressed state) */
+            QPushButton:pressed {
+                background-color: #004085;     /* Azul muy oscuro para feedback visual */
+            }
+            
+            /* Estilo cuando el botón está deshabilitado (disabled state) */
+            QPushButton:disabled {
+                background-color: #6c757d;     /* Gris para indicar estado inactivo */
+                border-color: #6c757d;         /* Borde gris consistente */
+                color: #adb5bd;               /* Texto gris claro para menor contraste */
+            }
+            
+            /* ======================== CAMPOS DE TEXTO ======================== */
+            /* Estilo para todos los campos de entrada de texto (QLineEdit) */
+            QLineEdit {
+                border: 2px solid #ced4da;     /* Borde gris neutro */
+                border-radius: 6px;            /* Esquinas redondeadas suaves */
+                padding: 8px 12px;             /* Padding: 8px vertical, 12px horizontal */
+                font-size: 14px;              /* Tamaño de fuente legible */
+                background-color: white;       /* Fondo blanco limpio */
+                color: black;                  /* Texto negro para contraste */
+            }
+            
+            /* Estilo cuando el campo de texto tiene foco (usuario está escribiendo) */
+            QLineEdit:focus {
+                border-color: #007bff;         /* Borde azul para indicar campo activo */
+                outline: none;                 /* Remover outline por defecto del sistema */
+            }
+            
+            /* ======================== LISTAS DE SENSORES ======================== */
+            /* Estilo para la lista de sensores disponibles (QListWidget) */
+            QListWidget {
+                border: 1px solid #dee2e6;     /* Borde sutil gris claro */
+                border-radius: 6px;            /* Esquinas redondeadas */
+                background-color: white;       /* Fondo blanco principal */
+                alternate-background-color: #f8f9fa;  /* Color alternativo para filas zebra */
+            }
+            
+            /* Estilo para cada elemento individual de la lista de sensores */
+            QListWidget::item {
+                padding: 12px;                 /* Espacio interno generoso para legibilidad */
+                border-bottom: 1px solid #e9ecef;  /* Línea separadora sutil entre elementos */
+                color: black;                  /* Texto negro */
+            }
+            
+            /* Estilo cuando el mouse pasa por encima de un elemento de la lista */
+            QListWidget::item:hover {
+                background-color: #7db9f9;     /* Azul claro suave para hover */
+            }
+            
+            /* Estilo cuando un elemento de la lista está seleccionado */
+            QListWidget::item:selected {
+                background-color: #007bff;     /* Azul primario para selección */
+                color: black;                  /* Mantener texto negro para contraste */
+            }
+        """)
+    # =====================================================================================
+    # MÉTODO: CONFIGURACIÓN DE LA INTERFAZ DE USUARIO
+    # =====================================================================================
+    def setup_ui(self):
+        """
+        Configura la estructura principal de la interfaz de usuario
+        
+        Propósito: Crear el layout principal con panel izquierdo y derecho
+        Diseño: Interfaz dividida (split) con conexión/sensores a la izquierda y detalles a la derecha
+        Tecnología: QSplitter para división ajustable entre paneles
+        """
+        
+        # --- WIDGET CENTRAL PRINCIPAL ---
+        # Toda aplicación QMainWindow necesita un widget central
+        central_widget = QWidget()               # Crear widget contenedor principal
+        self.setCentralWidget(central_widget)    # Establecer como widget central de la ventana
+        
+        # --- LAYOUT PRINCIPAL HORIZONTAL ---
+        # QHBoxLayout organiza elementos horizontalmente (lado a lado)
+        main_layout = QHBoxLayout(central_widget)  # Aplicar layout al widget central
+        main_layout.setSpacing(20)               # Espacio entre elementos: 20 píxeles
+        main_layout.setContentsMargins(20, 20, 20, 20)  # Márgenes: 20px en todos los lados
+        
+        # --- CREAR SPLITTER PARA DIVISIÓN RESPONSIVE ---
+        # QSplitter permite al usuario ajustar el tamaño de los paneles arrastrando
+        splitter = QSplitter(Qt.Horizontal)      # Divisor horizontal (izquierda-derecha)
+        main_layout.addWidget(splitter)          # Agregar splitter al layout principal
+        
+        # --- PANEL IZQUIERDO (conexión y lista de sensores) ---
+        self.left_panel = self.create_left_panel()  # Crear panel izquierdo (método separado)
+        splitter.addWidget(self.left_panel)     # Agregar al splitter
+        
+        # --- PANEL DERECHO (detalles del sensor seleccionado) ---
+        self.right_panel = self.create_right_panel()  # Crear panel derecho (método separado)
+        splitter.addWidget(self.right_panel)    # Agregar al splitter
+        
+        # --- CONFIGURAR PROPORCIONES DEL SPLITTER ---
+        # setStretchFactor define qué tanto espacio ocupa cada panel relativo al otro
+        splitter.setStretchFactor(0, 1)         # Panel izquierdo: factor 1 (1/3 del espacio)
+        splitter.setStretchFactor(1, 2)         # Panel derecho: factor 2 (2/3 del espacio)
+        splitter.setSizes([400, 800])           # Tamaños iniciales en píxeles [izquierdo, derecho]    
+    # =====================================================================================
+    # MÉTODO: CREACIÓN DEL PANEL IZQUIERDO
+    # =====================================================================================
+    def create_left_panel(self):
+        """
+        Crea el panel izquierdo con conexión ESP32 y lista de sensores
+        
+        Propósito: Interface para conectar al ESP32 y seleccionar sensores disponibles
+        Contenido: Título, configuración de conexión, estado, y lista de sensores
+        Retorna: QFrame configurado con todos los elementos del panel izquierdo
+        """
+        
+        # --- CONTENEDOR PRINCIPAL DEL PANEL ---
+        panel = QFrame()                         # Crear frame contenedor
+        panel.setFrameStyle(QFrame.StyledPanel)  # Estilo de panel con borde
+        panel.setStyleSheet("QFrame { background-color: white; border-radius: 8px; }")  # Fondo blanco redondeado
+        
+        # --- LAYOUT VERTICAL DEL PANEL ---
+        layout = QVBoxLayout(panel)              # Layout vertical (elementos apilados)
+        layout.setSpacing(20)                    # Espacio entre elementos: 20px
+        layout.setContentsMargins(20, 20, 20, 20)  # Márgenes internos: 20px todos los lados
+        
+        # =====================================================================================
+        # SECCIÓN: TÍTULO Y SUBTÍTULO DE BIENVENIDA
+        # =====================================================================================
+        
+        # --- TÍTULO PRINCIPAL ---
+        title_label = QLabel("SensoraCore")      # Crear etiqueta con nombre de la aplicación
+        title_label.setAlignment(Qt.AlignCenter) # Centrar texto horizontalmente
+        title_label.setStyleSheet("""
+            font-size: 24px;                    /* Tamaño de fuente grande */
+            font-weight: bold;                  /* Texto en negrita */
+            color: #007bff;                     /* Color azul corporativo */
+            margin: 10px 0;                     /* Margen vertical de 10px */
+        """)
+        layout.addWidget(title_label)           # Agregar título al layout
+        
+        # --- SUBTÍTULO DESCRIPTIVO ---
+        subtitle_label = QLabel("Sistema de Monitoreo de Sensores WiFi")  # Descripción del sistema
+        subtitle_label.setAlignment(Qt.AlignCenter)  # Centrar texto
+        subtitle_label.setStyleSheet("""
+            font-size: 14px;                    /* Tamaño mediano */
+            color: #6c757d;                     /* Color gris suave */
+            margin-bottom: 20px;                /* Margen inferior para separación */
+        """)
+        layout.addWidget(subtitle_label)       # Agregar subtítulo al layout
+        
+        # =====================================================================================
+        # SECCIÓN: CONFIGURACIÓN DE CONEXIÓN ESP32
+        # =====================================================================================
+        
+        # --- GRUPO DE CONEXIÓN ---
+        connection_group = QGroupBox("Configuración de Conexión")  # Caja agrupada con título
+        connection_layout = QVBoxLayout(connection_group)  # Layout vertical para la caja
+        
+        # --- ETIQUETA PARA CAMPO IP ---
+        ip_label = QLabel("IP del ESP32:")       # Etiqueta descriptiva
+        ip_label.setStyleSheet("font-weight: bold; color: #495057;")  # Negrita y color oscuro
+        connection_layout.addWidget(ip_label)   # Agregar etiqueta al grupo
+        
+        # --- CAMPO DE ENTRADA DE IP ---
+        self.ip_input = QLineEdit()              # Campo de texto para ingresar IP
+        self.ip_input.setPlaceholderText("Ejemplo: 192.168.1.100")  # Texto de ayuda
+        self.ip_input.setText("192.168.20.25")  # IP predeterminada (cambiar según red)
+        connection_layout.addWidget(self.ip_input)  # Agregar campo al grupo
+        
+        # --- BOTÓN DE CONEXIÓN ---
+        self.connect_btn = QPushButton("🔌 Conectar ESP32")  # Botón con emoji para visual
+        self.connect_btn.clicked.connect(self.test_connection)  # Conectar señal click al método
+        connection_layout.addWidget(self.connect_btn)  # Agregar botón al grupo
+        
+        # --- INDICADOR DE ESTADO DE CONEXIÓN ---
+        self.status_label = QLabel("⚪ Desconectado")  # Etiqueta de estado inicial
+        self.status_label.setAlignment(Qt.AlignCenter)  # Centrar texto
+        self.status_label.setStyleSheet("""
+            padding: 8px;                       /* Espacio interno */
+            border-radius: 4px;                 /* Esquinas redondeadas */
+            background-color: #f8d7da;          /* Fondo rojo claro (desconectado) */
+            color: #721c24;                     /* Texto rojo oscuro */
+            font-weight: bold;                  /* Texto en negrita */
+        """)
+        connection_layout.addWidget(self.status_label)  # Agregar indicador al grupo
+        
+        layout.addWidget(connection_group)     # Agregar grupo completo al panel
+        
+        # =====================================================================================
+        # SECCIÓN: LISTA DE SENSORES DISPONIBLES
+        # =====================================================================================
+        
+        # --- GRUPO DE SENSORES (inicialmente oculto) ---
+        self.sensors_group = QGroupBox("Sensores Disponibles")  # Caja para lista de sensores
+        self.sensors_group.setVisible(False)   # Ocultar hasta que se conecte ESP32
+        
+        sensors_layout = QVBoxLayout(self.sensors_group)  # Layout para el grupo de sensores
+        
+        # --- LISTA DE SENSORES ---
+        self.sensors_list = QListWidget()       # Widget de lista para sensores
+        self.sensors_list.itemClicked.connect(self.on_sensor_selected)  # Conectar evento de selección
+        
+        # --- POBLAR LISTA CON SENSORES DISPONIBLES ---
+        self.add_sensor_items()                 # Método que agrega los sensores a la lista
+        
+        sensors_layout.addWidget(self.sensors_list)  # Agregar lista al grupo
+        layout.addWidget(self.sensors_group)   # Agregar grupo al panel principal
+          # =====================================================================================
+        # SECCIÓN: BOTÓN DE REINICIO EN ESQUINA SUPERIOR IZQUIERDA
+        # =====================================================================================
+        
+        # --- BOTÓN DE REINICIO ---
+        self.restart_btn = QPushButton("🔄 Reiniciar Interfaz")  # Botón con emoji de reinicio
+        self.restart_btn.setMinimumHeight(40)    # Altura mínima para mayor visibilidad
+        self.restart_btn.setMaximumWidth(180)    # Ancho máximo controlado
+        self.restart_btn.clicked.connect(self.restart_application)  # Conectar al método de reinicio
+        self.restart_btn.setEnabled(False)      # Deshabilitado hasta conectar ESP32
+        self.restart_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;     /* Verde para acción positiva */
+                color: white;                   /* Texto blanco */
+                border: none;                   /* Sin borde */
+                border-radius: 8px;             /* Esquinas redondeadas */
+                font-weight: bold;              /* Texto en negrita */
+                font-size: 12px;                /* Tamaño de fuente legible */
+                padding: 8px 12px;              /* Espaciado interno */
+            }
+            QPushButton:hover {
+                background-color: #218838;     /* Verde más oscuro al pasar mouse */
+            }
+            QPushButton:pressed {
+                background-color: #1e7e34;     /* Verde aún más oscuro al presionar */
+            }
+            QPushButton:disabled {
+                background-color: #6c757d;     /* Gris cuando está deshabilitado */
+                color: #dee2e6;                 /* Texto gris claro */
+            }
+        """)
+        layout.addWidget(self.restart_btn)       # Agregar botón al panel principal
+        
+        # --- ESPACIADOR FLEXIBLE ---
+        layout.addStretch()                     # Agregar espacio flexible al final
+        
+        return panel                            # Retornar panel completo configurado
+    # =====================================================================================
+    # MÉTODO: AGREGAR ELEMENTOS A LA LISTA DE SENSORES
+    # =====================================================================================
+    def add_sensor_items(self):
+        """
+        Agrega los sensores disponibles a la lista del panel izquierdo
+        
+        Propósito: Poblar la lista con todos los tipos de sensores soportados
+        Funcionalidad: Crear elementos de lista con descripción, emoji y estado de disponibilidad
+        Datos: Cada sensor tiene emoji, descripción y ID único para identificación
+        """
+        
+        # --- DEFINIR SENSORES DISPONIBLES ---
+        # Tupla con: (emoji_nombre, descripción_funcional, identificador_único)
+        sensors = [
+            ("🎛️ Ángulo Simple", "Potenciómetro como sensor de ángulo", "angulo_simple"),
+            ("🦾 Brazo Ángulo", "Sensor de ángulo para brazo robótico", "brazo_angulo"),
+            ("📏 Distancia IR", "Sensor de distancia infrarrojo", "distancia_ir"),
+            ("🔍 Distancia Capacitivo", "Sensor de distancia capacitivo", "distancia_cap"),
+            ("📡 Distancia Ultrasónico", "Sensor HC-SR04", "distancia_ultra"),
+            ("💨 Velocidad Óptica", "Sensor óptico de velocidad", "velocidad_optica")
+        ]
+        
+        # --- CREAR ELEMENTOS DE LISTA PARA CADA SENSOR ---
+        for icon_name, description, sensor_id in sensors:  # Iterar por cada sensor definido
+            # Crear elemento individual de la lista
+            item = QListWidgetItem()             # Nuevo elemento de lista
+            item.setText(f"{icon_name}\n{description}")  # Texto: emoji + descripción en 2 líneas
+            item.setData(Qt.UserRole, sensor_id) # Guardar ID único en datos del elemento
+            
+            # --- VERIFICAR DISPONIBILIDAD DEL SENSOR ---
+            # Lista de sensores actualmente implementados y funcionales
+            if sensor_id not in ["angulo_simple", "brazo_angulo", "distancia_ir", "distancia_cap", "distancia_ultra"]:
+                # Para sensores no implementados:
+                item.setFlags(item.flags() & ~Qt.ItemIsEnabled)  # Deshabilitar elemento
+                item.setText(f"{icon_name}\n{description}\n(Próximamente)")  # Agregar nota de estado
+                item.setToolTip("Esta función será implementada en futuras versiones")  # Tooltip informativo
+            
+            # --- AGREGAR ELEMENTO A LA LISTA ---
+            self.sensors_list.addItem(item)      # Añadir elemento configurado a la lista    
+    # =====================================================================================
+    # MÉTODO: CREACIÓN DEL PANEL DERECHO
+    # =====================================================================================
+    def create_right_panel(self):
+        """
+        Crea el panel derecho para mostrar detalles del sensor seleccionado
+        
+        Propósito: Área principal donde se muestran gráficas, datos y controles del sensor activo
+        Estados: Pantalla de bienvenida inicial → Interfaz específica del sensor seleccionado
+        Contenido: Mensaje de bienvenida, instrucciones, y espacio para interfaces de sensores
+        """
+        
+        # --- CONTENEDOR PRINCIPAL DEL PANEL DERECHO ---
+        panel = QFrame()                         # Frame contenedor principal
+        panel.setFrameStyle(QFrame.StyledPanel)  # Estilo de panel con borde
+        panel.setStyleSheet("QFrame { background-color: white; border-radius: 8px; }")  # Fondo blanco redondeado
+        
+        # --- LAYOUT VERTICAL DEL PANEL ---
+        layout = QVBoxLayout(panel)              # Layout vertical para apilar elementos
+        layout.setContentsMargins(20, 20, 20, 20)  # Márgenes internos de 20px
+        
+        # =====================================================================================
+        # SECCIÓN: MENSAJE DE BIENVENIDA INICIAL
+        # =====================================================================================
+        
+        # --- WIDGET DE BIENVENIDA ---
+        self.welcome_widget = QWidget()          # Widget contenedor para la pantalla inicial
+        welcome_layout = QVBoxLayout(self.welcome_widget)  # Layout vertical para el contenido
+        
+        # --- ICONO PRINCIPAL ---
+        welcome_icon = QLabel("🔧")              # Emoji de herramienta como icono principal
+        welcome_icon.setAlignment(Qt.AlignCenter)  # Centrar icono horizontalmente
+        welcome_icon.setStyleSheet("font-size: 72px; margin: 50px;")  # Tamaño grande con margen
+        welcome_layout.addWidget(welcome_icon)   # Agregar icono al layout de bienvenida
+        
+        # --- TEXTO INSTRUCTIVO PRINCIPAL ---
+        welcome_text = QLabel("Conecta tu ESP32 y selecciona un sensor\npara comenzar a monitorear datos")
+        welcome_text.setAlignment(Qt.AlignCenter)  # Centrar texto
+        welcome_text.setStyleSheet("""
+            font-size: 16px;                    /* Tamaño de fuente legible */
+            color: #6c757d;                     /* Color gris suave */
+            line-height: 1.5;                   /* Espaciado entre líneas */
+        """)
+        welcome_layout.addWidget(welcome_text)  # Agregar texto al layout
+        
+        # --- INDICACIÓN SOBRE DIAGRAMAS DE CONEXIÓN ---
+        diagram_hint = QLabel("📋 Una vez conectado, encontrarás el diagrama\nde conexiones ESP32 en cada sensor")
+        diagram_hint.setAlignment(Qt.AlignCenter)  # Centrar texto
+        diagram_hint.setStyleSheet("""
+            font-size: 14px;                    /* Tamaño menor para texto secundario */
+            color: #495057;                     /* Color más oscuro para destacar */
+            background-color: #e2f4ff;          /* Fondo azul muy claro */
+            border: 1px solid #b3daff;          /* Borde azul claro */
+            border-radius: 6px;                 /* Esquinas redondeadas */
+            padding: 10px;                      /* Espacio interno */
+            margin: 10px 40px;                  /* Margen vertical y horizontal */
+        """)
+        welcome_layout.addWidget(diagram_hint)  # Agregar hint al layout
+        
+        # --- ESPACIADOR FLEXIBLE ---
+        welcome_layout.addStretch()            # Espacio flexible para centrar contenido verticalmente
+        
+        layout.addWidget(self.welcome_widget)  # Agregar widget de bienvenida al panel principal
+        
+        # =====================================================================================
+        # SECCIÓN: CONTENEDOR PARA DETALLES DEL SENSOR
+        # =====================================================================================
+        
+        # --- ÁREA DE SCROLL PARA INTERFACES DE SENSORES ---
+        self.sensor_details = QScrollArea()     # Área con scroll para contenido largo
+        self.sensor_details.setVisible(False)  # Inicialmente oculto (se muestra al seleccionar sensor)
+        self.sensor_details.setWidgetResizable(True)  # Permitir redimensionamiento automático
+        self.sensor_details.setFrameShape(QFrame.NoFrame)  # Sin marco visible
+        layout.addWidget(self.sensor_details)  # Agregar área de scroll al panel
+        return panel                           # Retornar panel configurado completo
+
+    # =====================================================================================
+    # MÉTODO: MANEJO DE SELECCIÓN DE SENSORES
+    # =====================================================================================    
+    def on_sensor_selected(self, item):
+        """
+        Maneja la selección de un sensor de la lista del panel izquierdo
+        
+        Propósito: Cambiar la interfaz del panel derecho según el sensor seleccionado
+        Funcionalidad: Validar conexión ESP32 y mostrar interfaz específica del sensor
+        Parámetros: item - QListWidgetItem con datos del sensor seleccionado
+        """
+        
+        # --- VALIDAR CONEXIÓN ANTES DE MOSTRAR SENSOR ---
+        if not self.is_connected:                # Verificar si ESP32 está conectado
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return                               # Salir sin hacer nada si no hay conexión
+        
+        # --- DETENER TODOS LOS THREADS ACTIVOS ANTES DE CAMBIAR INTERFAZ ---
+        self.stop_all_monitoring_threads()
+        
+        # --- OBTENER IDENTIFICADOR DEL SENSOR ---
+        sensor_id = item.data(Qt.UserRole)       # Obtener ID único almacenado en el item
+        
+        # --- MOSTRAR INTERFAZ ESPECÍFICA SEGÚN SENSOR ---
+        if sensor_id == "angulo_simple":         # Sensor de ángulo con potenciómetro simple
+            self.show_angulo_simple_interface()
+        elif sensor_id == "brazo_angulo":        # Brazo robótico con múltiples sensores
+            self.show_brazo_angulo_interface()
+        elif sensor_id == "distancia_ir":        # Sensor de distancia infrarrojo
+            self.show_distancia_ir_interface()
+        elif sensor_id == "distancia_cap":       # Sensor de distancia capacitivo
+            self.show_distancia_cap_interface()
+        elif sensor_id == "distancia_ultra":     # Sensor ultrasónico HC-SR04
+            self.show_distancia_ultra_interface()
+        else:                                    # Sensores no implementados aún
+            QMessageBox.information(self, "Próximamente", 
+                                  "Esta función será implementada en futuras versiones")
+    # =====================================================================================
+    # MÉTODO: INTERFAZ DEL SENSOR DE ÁNGULO SIMPLE
+    # =====================================================================================
+    def show_angulo_simple_interface(self):
+        """
+        Crea y muestra la interfaz específica para el sensor de ángulo simple
+        
+        Propósito: Interfaz completa para monitorear potenciómetro conectado al ESP32
+        Funcionalidad: Diagrama de conexiones, controles de monitoreo, visualización de datos
+        Sensor: Potenciómetro 10kΩ en GPIO 32 del ESP32
+        """
+        
+        # --- OCULTAR PANTALLA DE BIENVENIDA ---
+        self.welcome_widget.setVisible(False)   # Esconder mensaje inicial
+        
+        # --- CREAR WIDGET PRINCIPAL DEL SENSOR ---
+        sensor_widget = QWidget()               # Contenedor principal de la interfaz
+        layout = QVBoxLayout(sensor_widget)     # Layout vertical para organizar elementos
+        layout.setSpacing(20)                   # Espacio entre secciones: 20px
+        
+        # =====================================================================================
+        # SECCIÓN: TÍTULO Y DESCRIPCIÓN DEL SENSOR
+        # =====================================================================================
+        
+        # --- TÍTULO PRINCIPAL ---
+        title = QLabel("🎛️ Sensor de Ángulo Simple")  # Título con emoji identificativo
+        title.setStyleSheet("""
+            font-size: 20px;                    /* Tamaño grande para destacar */
+            font-weight: bold;                  /* Negrita para jerarquía visual */
+            color: #007bff;                     /* Azul corporativo */
+            margin-bottom: 10px;                /* Separación inferior */
+        """)
+        layout.addWidget(title)                 # Agregar título al layout principal
+        
+        # --- DESCRIPCIÓN FUNCIONAL ---
+        description = QLabel("Monitorea el ángulo en tiempo real usando un potenciómetro conectado al GPIO 32 del ESP32")
+        description.setStyleSheet("""
+            font-size: 14px;                    /* Tamaño legible */
+            color: #6c757d;                     /* Gris suave */
+            margin-bottom: 20px;                /* Separación inferior generosa */
+        """)
+        description.setWordWrap(True)           # Permitir salto de línea automático
+        layout.addWidget(description)           # Agregar descripción al layout
+        
+        # =====================================================================================
+        # SECCIÓN: DIAGRAMA DE CONEXIONES ESP32
+        # =====================================================================================
+        
+        # --- GRUPO DEL DIAGRAMA ---
+        diagram_group = QGroupBox("🔌 Diagrama de Conexiones ESP32")  # Caja agrupada con título
+        diagram_layout = QVBoxLayout(diagram_group)  # Layout vertical para el contenido
+        
+        # --- DIAGRAMA ASCII DETALLADO ---
+        diagram_text = QLabel("""
+<pre style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #495057;">
+┌─────────────────────────────────┐
+│  ESP32 DevKit V1                │
+│                                 │
+│  3V3  ○ ←── Potenciómetro (+)   │
+│  D32  ○ ←── Potenciómetro (S)   │
+│  GND  ○ ←── Potenciómetro (-)   │
+│                                 │
+│  LED integrado: GPIO 2          │
+└─────────────────────────────────┘
+
+<b>Potenciómetro 10kΩ:</b>
+• Pin (+): Alimentación 3.3V
+• Pin (-): Tierra (GND)  
+• Pin (S): Señal analógica → GPIO 32
+</pre>
+        """)       
+        diagram_text.setWordWrap(True)          # Permitir ajuste de texto
+        diagram_text.setStyleSheet("""
+            background-color: #f8f9fa;          /* Fondo gris muy claro para diagrama */
+            border: 2px solid #dee2e6;          /* Borde gris para definir área */
+            border-radius: 6px;                 /* Esquinas redondeadas */
+            padding: 15px;                      /* Espacio interno generoso */
+            margin: 5px;                        /* Margen exterior pequeño */
+        """)
+        diagram_layout.addWidget(diagram_text)  # Agregar diagrama al grupo
+        
+        # --- NOTA IMPORTANTE DE SEGURIDAD ---
+        note_label = QLabel("💡 <b>Nota:</b> Asegúrate de conectar el potenciómetro correctamente antes de iniciar el monitoreo")
+        note_label.setStyleSheet("""
+            font-size: 13px;                    /* Tamaño menor para nota */
+            color: #856404;                     /* Color ámbar oscuro */
+            background-color: #fff3cd;          /* Fondo ámbar claro (alerta) */
+            border: 1px solid #ffeaa7;          /* Borde ámbar */
+            border-radius: 4px;                 /* Esquinas redondeadas */
+            padding: 8px;                       /* Espacio interno */
+            margin-top: 5px;                    /* Separación superior */
+        """)
+        note_label.setWordWrap(True)            # Permitir ajuste de línea
+        diagram_layout.addWidget(note_label)    # Agregar nota al grupo
+        
+        layout.addWidget(diagram_group)         # Agregar grupo completo al layout principal
+        
+        # =====================================================================================
+        # SECCIÓN: CONTROLES DE MONITOREO
+        # =====================================================================================
+        
+        # --- GRUPO DE CONTROLES ---
+        controls_group = QGroupBox("Controles")  # Caja agrupada para controles
+        controls_layout = QVBoxLayout(controls_group)  # Layout vertical para controles
+          # --- ETIQUETA DE ESTADO EN TIEMPO REAL ---
+        # Muestra lectura ADC y ángulo calculado en tiempo real
+        self.angulo_label = QLabel("Lectura ADC: -- | Ángulo: --")  # Texto inicial placeholder
+        self.angulo_label.setStyleSheet("""
+            font-size: 16px;                    /* Tamaño de fuente: 16px para visibilidad */
+            font-weight: bold;                  /* Texto en negrita para destacar */
+            color: #495057;                     /* Color gris oscuro para legibilidad */
+            padding: 10px;                      /* Espacio interno: 10px en todos los lados */
+            background-color: #f8f9fa;          /* Fondo gris muy claro */
+            border-radius: 6px;                 /* Esquinas redondeadas modernas */
+            border: 2px solid #dee2e6;          /* Borde gris claro de 2px */
+        """)
+        controls_layout.addWidget(self.angulo_label)  # Agregar etiqueta a controles
+        
+        # --- ETIQUETA DE CALIBRACIÓN ---
+        # Muestra el estado de calibración y valores calibrados
+        self.calibration_status_label = QLabel("Calibración: No aplicada")  # Estado inicial
+        self.calibration_status_label.setStyleSheet("""
+            font-size: 14px;                    /* Tamaño menor para información secundaria */
+            font-weight: bold;                  /* Texto en negrita */
+            color: #856404;                     /* Color ámbar para indicar estado */
+            padding: 8px;                       /* Espacio interno menor */
+            background-color: #fff3cd;          /* Fondo ámbar claro */
+            border-radius: 4px;                 /* Esquinas redondeadas menores */
+            border: 1px solid #ffeaa7;          /* Borde ámbar */
+            margin-top: 5px;                    /* Separación superior */
+        """)
+        controls_layout.addWidget(self.calibration_status_label)  # Agregar etiqueta de calibración
+        
+        # --- BOTONES DE CONTROL PRINCIPAL ---
+        buttons_layout = QHBoxLayout()           # Layout horizontal para botones principales
+          # BOTÓN INICIAR - Color verde para indicar acción positiva
+        self.start_btn = QPushButton("▶️ Iniciar Monitoreo")  # Botón con emoji de play
+        self.start_btn.clicked.connect(self.toggle_angulo_monitoring)  # Conectar a método de control        
+        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde Bootstrap
+        buttons_layout.addWidget(self.start_btn)  # Agregar al layout de botones
+        
+        # BOTÓN CALIBRACIÓN - Color azul para función de configuración
+        self.calibrate_btn = QPushButton("⚙️ Calibrar Sensor")  # Botón con emoji de configuración
+        self.calibrate_btn.clicked.connect(self.open_calibration_dialog)  # Conectar a método de calibración
+        self.calibrate_btn.setStyleSheet("QPushButton { background-color: #007bff; border-color: #007bff; color: white; padding: 10px; }")  # Azul Bootstrap
+        buttons_layout.addWidget(self.calibrate_btn)  # Agregar al layout de botones
+        
+        controls_layout.addLayout(buttons_layout)  # Agregar botones principales a controles
+        
+        # --- BOTONES DE ACCIONES SECUNDARIAS ---
+        actions_layout = QHBoxLayout()           # Layout horizontal para acciones secundarias
+        
+        # BOTÓN LIMPIAR - Para borrar datos de la gráfica
+        self.clear_btn = QPushButton("🗑️ Limpiar Gráfica")  # Botón con emoji de papelera
+        self.clear_btn.clicked.connect(self.clear_graph)  # Conectar a método de limpieza
+        actions_layout.addWidget(self.clear_btn)  # Agregar al layout de acciones
+          # BOTÓN EXPORTAR - Para guardar datos en Excel
+        self.export_btn = QPushButton("📊 Exportar Excel")  # Botón con emoji de gráfica
+        self.export_btn.clicked.connect(self.export_to_excel)  # Conectar a método de exportación
+        self.export_btn.setEnabled(False)       # Se habilita solo cuando hay datos
+        actions_layout.addWidget(self.export_btn)  # Agregar al layout de acciones
+        
+        controls_layout.addLayout(actions_layout)  # Agregar acciones secundarias a controles
+        layout.addWidget(controls_group)         # Agregar grupo de controles al layout principal
+        
+        # =====================================================================================
+        # SECCIÓN: GRÁFICA EN TIEMPO REAL
+        # =====================================================================================
+        
+        # --- GRUPO DE GRÁFICA ---
+        graph_group = QGroupBox("Gráfica en Tiempo Real")  # Caja agrupada para la gráfica
+        graph_layout = QVBoxLayout(graph_group)  # Layout vertical para la gráfica
+        
+        # --- CONFIGURAR MATPLOTLIB CON COLORES MEJORADOS ---
+        self.figure = Figure(figsize=(10, 6), dpi=100, facecolor='white')  # Figura de matplotlib
+        self.canvas = FigureCanvas(self.figure)  # Canvas para renderizar la figura
+        self.ax = self.figure.add_subplot(111)   # Subplot principal (1 fila, 1 columna, posición 1)
+        
+        # --- PERSONALIZACIÓN VISUAL DE LA GRÁFICA ---
+        self.ax.set_facecolor('#f8f9fa')         # Fondo gris muy claro
+        self.ax.grid(True, linestyle='--', alpha=0.7, color='#dee2e6')  # Grid con líneas punteadas
+        self.ax.set_xlabel('Muestras', fontsize=12, fontweight='bold', color='#495057')  # Etiqueta eje X
+        self.ax.set_ylabel('Ángulo (°)', fontsize=12, fontweight='bold', color='#495057')  # Etiqueta eje Y
+        self.ax.set_title('Monitoreo de Ángulo en Tiempo Real', fontsize=14, fontweight='bold', color='#007bff')  # Título
+        
+        # --- LÍNEA DE DATOS CON ESTILO DESTACADO ---
+        self.line, = self.ax.plot([], [], 'o-', linewidth=3, markersize=6,  # Línea con marcadores circulares
+                                 color='#007bff', markerfacecolor='#0056b3',  # Colores azules
+                                 markeredgecolor='white', markeredgewidth=2)  # Borde blanco en marcadores
+        
+        # --- CONFIGURAR LÍMITES INICIALES ---
+        self.ax.set_xlim(0, 100)                 # Eje X: 0 a 100 muestras
+        self.ax.set_ylim(-135, 135)                 # Eje Y: -135 a 135 grados (rango del potenciómetro)
+        
+        # --- OPTIMIZAR LAYOUT DE LA GRÁFICA ---
+        self.figure.tight_layout(pad=2.0)        # Ajuste automático con padding de 2.0
+        
+        # --- INICIALIZAR CANVAS CON DIBUJO INICIAL ---
+        self.canvas.draw()                       # Renderizar gráfica inicial vacía
+        
+        graph_layout.addWidget(self.canvas)      # Agregar canvas al grupo de gráfica
+        layout.addWidget(graph_group)           # Agregar grupo de gráfica al layout principal
+        
+        # =====================================================================================
+        # FINALIZACIÓN: MOSTRAR INTERFAZ EN PANEL DERECHO
+        # =====================================================================================
+          # --- CONFIGURAR PANEL DERECHO ---
+        self.sensor_details.setWidget(sensor_widget)  # Establecer widget como contenido del área de scroll
+        self.sensor_details.setVisible(True)     # Hacer visible el área de detalles del sensor
+        
+        # --- ACTUALIZAR ESTADO DE CALIBRACIÓN ---
+        self.update_calibration_status()         # Mostrar estado actual de calibración
     # =====================================================================================
     # MÉTODO: INTERFAZ DEL SENSOR DE BRAZO CON MÚLTIPLES ÁNGULOS
     # =====================================================================================
@@ -541,7 +1489,7 @@ class DistanciaUltrasonicThread(QThread):
         
         # Configurar matplotlib con colores mejorados para múltiples líneas
         self.brazo_figure = Figure(figsize=(10, 6), dpi=100, facecolor='white')
-        self.brazo_canvas = FigureCanvasQTAgg(self.brazo_figure)
+        self.brazo_canvas = FigureCanvas(self.brazo_figure)
         self.brazo_ax = self.brazo_figure.add_subplot(111)
         
         # Mejorar colores y estilo del gráfico
@@ -819,8 +1767,7 @@ class DistanciaUltrasonicThread(QThread):
         • Pull-up interno: Activo<br>
         • Detección: Presencia/Ausencia
         </div>
-        """        
-        # ==================== DIAGRAMA DE CONEXIÓN CAPACITIVO ====================
+        """        # ==================== DIAGRAMA DE CONEXIÓN CAPACITIVO ====================
         connection_diagram.setText(connection_text)
         connection_diagram.setWordWrap(True)
         # ESTILO PARA DIAGRAMA - Marco azul temático del sensor capacitivo
@@ -1100,7 +2047,7 @@ class DistanciaUltrasonicThread(QThread):
           # ==================== CONFIGURACIÓN GRÁFICA ULTRASÓNICA ====================
         # Configurar matplotlib para sensor ultrasónico con tema cyan
         self.figure_ultra = Figure(figsize=(10, 6), dpi=100, facecolor='white')
-        self.canvas_ultra = FigureCanvasQTAgg(self.figure_ultra)
+        self.canvas_ultra = FigureCanvas(self.figure_ultra)
         self.ax_ultra = self.figure_ultra.add_subplot(111)
         
         # CONFIGURACIÓN DE ESTILO PARA GRÁFICA ULTRASÓNICA
@@ -1127,942 +2074,1675 @@ class DistanciaUltrasonicThread(QThread):
         # Configurar el widget en el área principal
         self.sensor_details.setWidget(sensor_widget)
         self.sensor_details.setVisible(True)    # Hacer visible el área de detalles del sensor
-
-
-        # =====================================================================================
-        # VARIABLES PARA DATOS DE BRAZO MULTI-SENSOR (con optimización)
-        # =====================================================================================
+    
+    # =====================================================================================
+    # MÉTODO: ACTUALIZACIÓN OPTIMIZADA DE GRÁFICAS
+    # =====================================================================================
+    def update_graph_display(self):
+        """
+        Actualiza todas las gráficas de sensores de forma optimizada usando timer
         
-        self.brazo_angulos = [[], [], []]       # Listas para 3 ángulos del brazo [ang1, ang2, ang3]
-        self.brazo_lecturas = [[], [], []]      # Listas para 3 lecturas ADC [lec1, lec2, lec3]
-        self.brazo_capacitive_states = []       # Lista para estados del sensor capacitivo
-        self.brazo_max_points = 100              # Límite reducido para mejor rendimiento
-        self.brazo_is_monitoring = False        # Flag específico para monitoreo del brazo
+        Propósito: Centralizar y optimizar la actualización de múltiples gráficas
+        Funcionamiento: Usa flags de datos pendientes para evitar actualizaciones innecesarias
+        Optimización: Solo redibuja canvas cuando hay datos nuevos pendientes
+        Rendimiento: Evita bloqueos de UI con actualizaciones frecuentes
+        Sensores: Ángulo simple, brazo robótico, IR, capacitivo, ultrasónico
+        """
         
-        # =====================================================================================
-        # VARIABLES PARA SENSORES DE DISTANCIA
-        # =====================================================================================
-        
-        # --- Variables para sensor IR ---
-        self.distancia_ir_lecturas = []         # Lecturas del sensor IR
-        self.distancia_ir_voltajes = []         # Voltajes del sensor IR
-        self.distancia_ir_cm = []               # Distancias calculadas del IR
-          # --- Variables para sensor capacitivo ---
-        self.distancia_cap_lecturas = []        # Lecturas del sensor capacitivo
-        self.distancia_cap_voltajes = []        # Voltajes del sensor capacitivo
-        self.distancia_cap_cm = []              # Distancias del capacitivo
-        
-        # --- Variables para sensor ultrasónico ---
-        self.distancia_ultra_cm = []            # Distancias reales del ultrasónico
-        
-        # --- Configuración común para sensores de distancia ---
-        self.distancia_max_points = 100         # Límite de puntos para sensores de distancia
-        self.distancia_ir_is_monitoring = False # Flag para monitoreo IR
-        self.distancia_cap_is_monitoring = False # Flag para monitoreo capacitivo
-        self.distancia_ultra_is_monitoring = False # Flag para monitoreo ultrasónico
-# =====================================================================================
-# SECCIÓN: FUNCIONES DE MONITOREO - BRAZO ROBÓTICO MULTI-SENSOR
-# =====================================================================================
-
-# =====================================================================================
-# MÉTODO: ALTERNAR MONITOREO DEL BRAZO ROBÓTICO
-# =====================================================================================
-def toggle_brazo_monitoring(self):
-    """
-    Alterna entre iniciar y detener el monitoreo del brazo robótico multi-sensor
-    
-    Propósito: Control unificado para sistema complejo de 3 potenciómetros + sensor capacitivo
-    Lógica: Verifica estado actual y ejecuta acción opuesta
-    Sensores: Base, Articulación 1, Articulación 2, Sensor capacitivo
-    Estado: Basado en flag self.brazo_is_monitoring
-    """
-    
-    if not self.brazo_is_monitoring:         # Si no está monitoreando brazo
-        self.start_brazo_monitoring()        # Iniciar monitoreo completo
-    else:                                    # Si ya está monitoreando
-        self.stop_brazo_monitoring()         # Detener monitoreo completo
-
-# =====================================================================================
-# MÉTODO: INICIAR MONITOREO DEL BRAZO ROBÓTICO
-# =====================================================================================
-def start_brazo_monitoring(self):
-    """
-    Inicia el monitoreo en tiempo real del brazo robótico con múltiples sensores
-    
-    Propósito: Comenzar adquisición simultánea de 3 potenciómetros + sensor capacitivo
-    Thread: Crea BrazoAnguloThread para comunicación compleja con ESP32
-    Datos: Recibe 3 lecturas ADC + estado capacitivo en un solo paquete
-    Protocolo: "BRAZO_ANGULO" - comando especializado para múltiples sensores
-    UI: Actualiza botones y habilita exportación
-    Gráfica: Inicia visualización de 3 líneas simultáneas
-    """
-    
-    # --- VERIFICAR CONEXIÓN REQUERIDA ---
-    if not self.is_connected:                # Verificar conexión TCP activa
-        QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
-        return                               # Salir si no hay conexión
-    
-    try:
-        # --- CREAR Y CONFIGURAR THREAD MULTI-SENSOR ---
-        self.brazo_thread = BrazoAnguloThread(self.esp_client.esp32_ip)  # Thread especializado
-        self.brazo_thread.data_received.connect(self.update_brazo_data)  # Conectar señal compleja
-        
-        # --- INICIAR MONITOREO MULTI-SENSOR ---
-        self.brazo_thread.start()            # Iniciar thread de comunicación
-        self.brazo_is_monitoring = True      # Marcar estado como monitoreando brazo            
-        # --- INICIAR MONITOREO MULTI-SENSOR ---
-        self.brazo_thread.start()            # Iniciar thread de comunicación
-        self.brazo_is_monitoring = True      # Marcar estado como monitoreando brazo
-            # --- ACTUALIZAR INTERFAZ DE CONTROL ---
-        self.brazo_start_btn.setText("⏸️ Pausar")  # Cambiar botón a pausar
-        self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; }")  # Amarillo pausa
-        self.brazo_export_btn.setEnabled(True)  # Habilitar exportación multi-datos
-            # --- INICIAR ACTUALIZACIÓN GRÁFICA MULTI-LÍNEA ---
-        self.manage_graph_timer()            # Gestionar timer compartido inteligentemente
-        
-    except Exception as e:
-        # --- MANEJAR ERRORES DE INICIALIZACIÓN MULTI-SENSOR ---
-        QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
-
-# =====================================================================================
-# MÉTODO: DETENER MONITOREO DEL BRAZO ROBÓTICO
-# =====================================================================================
-def stop_brazo_monitoring(self):
-    """
-    Detiene el monitoreo del brazo robótico multi-sensor y limpia recursos
-    
-    Propósito: Parar adquisición de múltiples sensores y liberar thread
-    Thread: Detiene BrazoAnguloThread de forma segura
-    UI: Restaura botones a estado inicial
-    Recursos: Limpia objetos para evitar memory leaks
-    """
-    
-    # --- DETENER THREAD MULTI-SENSOR ---
-    if self.brazo_thread and self.brazo_thread.isRunning():  # Si existe y está corriendo
-        self.brazo_thread.stop()             # Detener thread de forma segura
-        self.brazo_thread = None             # Limpiar referencia
-        # --- ACTUALIZAR ESTADO Y TIMERS ---
-    self.brazo_is_monitoring = False         # Marcar como no monitoreando brazo
-    self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
-        # --- RESTAURAR INTERFAZ DE CONTROL ---
-    self.brazo_start_btn.setText("▶️ Iniciar Monitoreo")  # Restaurar texto inicial
-    self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde inicial
-
-# =====================================================================================
-# MÉTODO: ACTUALIZAR DATOS DEL BRAZO ROBÓTICO
-# =====================================================================================
-def update_brazo_data(self, lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_estado):
-    """
-    Procesa y actualiza los datos recibidos del brazo robótico multi-sensor
-    
-    Propósito: Manejar datos complejos de múltiples sensores en tiempo real
-    Parámetros: lectura1-3 (int) - Valores ADC crudos de 3 potenciómetros
-                angulo1-3 (float) - Ángulos calculados en grados para cada potenciómetro
-                sensor_estado (bool) - Estado del sensor capacitivo (True/False)
-    Almacenamiento: Mantiene 3 listas separadas + estado capacitivo
-    UI: Actualiza 4 etiquetas independientes (3 potenciómetros + capacitivo)
-    Gráfica: Prepara datos para 3 líneas simultáneas con colores diferentes
-    """
-    
-    # --- ALMACENAR DATOS DE MÚLTIPLES SENSORES ---
-    # Agregar datos a las listas de cada potenciómetro
-    for i, (lectura, angulo) in enumerate([(lectura1, angulo1), (lectura2, angulo2), (lectura3, angulo3)]):
-        self.brazo_lecturas[i].append(lectura)  # Lista por potenciómetro
-        self.brazo_angulos[i].append(angulo)    # Lista por potenciómetro
-        
-        # --- MANTENER LÍMITE DE PUNTOS POR SENSOR ---
-        if len(self.brazo_lecturas[i]) > self.brazo_max_points:  # Control individual de memoria
-            self.brazo_lecturas[i].pop(0)   # Eliminar más antiguo del sensor i
-            self.brazo_angulos[i].pop(0)    # Eliminar más antiguo del sensor i
-    
-    # --- ALMACENAR ESTADO DEL SENSOR CAPACITIVO ---
-    self.brazo_capacitive_states.append(sensor_estado)  # Estado ON/OFF del capacitivo
-    if len(self.brazo_capacitive_states) > self.brazo_max_points:  # Control de memoria
-        self.brazo_capacitive_states.pop(0)  # Eliminar estado más antiguo
-        # --- ACTUALIZAR ETIQUETAS DE LECTURA ACTUAL CON VERIFICACIÓN DEFENSIVA ---
-    try:
-        if hasattr(self, 'brazo_labels') and 'pot1' in self.brazo_labels and self.brazo_labels['pot1'] is not None:
-            self.brazo_labels['pot1'].setText(f"Potenciómetro 1: Lectura: {lectura1} | Ángulo: {angulo1}°")
-        if hasattr(self, 'brazo_labels') and 'pot2' in self.brazo_labels and self.brazo_labels['pot2'] is not None:
-            self.brazo_labels['pot2'].setText(f"Potenciómetro 2: Lectura: {lectura2} | Ángulo: {angulo2}°")
-        if hasattr(self, 'brazo_labels') and 'pot3' in self.brazo_labels and self.brazo_labels['pot3'] is not None:
-            self.brazo_labels['pot3'].setText(f"Potenciómetro 3: Lectura: {lectura3} | Ángulo: {angulo3}°")
-        if hasattr(self, 'capacitive_label') and self.capacitive_label is not None:
-            self.capacitive_label.setText(f"Sensor Capacitivo: {'Activado' if sensor_estado else 'Desactivado'}")
-    except RuntimeError:
-        # Widget has been deleted, stop monitoring
-        if hasattr(self, 'brazo_is_monitoring'):
-            self.brazo_is_monitoring = False
-        return
-    
-    # --- PREPARAR DATOS PARA GRÁFICAS MÚLTIPLES ---
-    # Actualizar gráfica de forma optimizada para 3 líneas
-    if hasattr(self, 'brazo_lines'):         # Verificar que existen las 3 líneas
-        for i, line in enumerate(self.brazo_lines):  # Iterar por cada línea de potenciómetro
-            x_data = list(range(len(self.brazo_angulos[i])))  # Índices para eje X
-            line.set_data(x_data, self.brazo_angulos[i])  # Actualizar datos de línea i
-        
-        # --- AJUSTAR LÍMITES DINÁMICOS PARA MÚLTIPLES SENSORES ---
-        if len(self.brazo_angulos[0]) > 0:   # Si hay datos en al menos un sensor
-            max_len = max(len(angles) for angles in self.brazo_angulos)  # Máximo entre sensores
-            self.brazo_ax.set_xlim(0, max(100, max_len))  # Ajustar según sensor con más datos
-    
-    # --- MARCAR PARA ACTUALIZACIÓN GRÁFICA MULTI-LÍNEA ---
-    self.pending_updates = True              # Flag para redibujado pendiente
-    self.pending_brazo_data = (lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_estado)
-
-# =====================================================================================
-# MÉTODO: LIMPIAR GRÁFICA DEL BRAZO ROBÓTICO
-# =====================================================================================
-def clear_brazo_graph(self):
-    """
-    Limpia todos los datos y gráficas del brazo robótico multi-sensor
-    
-    Propósito: Resetear visualización completa y datos almacenados de múltiples sensores
-    Datos: Borra historial de 3 potenciómetros + sensor capacitivo
-    Gráfica: Resetea 3 líneas de datos y límites de ejes
-    UI: Restaura 4 etiquetas a estado inicial
-    Exportación: Deshabilita botón hasta que haya nuevos datos
-    """
-    
-    # --- LIMPIAR DATOS DE MÚLTIPLES SENSORES ---
-    for i in range(3):                       # Iterar por cada potenciómetro
-        self.brazo_lecturas[i].clear()       # Borrar lecturas del potenciómetro i
-        self.brazo_angulos[i].clear()        # Borrar ángulos del potenciómetro i
-    self.brazo_capacitive_states.clear()    # Borrar estados del sensor capacitivo
-    
-    # --- RESETEAR GRÁFICAS MÚLTIPLES ---
-    if hasattr(self, 'brazo_lines'):         # Si existen las líneas de datos
-        for line in self.brazo_lines:        # Iterar por cada línea
-            line.set_data([], [])            # Limpiar datos de cada línea
-        self.brazo_ax.set_xlim(0, 100)       # Restaurar límites iniciales
-        self.brazo_canvas.draw()             # Redibujar canvas limpio
-    
-    # --- RESTAURAR ETIQUETAS MÚLTIPLES ---
-    for i in range(1, 4):                    # Iterar por potenciómetros 1, 2, 3
-        self.brazo_labels[f'pot{i}'].setText(f"Potenciómetro {i}: Lectura: -- | Ángulo: --°")
-    self.capacitive_label.setText("Sensor Capacitivo: --")  # Resetear estado capacitivo
-    self.brazo_export_btn.setEnabled(False) # Deshabilitar exportación sin datos    
-# =====================================================================================
-# MÉTODO: EXPORTAR DATOS DEL BRAZO ROBÓTICO A EXCEL
-# =====================================================================================
-def export_brazo_to_excel(self):
-    """
-    Exporta todos los datos del brazo robótico multi-sensor a archivo Excel complejo
-    
-    Propósito: Permitir análisis posterior de múltiples sensores y respaldo completo
-    Formato: Archivo .xlsx con columnas múltiples y gráficas separadas para cada sensor
-    Datos: 3 potenciómetros (lecturas ADC + ángulos) + sensor capacitivo + timestamps
-    Gráficas: 3 gráficos de líneas independientes, uno por cada potenciómetro
-    Validación: Verifica que existan datos en al menos uno de los sensores
-    """
-    
-    # --- VERIFICAR DATOS DISPONIBLES EN MÚLTIPLES SENSORES ---
-    if not any(self.brazo_lecturas):         # Si no hay datos en ningún sensor
-        QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
-        return                               # Salir sin hacer nada
-    
-    try:
-        # --- GENERAR NOMBRE DE ARCHIVO ÚNICO PARA BRAZO ---
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Formato: YYYYMMDD_HHMMSS
-        filename, _ = QFileDialog.getSaveFileName(
-            self, "Guardar datos",           # Título del diálogo
-            f"SensoraCore_Brazo_{timestamp}.xlsx",  # Nombre específico para brazo
-            "Excel files (*.xlsx)"           # Filtro de archivos
-        )
-        
-        if filename:                         # Si usuario seleccionó archivo
-            # --- CREAR WORKBOOK Y WORKSHEET PARA MÚLTIPLES SENSORES ---
-            wb = openpyxl.Workbook()         # Nuevo libro de Excel
-            ws = wb.active                   # Hoja activa
-            ws.title = "Datos Brazo Ángulo"  # Título específico para brazo
+        # --- VERIFICAR SI HAY DATOS PENDIENTES ---
+        # Solo actualizar si hay datos pendientes y la aplicación está activa
+        if not self.pending_updates:           # Si no hay actualizaciones pendientes
+            return                             # Salir sin procesar nada
             
-            # --- CREAR HEADERS COMPLEJOS PARA MÚLTIPLES SENSORES ---
-            headers = ["Muestra", "Lectura1", "Ángulo1", "Lectura2", "Ángulo2", 
-                        "Lectura3", "Ángulo3", "Sensor_Cap", "Timestamp"]  # 9 columnas
-            for i, header in enumerate(headers):  # Escribir cada header
-                ws.cell(row=1, column=i+1, value=header)
+        try:
+            # ==================== ACTUALIZAR GRÁFICA ÁNGULO SIMPLE ====================
+            # Actualizar gráfica de ángulo simple si hay datos pendientes
+            if (self.pending_simple_data is not None and 
+                hasattr(self, 'canvas') and hasattr(self, 'line')):
+                self.canvas.draw()             # Redibujar canvas del sensor de ángulo                
+            # ==================== ACTUALIZAR GRÁFICA BRAZO ROBÓTICO ====================
+            # Actualizar gráfica de brazo si hay datos pendientes  
+            if (self.pending_brazo_data is not None and 
+                hasattr(self, 'brazo_canvas') and hasattr(self, 'brazo_lines')):
+                self.brazo_canvas.draw()       # Redibujar canvas del brazo robótico (3 líneas)
+                
+            # ==================== ACTUALIZAR GRÁFICA SENSOR IR ====================
+            # Actualizar gráfica IR si hay datos pendientes
+            if (self.pending_distancia_ir_data is not None and 
+                hasattr(self, 'canvas_ir') and hasattr(self, 'line_ir')):
+                self.canvas_ir.draw()          # Redibujar canvas del sensor IR
+                
+            # ==================== ACTUALIZAR GRÁFICA SENSOR CAPACITIVO ====================
+            # Actualizar gráfica capacitiva si hay datos pendientes
+            if (self.pending_distancia_cap_data is not None and 
+                hasattr(self, 'canvas_cap') and hasattr(self, 'line_cap')):
+                self.canvas_cap.draw()         # Redibujar canvas del sensor capacitivo
+                
+            # ==================== ACTUALIZAR GRÁFICA SENSOR ULTRASÓNICO ====================
+            # Actualizar gráfica ultrasónica si hay datos pendientes
+            if (self.pending_distancia_ultra_data is not None and 
+                hasattr(self, 'canvas_ultra') and hasattr(self, 'line_ultra')):
+                self.canvas_ultra.draw()       # Redibujar canvas del sensor ultrasónico
+                
+            # --- LIMPIAR FLAGS DE ACTUALIZACIÓN ---
+            # Limpiar flags de datos pendientes para próxima iteración
+            self.pending_updates = False              # Resetear flag principal de actualizaciones
+            self.pending_simple_data = None           # Limpiar datos del ángulo simple
+            self.pending_brazo_data = None            # Limpiar datos del brazo robótico
+            self.pending_distancia_ir_data = None     # Limpiar datos del sensor IR
+            self.pending_distancia_cap_data = None    # Limpiar datos del sensor capacitivo
+            self.pending_distancia_ultra_data = None  # Limpiar datos del sensor ultrasónico            
+        except Exception as e:
+            # --- MANEJO DE ERRORES SILENCIOSO ---
+            # Continuar silenciosamente si hay errores de actualización gráfica
+            # Esto evita crashes por problemas temporales de rendering
+            pass
             
-            # --- ESCRIBIR DATOS COMPLEJOS FILA POR FILA ---
-            max_len = max(len(angles) for angles in self.brazo_angulos if angles)  # Máximo entre sensores
-            for i in range(max_len):         # Iterar por cada muestra
-                row = i + 2                  # Fila actual (empezar en 2)
-                ws.cell(row=row, column=1, value=i+1)  # Número de muestra
-                
-                # --- ESCRIBIR DATOS DE CADA POTENCIÓMETRO ---
-                for j in range(3):           # Iterar por potenciómetros 0, 1, 2
-                    if i < len(self.brazo_lecturas[j]):  # Si hay datos para este potenciómetro
-                        ws.cell(row=row, column=j*2+2, value=self.brazo_lecturas[j][i])  # Lectura ADC
-                        ws.cell(row=row, column=j*2+3, value=self.brazo_angulos[j][i])   # Ángulo calculado
-                
-                # --- ESCRIBIR ESTADO DEL SENSOR CAPACITIVO ---
-                if i < len(self.brazo_capacitive_states):  # Si hay estado capacitivo
-                    ws.cell(row=row, column=8, value=self.brazo_capacitive_states[i])  # Estado ON/OFF
-                
-                # --- ESCRIBIR TIMESTAMP ---
-                ws.cell(row=row, column=9, value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    # =====================================================================================
+    # SECCIÓN: FUNCIONES DE CONEXIÓN Y GESTIÓN DEL ESP32
+    # =====================================================================================    
+    # ============================================================================
+    # FUNCIONES DE CONEXIÓN Y MONITOREO
+    # ============================================================================
+    
+    # =====================================================================================
+    # MÉTODO: PROBAR CONEXIÓN CON ESP32
+    # =====================================================================================
+    def test_connection(self):
+        """
+        Prueba la conexión TCP/IP con el ESP32 usando la IP proporcionada
+        
+        Propósito: Verificar conectividad antes de iniciar cualquier monitoreo
+        Funcionamiento: Envía comando LED_ON para probar comunicación
+        Validación: Verifica respuesta "LED_ON_OK" del ESP32
+        UI: Actualiza estado visual y habilita/deshabilita controles
+        Red: Usa cliente TCP para comunicación con ESP32
+        """
+        
+        # --- VALIDAR ENTRADA DE IP ---
+        esp32_ip = self.ip_input.text().strip()  # Obtener IP limpia sin espacios
+        
+        if not esp32_ip:                         # Verificar que no esté vacía
+            QMessageBox.warning(self, "IP requerida", "Ingresa la IP del ESP32")
+            return                               # Salir si no hay IP
+        
+        # --- ACTUALIZAR INTERFAZ DURANTE CONEXIÓN ---
+        # Deshabilitar botón y mostrar estado de conexión en progreso
+        self.connect_btn.setEnabled(False)       # Prevenir múltiples intentos
+        self.status_label.setText("🔄 Conectando...")  # Estado visual de progreso
+        self.status_label.setStyleSheet("""
+            padding: 8px;                        /* Espaciado interno */
+            border-radius: 4px;                  /* Esquinas redondeadas */
+            background-color: #cce5ff;           /* Fondo azul claro */
+            color: #004085;                      /* Texto azul oscuro */
+            font-weight: bold;                   /* Texto en negrita */
+        """)
+        self.repaint()                           # Forzar actualización inmediata de la interfaz
+        
+        # --- PROBAR CONEXIÓN TCP ---
+        # Probar conexión directamente con el ESP32
+        try:
+            client = ESP32Client(esp32_ip)       # Crear cliente con IP proporcionada
+            response = client.led_on()           # Enviar comando de prueba LED_ON
             
-            # --- CREAR GRÁFICAS SEPARADAS PARA CADA POTENCIÓMETRO ---
-            colors = ["0000FF", "00FF00", "FF0000"]  # Azul, Verde, Rojo para cada sensor
-            for j in range(3):               # Crear gráfico para cada potenciómetro
-                chart = LineChart()          # Nuevo gráfico de líneas
-                chart.title = f"Ángulo Potenciómetro {j+1} vs Tiempo"  # Título específico
-                chart.y_axis.title = "Ángulo (°)"    # Etiqueta eje Y
-                chart.x_axis.title = "Muestra"       # Etiqueta eje X
+            # --- VERIFICAR RESPUESTA DEL ESP32 ---
+            if "LED_ON_OK" in response:          # Verificar respuesta esperada
+                self.on_connected(esp32_ip)      # Conexión exitosa
+            else:
+                self.on_disconnected()           # Respuesta inesperada
                 
-                # --- CONFIGURAR DATOS ESPECÍFICOS DEL POTENCIÓMETRO ---
-                data = Reference(ws, min_col=j*2+3, min_row=1, max_row=max_len+1)  # Columna de ángulos
-                categories = Reference(ws, min_col=1, min_row=2, max_row=max_len+1)  # Columna de muestras
+        except Exception as e:
+            # --- MANEJAR ERROR DE CONEXIÓN ---
+            self.on_disconnected()               # Error de conexión (timeout, red, etc.)    
+    # =====================================================================================
+    # MÉTODO: CALLBACK DE CONEXIÓN EXITOSA
+    # =====================================================================================
+    def on_connected(self, esp32_ip):
+        """
+        Callback ejecutado cuando la conexión con el ESP32 es exitosa
+        
+        Propósito: Configurar la aplicación para modo conectado
+        Funcionalidad: Inicializar cliente ESP32, actualizar UI, mostrar sensores
+        Parámetros: esp32_ip - Dirección IP del ESP32 conectado
+        UI: Cambia estado visual, habilita lista de sensores
+        """
+        
+        # --- ESTABLECER ESTADO DE CONEXIÓN ---
+        self.is_connected = True                 # Flag global de conexión
+        self.esp_client = ESP32Client(esp32_ip)  # Cliente para comunicación TCP
+          # --- ACTUALIZAR INTERFAZ DE CONEXIÓN ---
+        self.connect_btn.setText("🔌 Conectado")  # Cambiar texto del botón
+        self.connect_btn.setEnabled(False)       # Deshabilitar botón (ya conectado)
+        self.restart_btn.setEnabled(True)        # Habilitar botón de reinicio
+        self.status_label.setText("✅ Conectado al ESP32")  # Estado exitoso
+        self.status_label.setStyleSheet("""
+            padding: 8px;                        /* Espaciado interno */
+            border-radius: 4px;                  /* Esquinas redondeadas */
+            background-color: #d4edda;           /* Fondo verde claro */
+            color: #155724;                      /* Texto verde oscuro */
+            font-weight: bold;                   /* Texto en negrita */
+        """)
+        
+        # --- MOSTRAR LISTA DE SENSORES CON ANIMACIÓN ---
+        self.show_sensors_with_animation()       # Efecto visual de aparición
+    
+    # =====================================================================================
+    # MÉTODO: CALLBACK DE CONEXIÓN FALLIDA
+    # =====================================================================================
+    def on_disconnected(self):
+        """
+        Callback ejecutado cuando la conexión con el ESP32 falla o se pierde
+        
+        Propósito: Configurar la aplicación para modo desconectado
+        Funcionalidad: Limpiar cliente ESP32, actualizar UI, ocultar sensores
+        UI: Cambia estado visual, deshabilita funcionalidades que requieren conexión
+        Seguridad: Previene operaciones sin conexión válida
+        """
+        
+        # --- LIMPIAR ESTADO DE CONEXIÓN ---
+        self.is_connected = False                # Flag global de desconexión
+        self.esp_client = None                   # Limpiar cliente TCP
+          # --- ACTUALIZAR INTERFAZ DE CONEXIÓN ---
+        self.connect_btn.setText("🔌 Conectar al ESP32")  # Restaurar texto original
+        self.connect_btn.setEnabled(True)        # Habilitar botón para reconectar
+        self.restart_btn.setEnabled(False)       # Deshabilitar botón de reinicio
+        self.status_label.setText("❌ Error de conexión")  # Estado de error
+        self.status_label.setStyleSheet("""
+            padding: 8px;                        /* Espaciado interno */
+            border-radius: 4px;                  /* Esquinas redondeadas */
+            background-color: #f8d7da;           /* Fondo rojo claro */
+            color: #721c24;                      /* Texto rojo oscuro */
+            font-weight: bold;                   /* Texto en negrita */
+        """)
+        
+        # --- OCULTAR FUNCIONALIDADES ---
+        self.sensors_group.setVisible(False)     # Ocultar lista de sensores
+    
+    # =====================================================================================
+    # MÉTODO: ANIMACIÓN DE LISTA DE SENSORES
+    # =====================================================================================
+    def show_sensors_with_animation(self):
+        """
+        Muestra la lista de sensores disponibles con efecto de desvanecimiento suave
+        
+        Propósito: Proporcionar feedback visual atractivo al usuario
+        Animación: Efecto fade-in de 0.8 segundos con curva suave
+        UX: Mejora la experiencia visual de la aplicación
+        Timing: Activado solo después de conexión exitosa
+        """
+        
+        # --- HACER VISIBLE EL GRUPO DE SENSORES ---
+        self.sensors_group.setVisible(True)      # Mostrar contenedor de sensores
+        
+        # --- CONFIGURAR EFECTO DE OPACIDAD ---
+        self.fade_effect = QGraphicsOpacityEffect()  # Efecto de transparencia
+        self.sensors_group.setGraphicsEffect(self.fade_effect)  # Aplicar al grupo
+        
+        # --- CREAR ANIMACIÓN DE APARICIÓN ---
+        self.animation = QPropertyAnimation(self.fade_effect, b"opacity")  # Animar opacidad
+        self.animation.setDuration(800)          # Duración: 800ms (0.8 segundos)
+        self.animation.setStartValue(0.0)        # Inicio: Completamente transparente
+        self.animation.setEndValue(1.0)          # Final: Completamente opaco
+        self.animation.setEasingCurve(QEasingCurve.InOutQuad)  # Curva suave
+        
+        # --- INICIAR ANIMACIÓN ---
+        self.animation.start()                   # Ejecutar efecto de desvanecimiento
+    # =====================================================================================
+    # SECCIÓN: FUNCIONES DE MONITOREO - SENSOR DE ÁNGULO SIMPLE
+    # =====================================================================================
+    
+    # =====================================================================================
+    # MÉTODO: ALTERNAR MONITOREO DEL SENSOR DE ÁNGULO
+    # =====================================================================================
+    def toggle_angulo_monitoring(self):
+        """
+        Alterna entre iniciar y detener el monitoreo del sensor de ángulo simple
+        
+        Propósito: Función de conveniencia para un solo botón de control
+        Lógica: Verifica estado actual y ejecuta acción opuesta
+        UI: Permite usar un solo botón para iniciar/pausar monitoreo
+        Estado: Basado en flag self.is_monitoring
+        """
+        
+        if not self.is_monitoring:               # Si no está monitoreando
+            self.start_angulo_monitoring()       # Iniciar monitoreo
+        else:                                    # Si ya está monitoreando
+            self.stop_angulo_monitoring()        # Detener monitoreo
+    
+    # =====================================================================================
+    # MÉTODO: INICIAR MONITOREO DEL SENSOR DE ÁNGULO
+    # =====================================================================================
+    def start_angulo_monitoring(self):
+        """
+        Inicia el monitoreo en tiempo real del sensor de ángulo simple
+        
+        Propósito: Comenzar adquisición continua de datos del potenciómetro
+        Thread: Crea AnguloSimpleThread para comunicación asíncrona con ESP32
+        Datos: Recibe lecturas ADC y convierte a grados (-135° a +135°)
+        UI: Actualiza botones y habilita exportación
+        Gráfica: Inicia timer de actualización visual
+        """
+        
+        # --- VERIFICAR CONEXIÓN REQUERIDA ---
+        if not self.is_connected:                # Verificar conexión TCP activa
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return                               # Salir si no hay conexión
+        
+        try:
+            # --- CREAR Y CONFIGURAR THREAD DE MONITOREO ---
+            self.angulo_thread = AnguloSimpleThread(self.esp_client.esp32_ip)  # Thread con IP
+            self.angulo_thread.data_received.connect(self.update_angulo_data)  # Conectar señal
+            
+            # --- INICIAR MONITOREO ASÍNCRONO ---
+            self.angulo_thread.start()           # Iniciar thread de comunicación
+            self.is_monitoring = True            # Marcar estado como monitoreando
+              # --- ACTUALIZAR INTERFAZ DE CONTROL ---
+            self.start_btn.setText("⏸️ Pausar")   # Cambiar botón a pausar
+            self.start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; }")  # Amarillo pausa
+            self.export_btn.setEnabled(True)     # Habilitar exportación
+              # --- INICIAR ACTUALIZACIÓN GRÁFICA ---
+            self.manage_graph_timer()           # Gestionar timer compartido inteligentemente
+            
+        except Exception as e:
+            # --- MANEJAR ERRORES DE INICIALIZACIÓN ---
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+    
+    # =====================================================================================
+    # MÉTODO: DETENER MONITOREO DEL SENSOR DE ÁNGULO
+    # =====================================================================================
+    def stop_angulo_monitoring(self):
+        """
+        Detiene el monitoreo del sensor de ángulo simple y limpia recursos
+        
+        Propósito: Parar adquisición de datos y liberar thread
+        Thread: Detiene AnguloSimpleThread de forma segura
+        UI: Restaura botones a estado inicial
+        Recursos: Limpia objetos para evitar memory leaks
+        """
+        
+        # --- DETENER THREAD DE MONITOREO ---
+        if self.angulo_thread and self.angulo_thread.isRunning():  # Si existe y está corriendo
+            self.angulo_thread.stop()            # Detener thread de forma segura
+            self.angulo_thread = None            # Limpiar referencia
+          # --- ACTUALIZAR ESTADO Y TIMERS ---
+        self.is_monitoring = False               # Marcar como no monitoreando
+        self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
+          # --- RESTAURAR INTERFAZ DE CONTROL ---
+        self.start_btn.setText("▶️ Iniciar Monitoreo")  # Restaurar texto inicial
+        self.start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde inicial
+    # =====================================================================================
+    # MÉTODO: ACTUALIZAR DATOS DEL SENSOR DE ÁNGULO
+    # =====================================================================================
+    def update_angulo_data(self, lectura, angulo):
+        """
+        Procesa y actualiza los datos recibidos del sensor de ángulo simple
+        
+        Propósito: Manejar datos en tiempo real del thread de comunicación
+        Parámetros: lectura (int) - Valor ADC crudo (0-4095)
+                   angulo (float) - Ángulo calculado en grados (-135° a +135°)
+        Almacenamiento: Mantiene listas con historial limitado de datos
+        UI: Actualiza etiquetas de lectura actual
+        Gráfica: Prepara datos para redibujado optimizado
+        """
+          # --- ALMACENAR DATOS EN HISTORIAL ---
+        self.lecturas.append(lectura)            # Agregar lectura ADC a lista
+        
+        # --- APLICAR CALIBRACIÓN SI ESTÁ DISPONIBLE ---
+        if self.angulo_calibration.is_calibrated:  # Si hay calibración activa
+            angulo_calibrado = self.angulo_calibration.calibrate_value(lectura)  # Aplicar calibración a lectura cruda
+            self.angulos.append(angulo_calibrado)    # Usar ángulo calibrado para gráfica y almacenamiento
+        else:
+            self.angulos.append(angulo)              # Usar ángulo original si no hay calibración
+        
+        # --- MANTENER LÍMITE DE PUNTOS EN MEMORIA ---
+        if len(self.lecturas) > self.max_points:  # Si excede límite máximo
+            self.lecturas.pop(0)                 # Eliminar primer elemento (más antiguo)
+            self.angulos.pop(0)                  # Eliminar primer ángulo        # --- ACTUALIZAR ETIQUETA DE LECTURA ACTUAL CON VERIFICACIÓN DEFENSIVA ---
+        try:
+            if hasattr(self, 'angulo_label') and self.angulo_label is not None:
+                if self.angulo_calibration.is_calibrated:  # Si hay calibración activa
+                    angulo_calibrado = self.angulo_calibration.calibrate_value(lectura)  # Calcular valor calibrado
+                    self.angulo_label.setText(
+                        f"Lectura: {lectura} | Ángulo: {angulo}° | Calibrado: {angulo_calibrado:.1f}°"
+                    )
+                else:
+                    self.angulo_label.setText(f"Lectura: {lectura} | Ángulo: {angulo}°")  # Sin calibración
+        except RuntimeError:
+            # Widget has been deleted, stop monitoring
+            if hasattr(self, 'is_monitoring'):
+                self.is_monitoring = False
+            return
+        
+        # --- PREPARAR DATOS PARA GRÁFICA ---
+        # Actualizar gráfica de forma optimizada
+        if hasattr(self, 'line'):                # Verificar que existe línea de datos
+            x_data = list(range(len(self.angulos)))  # Índices para eje X
+            self.line.set_data(x_data, self.angulos)  # Actualizar datos de línea
+            
+            # --- AJUSTAR LÍMITES DINÁMICOS DEL EJE X ---
+            if len(x_data) > 0:                  # Si hay datos que mostrar
+                self.ax.set_xlim(0, max(100, len(x_data)))  # Mínimo 100 puntos visibles
+          # --- MARCAR PARA ACTUALIZACIÓN GRÁFICA ---
+        self.pending_updates = True              # Flag para redibujado pendiente
+        self.pending_simple_data = (lectura, angulo)  # Datos específicos pendientes
+    
+    # =====================================================================================
+    # MÉTODO: ABRIR DIÁLOGO DE CALIBRACIÓN
+    # =====================================================================================
+    def open_calibration_dialog(self):
+        """
+        Abre el diálogo de calibración para el sensor de ángulo simple
+        
+        Propósito: Permitir al usuario configurar la calibración lineal del sensor
+        Funcionalidad: Crear puntos de calibración, realizar regresión lineal, guardar/cargar calibraciones
+        UI: Diálogo modal con tabla de puntos, gráfica en tiempo real y controles
+        Calibración: Sistema de regresión lineal que mejora la precisión del sensor
+        """        # --- CREAR DIÁLOGO DE CALIBRACIÓN ---
+        dialog = CalibrationDialog("Ángulo Simple", self.angulo_calibration, self)  # Pasar nombre del sensor, calibración y ventana padre
+        
+        # --- MOSTRAR DIÁLOGO Y PROCESAR RESULTADO ---
+        if dialog.exec() == QDialog.Accepted:    # Si el usuario presiona OK/Aplicar
+            # Actualizar estado de calibración en la interfaz
+            self.update_calibration_status()
+    
+    # =====================================================================================
+    # MÉTODO: ACTUALIZAR ESTADO DE CALIBRACIÓN EN LA INTERFAZ
+    # =====================================================================================
+    def update_calibration_status(self):
+        """
+        Actualiza la etiqueta de estado de calibración en la interfaz
+        
+        Propósito: Mostrar al usuario si hay calibración activa y sus estadísticas
+        Estado: Indica si la calibración está aplicada y muestra información relevante
+        UI: Actualiza color y texto de la etiqueta según el estado de calibración
+        """
+        
+        if hasattr(self, 'calibration_status_label'):  # Verificar que existe la etiqueta
+            if self.angulo_calibration.is_calibrated:   # Si hay calibración activa
+                stats = self.angulo_calibration.get_calibration_stats()  # Obtener estadísticas
+                if stats and 'r_squared' in stats and 'equation' in stats:
+                    # Mostrar información de calibración activa
+                    r2_percent = stats['r_squared'] * 100
+                    self.calibration_status_label.setText(
+                        f"Calibración: ✓ Activa | R² = {r2_percent:.1f}% | {stats['equation']}"
+                    )
+                    # Cambiar estilo a verde para indicar calibración activa
+                    self.calibration_status_label.setStyleSheet("""
+                        font-size: 14px;
+                        font-weight: bold;
+                        color: #155724;
+                        padding: 8px;
+                        background-color: #d4edda;
+                        border-radius: 4px;
+                        border: 1px solid #c3e6cb;
+                        margin-top: 5px;
+                    """)
+                else:
+                    # Calibración sin estadísticas válidas
+                    self.calibration_status_label.setText("Calibración: ⚠️ Aplicada (sin estadísticas)")
+                    self.calibration_status_label.setStyleSheet("""
+                        font-size: 14px;
+                        font-weight: bold;
+                        color: #856404;
+                        padding: 8px;
+                        background-color: #fff3cd;
+                        border-radius: 4px;
+                        border: 1px solid #ffeaa7;
+                        margin-top: 5px;
+                    """)
+            else:
+                # Sin calibración activa
+                self.calibration_status_label.setText("Calibración: No aplicada")
+                self.calibration_status_label.setStyleSheet("""
+                    font-size: 14px;
+                    font-weight: bold;
+                    color: #856404;
+                    padding: 8px;
+                    background-color: #fff3cd;
+                    border-radius: 4px;
+                    border: 1px solid #ffeaa7;
+                    margin-top: 5px;
+                """)
+    
+    # =====================================================================================
+    # MÉTODO: LIMPIAR GRÁFICA DEL SENSOR DE ÁNGULO
+    # =====================================================================================
+    def clear_graph(self):
+        """
+        Limpia todos los datos y gráfica del sensor de ángulo simple
+        
+        Propósito: Resetear visualización y datos almacenados
+        Datos: Borra historial completo de lecturas y ángulos
+        Gráfica: Resetea líneas de datos y límites de ejes
+        UI: Restaura etiquetas a estado inicial
+        Exportación: Deshabilita botón hasta que haya nuevos datos
+        """
+        
+        # --- LIMPIAR DATOS ALMACENADOS ---
+        self.lecturas.clear()                    # Borrar todas las lecturas ADC
+        self.angulos.clear()                     # Borrar todos los ángulos
+        
+        # --- RESETEAR GRÁFICA ---
+        if hasattr(self, 'line'):                # Si existe línea de datos
+            self.line.set_data([], [])           # Limpiar datos de la línea
+            self.ax.set_xlim(0, 100)             # Restaurar límites iniciales
+            self.canvas.draw()                   # Redibujar canvas limpio
+        
+        # --- RESTAURAR ETIQUETAS ---
+        self.angulo_label.setText("Lectura: -- | Ángulo: --°")  # Texto inicial
+        self.export_btn.setEnabled(False)       # Deshabilitar exportación sin datos
+    
+    # =====================================================================================
+    # MÉTODO: EXPORTAR DATOS A EXCEL
+    # =====================================================================================
+    def export_to_excel(self):
+        """
+        Exporta todos los datos del sensor de ángulo simple a archivo Excel
+        
+        Propósito: Permitir análisis posterior y respaldo de datos
+        Formato: Archivo .xlsx con múltiples columnas y gráfica integrada
+        Datos: Lecturas ADC, ángulos calculados, timestamps, numeración
+        Gráfica: Incluye gráfico de líneas dentro del archivo Excel
+        Validación: Verifica que existan datos antes de exportar
+        """
+        
+        # --- VERIFICAR DATOS DISPONIBLES ---
+        if not self.lecturas:                    # Si no hay datos que exportar
+            QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
+            return                               # Salir sin hacer nada
+        
+        try:
+            # --- GENERAR NOMBRE DE ARCHIVO ÚNICO ---
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Formato: YYYYMMDD_HHMMSS
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Guardar datos",           # Título del diálogo
+                f"SensoraCore_Angulo_{timestamp}.xlsx",  # Nombre sugerido
+                "Excel files (*.xlsx)"           # Filtro de archivos
+            )
+            
+            if filename:                         # Si usuario seleccionó archivo
+                # --- CREAR WORKBOOK Y WORKSHEET ---
+                wb = openpyxl.Workbook()         # Nuevo libro de Excel
+                ws = wb.active                   # Hoja activa
+                ws.title = "Datos Ángulo Simple"  # Título de la hoja
+                
+                # --- CREAR HEADERS DE COLUMNAS ---
+                ws['A1'] = "Muestra"             # Número de muestra
+                ws['B1'] = "Lectura ADC"         # Valor ADC crudo
+                ws['C1'] = "Ángulo (°)"          # Ángulo calculado
+                ws['D1'] = "Timestamp"           # Fecha y hora
+                
+                # --- ESCRIBIR DATOS FILA POR FILA ---
+                for i, (lectura, angulo) in enumerate(zip(self.lecturas, self.angulos)):
+                    ws[f'A{i+2}'] = i+1          # Número de muestra (1, 2, 3...)
+                    ws[f'B{i+2}'] = lectura      # Lectura ADC
+                    ws[f'C{i+2}'] = angulo       # Ángulo en grados
+                    ws[f'D{i+2}'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Timestamp
+                
+                # --- CREAR GRÁFICA EN EXCEL ---
+                chart = LineChart()              # Gráfico de líneas
+                chart.title = "Ángulo vs Tiempo"  # Título del gráfico
+                chart.y_axis.title = "Ángulo (°)"  # Etiqueta eje Y
+                chart.x_axis.title = "Muestra"   # Etiqueta eje X
+                
+                # --- CONFIGURAR DATOS DEL GRÁFICO ---
+                data = Reference(ws, min_col=3, min_row=1, max_row=len(self.angulos)+1)  # Columna C
+                categories = Reference(ws, min_col=1, min_row=2, max_row=len(self.angulos)+1)  # Columna A
                 chart.add_data(data, titles_from_data=True)  # Agregar datos
                 chart.set_categories(categories)  # Establecer categorías
-                    # --- POSICIONAR GRÁFICOS EN DIFERENTES UBICACIONES ---
-                # Columnas: K2, S2, AA2 para los tres gráficos
-                chart_positions = ["K2", "S2", "AA2"]
-                ws.add_chart(chart, chart_positions[j])
+                
+                # --- INSERTAR GRÁFICO EN HOJA ---
+                ws.add_chart(chart, "F2")        # Posición F2 para el gráfico
+                
+                # --- GUARDAR ARCHIVO ---
+                wb.save(filename)                # Guardar en ubicación seleccionada
+                QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
+                
+        except Exception as e:
+            # --- MANEJAR ERRORES DE EXPORTACIÓN ---
+            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")    
+    # =====================================================================================
+    # SECCIÓN: FUNCIONES DE MONITOREO - BRAZO ROBÓTICO MULTI-SENSOR
+    # =====================================================================================
+    
+    # =====================================================================================
+    # MÉTODO: ALTERNAR MONITOREO DEL BRAZO ROBÓTICO
+    # =====================================================================================
+    def toggle_brazo_monitoring(self):
+        """
+        Alterna entre iniciar y detener el monitoreo del brazo robótico multi-sensor
+        
+        Propósito: Control unificado para sistema complejo de 3 potenciómetros + sensor capacitivo
+        Lógica: Verifica estado actual y ejecuta acción opuesta
+        Sensores: Base, Articulación 1, Articulación 2, Sensor capacitivo
+        Estado: Basado en flag self.brazo_is_monitoring
+        """
+        
+        if not self.brazo_is_monitoring:         # Si no está monitoreando brazo
+            self.start_brazo_monitoring()        # Iniciar monitoreo completo
+        else:                                    # Si ya está monitoreando
+            self.stop_brazo_monitoring()         # Detener monitoreo completo
+    
+    # =====================================================================================
+    # MÉTODO: INICIAR MONITOREO DEL BRAZO ROBÓTICO
+    # =====================================================================================
+    def start_brazo_monitoring(self):
+        """
+        Inicia el monitoreo en tiempo real del brazo robótico con múltiples sensores
+        
+        Propósito: Comenzar adquisición simultánea de 3 potenciómetros + sensor capacitivo
+        Thread: Crea BrazoAnguloThread para comunicación compleja con ESP32
+        Datos: Recibe 3 lecturas ADC + estado capacitivo en un solo paquete
+        Protocolo: "BRAZO_ANGULO" - comando especializado para múltiples sensores
+        UI: Actualiza botones y habilita exportación
+        Gráfica: Inicia visualización de 3 líneas simultáneas
+        """
+        
+        # --- VERIFICAR CONEXIÓN REQUERIDA ---
+        if not self.is_connected:                # Verificar conexión TCP activa
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return                               # Salir si no hay conexión
+        
+        try:
+            # --- CREAR Y CONFIGURAR THREAD MULTI-SENSOR ---
+            self.brazo_thread = BrazoAnguloThread(self.esp_client.esp32_ip)  # Thread especializado
+            self.brazo_thread.data_received.connect(self.update_brazo_data)  # Conectar señal compleja
             
-            # --- GUARDAR ARCHIVO COMPLEJO ---
-            wb.save(filename)                # Guardar en ubicación seleccionada
-            QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
+            # --- INICIAR MONITOREO MULTI-SENSOR ---
+            self.brazo_thread.start()            # Iniciar thread de comunicación
+            self.brazo_is_monitoring = True      # Marcar estado como monitoreando brazo            
+            # --- INICIAR MONITOREO MULTI-SENSOR ---
+            self.brazo_thread.start()            # Iniciar thread de comunicación
+            self.brazo_is_monitoring = True      # Marcar estado como monitoreando brazo
+              # --- ACTUALIZAR INTERFAZ DE CONTROL ---
+            self.brazo_start_btn.setText("⏸️ Pausar")  # Cambiar botón a pausar
+            self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; }")  # Amarillo pausa
+            self.brazo_export_btn.setEnabled(True)  # Habilitar exportación multi-datos
+              # --- INICIAR ACTUALIZACIÓN GRÁFICA MULTI-LÍNEA ---
+            self.manage_graph_timer()            # Gestionar timer compartido inteligentemente
             
-    except Exception as e:
-        # --- MANEJAR ERRORES DE EXPORTACIÓN COMPLEJA ---
-        QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")    
+        except Exception as e:
+            # --- MANEJAR ERRORES DE INICIALIZACIÓN MULTI-SENSOR ---
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+    
+    # =====================================================================================
+    # MÉTODO: DETENER MONITOREO DEL BRAZO ROBÓTICO
+    # =====================================================================================
+    def stop_brazo_monitoring(self):
+        """
+        Detiene el monitoreo del brazo robótico multi-sensor y limpia recursos
         
-# =====================================================================================
-# SECCIÓN: FUNCIONES DE MONITOREO - SENSOR DE DISTANCIA INFRARROJO (IR)
-# =====================================================================================
-
-# =====================================================================================
-# MÉTODO: ALTERNAR MONITOREO DEL SENSOR IR
-# =====================================================================================
-def toggle_distancia_ir_monitoring(self):
-    """
-    Alterna entre iniciar y detener el monitoreo del sensor de distancia infrarrojo
-    
-    Propósito: Control unificado para sensor IR digital de detección de presencia
-    Lógica: Verifica estado actual y ejecuta acción opuesta
-    Sensor: IR digital en GPIO 14 (solo detección ON/OFF, no distancia exacta)
-    Estado: Basado en flag self.distancia_ir_is_monitoring
-    """
-    
-    if not self.distancia_ir_is_monitoring:  # Si no está monitoreando IR
-        self.start_distancia_ir_monitoring() # Iniciar monitoreo IR
-    else:                                    # Si ya está monitoreando
-        self.stop_distancia_ir_monitoring()  # Detener monitoreo IR
-
-# =====================================================================================
-# MÉTODO: INICIAR MONITOREO DEL SENSOR IR
-# =====================================================================================
-def start_distancia_ir_monitoring(self):
-    """
-    Inicia el monitoreo en tiempo real del sensor de distancia infrarrojo digital
-    
-    Propósito: Comenzar detección continua de presencia/ausencia con sensor IR
-    Thread: Crea DistanciaIRThread para comunicación asíncrona con ESP32
-    Datos: Recibe estados digitales ON/OFF del GPIO 14
-    Protocolo: "DISTANCIA_IR" - comando específico para sensor infrarrojo
-    UI: Actualiza estado visual y botones de control
-    Tipo: Digital (solo detección, no medición de distancia exacta)
-    """
-    
-    # --- VERIFICAR CONEXIÓN REQUERIDA ---
-    if not self.is_connected:                # Verificar conexión TCP activa
-        QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
-        return                               # Salir si no hay conexión
-    
-    try:
-        # --- CREAR Y CONFIGURAR THREAD IR ---
-        self.distancia_ir_thread = DistanciaIRThread(self.esp_client.esp32_ip)  # Thread IR
-        self.distancia_ir_thread.data_received.connect(self.update_distancia_ir_data)  # Conectar señal
+        Propósito: Parar adquisición de múltiples sensores y liberar thread
+        Thread: Detiene BrazoAnguloThread de forma segura
+        UI: Restaura botones a estado inicial
+        Recursos: Limpia objetos para evitar memory leaks
+        """
         
-        # --- INICIAR MONITOREO IR ---
-        self.distancia_ir_thread.start()     # Iniciar thread de comunicación
-        self.distancia_ir_is_monitoring = True  # Marcar estado como monitoreando IR
-        
-        # --- ACTUALIZAR INTERFAZ DE CONTROL IR ---
-        self.start_distancia_ir_btn.setText("⏸️ Pausar")  # Cambiar botón a pausar
-        self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")  # Amarillo pausa
-
-        if hasattr(self, 'export_distancia_ir_btn'):  # Si existe botón de exportación
-            self.export_distancia_ir_btn.setEnabled(True)  # Habilitar exportación
-            # --- INICIAR ACTUALIZACIÓN GRÁFICA IR ---
-        self.manage_graph_timer()            # Gestionar timer compartido inteligentemente
-        
-    except Exception as e:
-        # --- MANEJAR ERRORES DE INICIALIZACIÓN IR ---
-        QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
-
-# =====================================================================================
-# MÉTODO: DETENER MONITOREO DEL SENSOR IR
-# =====================================================================================
-def stop_distancia_ir_monitoring(self):
-    """
-    Detiene el monitoreo del sensor de distancia infrarrojo y limpia recursos
+        # --- DETENER THREAD MULTI-SENSOR ---
+        if self.brazo_thread and self.brazo_thread.isRunning():  # Si existe y está corriendo
+            self.brazo_thread.stop()             # Detener thread de forma segura
+            self.brazo_thread = None             # Limpiar referencia
+          # --- ACTUALIZAR ESTADO Y TIMERS ---
+        self.brazo_is_monitoring = False         # Marcar como no monitoreando brazo
+        self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
+          # --- RESTAURAR INTERFAZ DE CONTROL ---
+        self.brazo_start_btn.setText("▶️ Iniciar Monitoreo")  # Restaurar texto inicial
+        self.brazo_start_btn.setStyleSheet("QPushButton { background-color: #28a745; border-color: #28a745; }")  # Verde inicial
     
-    Propósito: Parar detección IR y liberar thread
-    Thread: Detiene DistanciaIRThread de forma segura
-    UI: Restaura botones a estado inicial
-    Recursos: Limpia objetos para evitar memory leaks
-    """
-    
-    # --- DETENER THREAD IR ---
-    if self.distancia_ir_thread and self.distancia_ir_thread.isRunning():  # Si existe y está corriendo
-        self.distancia_ir_thread.stop()     # Detener thread de forma segura
-        self.distancia_ir_thread = None     # Limpiar referencia
-        # --- ACTUALIZAR ESTADO Y TIMERS ---
-    self.distancia_ir_is_monitoring = False # Marcar como no monitoreando IR
-    self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
-        # Actualizar interfaz        self.start_distancia_ir_btn.setText("▶️ Iniciar Monitoreo")
-    self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #e74c3c; border-color: #e74c3c; color: white; padding: 10px; }")
-
-def update_distancia_ir_data(self, estado_digital):
-    """Actualiza los datos del sensor de distancia IR (digital)"""
-    try:
-        # Verificar que el widget existe antes de actualizarlo
-        if not hasattr(self, 'distancia_ir_status'):
+    # =====================================================================================
+    # MÉTODO: ACTUALIZAR DATOS DEL BRAZO ROBÓTICO
+    # =====================================================================================
+    def update_brazo_data(self, lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_estado):
+        """
+        Procesa y actualiza los datos recibidos del brazo robótico multi-sensor
+        
+        Propósito: Manejar datos complejos de múltiples sensores en tiempo real
+        Parámetros: lectura1-3 (int) - Valores ADC crudos de 3 potenciómetros
+                   angulo1-3 (float) - Ángulos calculados en grados para cada potenciómetro
+                   sensor_estado (bool) - Estado del sensor capacitivo (True/False)
+        Almacenamiento: Mantiene 3 listas separadas + estado capacitivo
+        UI: Actualiza 4 etiquetas independientes (3 potenciómetros + capacitivo)
+        Gráfica: Prepara datos para 3 líneas simultáneas con colores diferentes
+        """
+        
+        # --- ALMACENAR DATOS DE MÚLTIPLES SENSORES ---
+        # Agregar datos a las listas de cada potenciómetro
+        for i, (lectura, angulo) in enumerate([(lectura1, angulo1), (lectura2, angulo2), (lectura3, angulo3)]):
+            self.brazo_lecturas[i].append(lectura)  # Lista por potenciómetro
+            self.brazo_angulos[i].append(angulo)    # Lista por potenciómetro
+            
+            # --- MANTENER LÍMITE DE PUNTOS POR SENSOR ---
+            if len(self.brazo_lecturas[i]) > self.brazo_max_points:  # Control individual de memoria
+                self.brazo_lecturas[i].pop(0)   # Eliminar más antiguo del sensor i
+                self.brazo_angulos[i].pop(0)    # Eliminar más antiguo del sensor i
+        
+        # --- ALMACENAR ESTADO DEL SENSOR CAPACITIVO ---
+        self.brazo_capacitive_states.append(sensor_estado)  # Estado ON/OFF del capacitivo
+        if len(self.brazo_capacitive_states) > self.brazo_max_points:  # Control de memoria
+            self.brazo_capacitive_states.pop(0)  # Eliminar estado más antiguo
+          # --- ACTUALIZAR ETIQUETAS DE LECTURA ACTUAL CON VERIFICACIÓN DEFENSIVA ---
+        try:
+            if hasattr(self, 'brazo_labels') and 'pot1' in self.brazo_labels and self.brazo_labels['pot1'] is not None:
+                self.brazo_labels['pot1'].setText(f"Potenciómetro 1: Lectura: {lectura1} | Ángulo: {angulo1}°")
+            if hasattr(self, 'brazo_labels') and 'pot2' in self.brazo_labels and self.brazo_labels['pot2'] is not None:
+                self.brazo_labels['pot2'].setText(f"Potenciómetro 2: Lectura: {lectura2} | Ángulo: {angulo2}°")
+            if hasattr(self, 'brazo_labels') and 'pot3' in self.brazo_labels and self.brazo_labels['pot3'] is not None:
+                self.brazo_labels['pot3'].setText(f"Potenciómetro 3: Lectura: {lectura3} | Ángulo: {angulo3}°")
+            if hasattr(self, 'capacitive_label') and self.capacitive_label is not None:
+                self.capacitive_label.setText(f"Sensor Capacitivo: {'Activado' if sensor_estado else 'Desactivado'}")
+        except RuntimeError:
+            # Widget has been deleted, stop monitoring
+            if hasattr(self, 'brazo_is_monitoring'):
+                self.brazo_is_monitoring = False
             return
         
-        # Invertir lógica: 1 = NO DETECTADO, 0 = DETECTADO
-        estado_digital = not estado_digital
-        estado_texto = "DETECTADO" if estado_digital else "NO DETECTADO"
-        color = "#27ae60" if estado_digital else "#e74c3c"
-        self.distancia_ir_status.setText(f"Estado: {estado_texto}")
-        self.distancia_ir_status.setStyleSheet(f"""
-            font-size: 18px;
-            font-weight: bold;
-            color: {color};
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            border: 2px solid {color};
-        """)
-        # No necesitamos gráficas para sensores digitales, solo estado actual
-        # Marcar para actualización si es necesario
-        self.pending_updates = True
-        self.pending_distancia_ir_data = estado_digital
-    except RuntimeError:
-        # Widget fue eliminado durante la actualización
-        self.distancia_ir_is_monitoring = False
-        return
-
-def clear_distancia_ir_graph(self):
-    """Resetea el estado del sensor de distancia IR digital"""
-    # Para sensores digitales, no hay datos continuos que exportar
-    # Solo exportamos el estado actual si está disponible
-    QMessageBox.information(self, "Sensor Digital", 
-        "Los sensores digitales no generan datos continuos para exportar.\n\n"
-        "El sensor IR solo proporciona estado ON/OFF en tiempo real.\n"
-        "Estado actual visible en la interfaz.")
-    
-    # Resetear estado visual al estado inicial
-    self.distancia_ir_status.setText("🔴 SIN DETECCIÓN")
-    self.distancia_ir_status.setStyleSheet("""
-        font-size: 28px;
-        font-weight: bold;
-        color: #dc3545;
-        padding: 20px;
-        background-color: #f8f9fa;
-        border-radius: 12px;
-        border: 3px solid #dc3545;
-        text-align: center;
-    """)
-    return
-
-def export_distancia_ir_to_excel(self):
-    """Exporta los datos del sensor de distancia IR a Excel"""
-    if not self.distancia_ir_lecturas:
-        QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
-        return
-    
-    try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename, _ = QFileDialog.getSaveFileName(
-            self, "Guardar datos",
-            f"SensoraCore_DistanciaIR_{timestamp}.xlsx",
-            "Excel files (*.xlsx)"
-        )
+        # --- PREPARAR DATOS PARA GRÁFICAS MÚLTIPLES ---
+        # Actualizar gráfica de forma optimizada para 3 líneas
+        if hasattr(self, 'brazo_lines'):         # Verificar que existen las 3 líneas
+            for i, line in enumerate(self.brazo_lines):  # Iterar por cada línea de potenciómetro
+                x_data = list(range(len(self.brazo_angulos[i])))  # Índices para eje X
+                line.set_data(x_data, self.brazo_angulos[i])  # Actualizar datos de línea i
+            
+            # --- AJUSTAR LÍMITES DINÁMICOS PARA MÚLTIPLES SENSORES ---
+            if len(self.brazo_angulos[0]) > 0:   # Si hay datos en al menos un sensor
+                max_len = max(len(angles) for angles in self.brazo_angulos)  # Máximo entre sensores
+                self.brazo_ax.set_xlim(0, max(100, max_len))  # Ajustar según sensor con más datos
         
-        if filename:
-            # Crear workbook
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Datos Distancia IR"
-            
-            # Headers
-            ws['A1'] = "Muestra"
-            ws['B1'] = "Lectura ADC"
-            ws['C1'] = "Voltaje (V)"
-            ws['D1'] = "Distancia (cm)"
-            ws['E1'] = "Timestamp"
-            
-            # Datos
-            for i, (lectura, voltaje, distancia) in enumerate(zip(self.distancia_ir_lecturas, self.distancia_ir_voltajes, self.distancia_ir_cm)):
-                ws[f'A{i+2}'] = i+1
-                ws[f'B{i+2}'] = lectura
-                ws[f'C{i+2}'] = voltaje
-                ws[f'D{i+2}'] = distancia
-                ws[f'E{i+2}'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            
-            # Crear gráfica
-            chart = LineChart()
-            chart.title = "Distancia IR vs Tiempo"
-            chart.y_axis.title = "Distancia (cm)"
-            chart.x_axis.title = "Muestra"
-            
-            data = Reference(ws, min_col=4, min_row=1, max_row=len(self.distancia_ir_cm)+1)
-            categories = Reference(ws, min_col=1, min_row=2, max_row=len(self.distancia_ir_cm)+1)
-            chart.add_data(data, titles_from_data=True)
-            chart.set_categories(categories)
-            
-            ws.add_chart(chart, "G2")
-            
-            # Guardar
-            wb.save(filename)
-            QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
-            
-    except Exception as e:
-        QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")    
-# ============================================================================
-# FUNCIONES DE MONITOREO - DISTANCIA CAPACITIVO
-# ============================================================================
-
-def toggle_distancia_cap_monitoring(self):
-    """
-    Controla el estado de monitoreo del sensor de distancia capacitivo.
+        # --- MARCAR PARA ACTUALIZACIÓN GRÁFICA MULTI-LÍNEA ---
+        self.pending_updates = True              # Flag para redibujado pendiente
+        self.pending_brazo_data = (lectura1, angulo1, lectura2, angulo2, lectura3, angulo3, sensor_estado)
     
-    FUNCIONALIDAD:
-    - Si el monitoreo está inactivo: inicia el monitoreo
-    - Si el monitoreo está activo: detiene el monitoreo
-    - Proporciona un punto de entrada unificado para el control del sensor capacitivo
-    
-    SENSOR CAPACITIVO:
-    - Tipo: Digital (ON/OFF)
-    - GPIO: Pin 35 (configurable en ESP32)
-    - Principio: Detección de proximidad por cambio de capacitancia
-    - Rango típico: 0-10 cm aproximadamente
-    - Sensible a objetos metálicos y no metálicos
-    """
-    if not self.distancia_cap_is_monitoring:
-        self.start_distancia_cap_monitoring()
-    else:
-        self.stop_distancia_cap_monitoring()
-
-def start_distancia_cap_monitoring(self):
-    """
-    Inicia el monitoreo del sensor de distancia capacitivo digital.
-    
-    PROCESO DE INICIALIZACIÓN:
-    1. Verificar conexión ESP32
-    2. Crear thread de comunicación (DistanciaCapThread)
-    3. Configurar callback para recepción de datos
-    4. Iniciar thread de monitoreo en segundo plano
-    5. Actualizar interfaz gráfica y habilitar controles
-    6. Activar timer de actualización de gráficas
-    
-    COMUNICACIÓN:
-    - Protocolo: TCP Socket con ESP32
-    - Comando: "DISTANCIA_CAP" al puerto TCP del ESP32
-    - Respuesta: Estado digital (0 o 1) cada ~100ms
-    - Thread independiente para no bloquear UI
-    
-    ERROR HANDLING:
-    - Valida conexión antes de iniciar
-    - Captura excepciones de creación de thread
-    - Muestra mensajes de error específicos al usuario
-    """
-    if not self.is_connected:
-        QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
-        return
-    
-    try:
-        # --- CREAR Y CONFIGURAR THREAD DE COMUNICACIÓN ---
-        self.distancia_cap_thread = DistanciaCapThread(self.esp_client.esp32_ip)
-        self.distancia_cap_thread.data_received.connect(self.update_distancia_cap_data)
+    # =====================================================================================
+    # MÉTODO: LIMPIAR GRÁFICA DEL BRAZO ROBÓTICO
+    # =====================================================================================
+    def clear_brazo_graph(self):
+        """
+        Limpia todos los datos y gráficas del brazo robótico multi-sensor
         
-        # --- INICIAR MONITOREO EN SEGUNDO PLANO ---
-        self.distancia_cap_thread.start()
-        self.distancia_cap_is_monitoring = True
-            # --- ACTUALIZAR INTERFAZ DE USUARIO ---
-        self.start_distancia_cap_btn.setText("⏸️ Pausar")
-        self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")
-        if hasattr(self, 'export_distancia_cap_btn'):
-            self.export_distancia_cap_btn.setEnabled(True)
+        Propósito: Resetear visualización completa y datos almacenados de múltiples sensores
+        Datos: Borra historial de 3 potenciómetros + sensor capacitivo
+        Gráfica: Resetea 3 líneas de datos y límites de ejes
+        UI: Restaura 4 etiquetas a estado inicial
+        Exportación: Deshabilita botón hasta que haya nuevos datos
+        """
         
-        # --- ACTIVAR TIMER DE ACTUALIZACIÓN GRÁFICA ---
-        self.manage_graph_timer()
+        # --- LIMPIAR DATOS DE MÚLTIPLES SENSORES ---
+        for i in range(3):                       # Iterar por cada potenciómetro
+            self.brazo_lecturas[i].clear()       # Borrar lecturas del potenciómetro i
+            self.brazo_angulos[i].clear()        # Borrar ángulos del potenciómetro i
+        self.brazo_capacitive_states.clear()    # Borrar estados del sensor capacitivo
         
-    except Exception as e:
-        QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+        # --- RESETEAR GRÁFICAS MÚLTIPLES ---
+        if hasattr(self, 'brazo_lines'):         # Si existen las líneas de datos
+            for line in self.brazo_lines:        # Iterar por cada línea
+                line.set_data([], [])            # Limpiar datos de cada línea
+            self.brazo_ax.set_xlim(0, 100)       # Restaurar límites iniciales
+            self.brazo_canvas.draw()             # Redibujar canvas limpio
+        
+        # --- RESTAURAR ETIQUETAS MÚLTIPLES ---
+        for i in range(1, 4):                    # Iterar por potenciómetros 1, 2, 3
+            self.brazo_labels[f'pot{i}'].setText(f"Potenciómetro {i}: Lectura: -- | Ángulo: --°")
+        self.capacitive_label.setText("Sensor Capacitivo: --")  # Resetear estado capacitivo
+        self.brazo_export_btn.setEnabled(False) # Deshabilitar exportación sin datos    
+    # =====================================================================================
+    # MÉTODO: EXPORTAR DATOS DEL BRAZO ROBÓTICO A EXCEL
+    # =====================================================================================
+    def export_brazo_to_excel(self):
+        """
+        Exporta todos los datos del brazo robótico multi-sensor a archivo Excel complejo
+        
+        Propósito: Permitir análisis posterior de múltiples sensores y respaldo completo
+        Formato: Archivo .xlsx con columnas múltiples y gráficas separadas para cada sensor
+        Datos: 3 potenciómetros (lecturas ADC + ángulos) + sensor capacitivo + timestamps
+        Gráficas: 3 gráficos de líneas independientes, uno por cada potenciómetro
+        Validación: Verifica que existan datos en al menos uno de los sensores
+        """
+        
+        # --- VERIFICAR DATOS DISPONIBLES EN MÚLTIPLES SENSORES ---
+        if not any(self.brazo_lecturas):         # Si no hay datos en ningún sensor
+            QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
+            return                               # Salir sin hacer nada
+        
+        try:
+            # --- GENERAR NOMBRE DE ARCHIVO ÚNICO PARA BRAZO ---
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Formato: YYYYMMDD_HHMMSS
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Guardar datos",           # Título del diálogo
+                f"SensoraCore_Brazo_{timestamp}.xlsx",  # Nombre específico para brazo
+                "Excel files (*.xlsx)"           # Filtro de archivos
+            )
+            
+            if filename:                         # Si usuario seleccionó archivo
+                # --- CREAR WORKBOOK Y WORKSHEET PARA MÚLTIPLES SENSORES ---
+                wb = openpyxl.Workbook()         # Nuevo libro de Excel
+                ws = wb.active                   # Hoja activa
+                ws.title = "Datos Brazo Ángulo"  # Título específico para brazo
+                
+                # --- CREAR HEADERS COMPLEJOS PARA MÚLTIPLES SENSORES ---
+                headers = ["Muestra", "Lectura1", "Ángulo1", "Lectura2", "Ángulo2", 
+                          "Lectura3", "Ángulo3", "Sensor_Cap", "Timestamp"]  # 9 columnas
+                for i, header in enumerate(headers):  # Escribir cada header
+                    ws.cell(row=1, column=i+1, value=header)
+                
+                # --- ESCRIBIR DATOS COMPLEJOS FILA POR FILA ---
+                max_len = max(len(angles) for angles in self.brazo_angulos if angles)  # Máximo entre sensores
+                for i in range(max_len):         # Iterar por cada muestra
+                    row = i + 2                  # Fila actual (empezar en 2)
+                    ws.cell(row=row, column=1, value=i+1)  # Número de muestra
+                    
+                    # --- ESCRIBIR DATOS DE CADA POTENCIÓMETRO ---
+                    for j in range(3):           # Iterar por potenciómetros 0, 1, 2
+                        if i < len(self.brazo_lecturas[j]):  # Si hay datos para este potenciómetro
+                            ws.cell(row=row, column=j*2+2, value=self.brazo_lecturas[j][i])  # Lectura ADC
+                            ws.cell(row=row, column=j*2+3, value=self.brazo_angulos[j][i])   # Ángulo calculado
+                    
+                    # --- ESCRIBIR ESTADO DEL SENSOR CAPACITIVO ---
+                    if i < len(self.brazo_capacitive_states):  # Si hay estado capacitivo
+                        ws.cell(row=row, column=8, value=self.brazo_capacitive_states[i])  # Estado ON/OFF
+                    
+                    # --- ESCRIBIR TIMESTAMP ---
+                    ws.cell(row=row, column=9, value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                
+                # --- CREAR GRÁFICAS SEPARADAS PARA CADA POTENCIÓMETRO ---
+                colors = ["0000FF", "00FF00", "FF0000"]  # Azul, Verde, Rojo para cada sensor
+                for j in range(3):               # Crear gráfico para cada potenciómetro
+                    chart = LineChart()          # Nuevo gráfico de líneas
+                    chart.title = f"Ángulo Potenciómetro {j+1} vs Tiempo"  # Título específico
+                    chart.y_axis.title = "Ángulo (°)"    # Etiqueta eje Y
+                    chart.x_axis.title = "Muestra"       # Etiqueta eje X
+                    
+                    # --- CONFIGURAR DATOS ESPECÍFICOS DEL POTENCIÓMETRO ---
+                    data = Reference(ws, min_col=j*2+3, min_row=1, max_row=max_len+1)  # Columna de ángulos
+                    categories = Reference(ws, min_col=1, min_row=2, max_row=max_len+1)  # Columna de muestras
+                    chart.add_data(data, titles_from_data=True)  # Agregar datos
+                    chart.set_categories(categories)  # Establecer categorías
+                      # --- POSICIONAR GRÁFICOS EN DIFERENTES UBICACIONES ---
+                    # Columnas: K2, S2, AA2 para los tres gráficos
+                    chart_positions = ["K2", "S2", "AA2"]
+                    ws.add_chart(chart, chart_positions[j])
+                
+                # --- GUARDAR ARCHIVO COMPLEJO ---
+                wb.save(filename)                # Guardar en ubicación seleccionada
+                QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
+                
+        except Exception as e:
+            # --- MANEJAR ERRORES DE EXPORTACIÓN COMPLEJA ---
+            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")    
+            
+    # =====================================================================================
+    # SECCIÓN: FUNCIONES DE MONITOREO - SENSOR DE DISTANCIA INFRARROJO (IR)
+    # =====================================================================================
+    
+    # =====================================================================================
+    # MÉTODO: ALTERNAR MONITOREO DEL SENSOR IR
+    # =====================================================================================
+    def toggle_distancia_ir_monitoring(self):
+        """
+        Alterna entre iniciar y detener el monitoreo del sensor de distancia infrarrojo
+        
+        Propósito: Control unificado para sensor IR digital de detección de presencia
+        Lógica: Verifica estado actual y ejecuta acción opuesta
+        Sensor: IR digital en GPIO 14 (solo detección ON/OFF, no distancia exacta)
+        Estado: Basado en flag self.distancia_ir_is_monitoring
+        """
+        
+        if not self.distancia_ir_is_monitoring:  # Si no está monitoreando IR
+            self.start_distancia_ir_monitoring() # Iniciar monitoreo IR
+        else:                                    # Si ya está monitoreando
+            self.stop_distancia_ir_monitoring()  # Detener monitoreo IR
+    
+    # =====================================================================================
+    # MÉTODO: INICIAR MONITOREO DEL SENSOR IR
+    # =====================================================================================
+    def start_distancia_ir_monitoring(self):
+        """
+        Inicia el monitoreo en tiempo real del sensor de distancia infrarrojo digital
+        
+        Propósito: Comenzar detección continua de presencia/ausencia con sensor IR
+        Thread: Crea DistanciaIRThread para comunicación asíncrona con ESP32
+        Datos: Recibe estados digitales ON/OFF del GPIO 14
+        Protocolo: "DISTANCIA_IR" - comando específico para sensor infrarrojo
+        UI: Actualiza estado visual y botones de control
+        Tipo: Digital (solo detección, no medición de distancia exacta)
+        """
+        
+        # --- VERIFICAR CONEXIÓN REQUERIDA ---
+        if not self.is_connected:                # Verificar conexión TCP activa
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return                               # Salir si no hay conexión
+        
+        try:
+            # --- CREAR Y CONFIGURAR THREAD IR ---
+            self.distancia_ir_thread = DistanciaIRThread(self.esp_client.esp32_ip)  # Thread IR
+            self.distancia_ir_thread.data_received.connect(self.update_distancia_ir_data)  # Conectar señal
+            
+            # --- INICIAR MONITOREO IR ---
+            self.distancia_ir_thread.start()     # Iniciar thread de comunicación
+            self.distancia_ir_is_monitoring = True  # Marcar estado como monitoreando IR
+            
+            # --- ACTUALIZAR INTERFAZ DE CONTROL IR ---
+            self.start_distancia_ir_btn.setText("⏸️ Pausar")  # Cambiar botón a pausar
+            self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")  # Amarillo pausa
 
-def stop_distancia_cap_monitoring(self):
-    """
-    Detiene el monitoreo del sensor de distancia capacitivo.
+            if hasattr(self, 'export_distancia_ir_btn'):  # Si existe botón de exportación
+                self.export_distancia_ir_btn.setEnabled(True)  # Habilitar exportación
+              # --- INICIAR ACTUALIZACIÓN GRÁFICA IR ---
+            self.manage_graph_timer()            # Gestionar timer compartido inteligentemente
+            
+        except Exception as e:
+            # --- MANEJAR ERRORES DE INICIALIZACIÓN IR ---
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
     
-    PROCESO DE APAGADO:
-    1. Verificar existencia y estado del thread
-    2. Enviar señal de stop al thread
-    3. Esperar finalización del thread y liberar recursos
-    4. Actualizar variables de estado interno
-    5. Detener timer de actualización de gráficas
-    6. Restaurar interfaz gráfica al estado inicial
-    
-    LIMPIEZA DE RECURSOS:
-    - Finaliza thread de comunicación TCP
-    - Libera socket de conexión con ESP32
-    - Resetea variables de estado de monitoreo
-    - Detiene timers de actualización para optimizar CPU
-    """
-    # --- FINALIZAR THREAD DE COMUNICACIÓN ---
-    if self.distancia_cap_thread and self.distancia_cap_thread.isRunning():
-        self.distancia_cap_thread.stop()    # Enviar señal de parada
-        self.distancia_cap_thread = None    # Liberar referencia del thread
-        # --- ACTUALIZAR ESTADO Y TIMERS ---
-    self.distancia_cap_is_monitoring = False # Marcar como no monitoreando capacitivo
-    self.manage_graph_timer()                 # Gestionar timer compartido inteligentemente
-        # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---
-    self.start_distancia_cap_btn.setText("▶️ Iniciar Monitoreo")
-    self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #3498db; border-color: #3498db; color: white; padding: 10px; }")
+    # =====================================================================================
+    # MÉTODO: DETENER MONITOREO DEL SENSOR IR
+    # =====================================================================================
+    def stop_distancia_ir_monitoring(self):
+        """
+        Detiene el monitoreo del sensor de distancia infrarrojo y limpia recursos
+        
+        Propósito: Parar detección IR y liberar thread
+        Thread: Detiene DistanciaIRThread de forma segura
+        UI: Restaura botones a estado inicial
+        Recursos: Limpia objetos para evitar memory leaks
+        """
+        
+        # --- DETENER THREAD IR ---
+        if self.distancia_ir_thread and self.distancia_ir_thread.isRunning():  # Si existe y está corriendo
+            self.distancia_ir_thread.stop()     # Detener thread de forma segura
+            self.distancia_ir_thread = None     # Limpiar referencia
+          # --- ACTUALIZAR ESTADO Y TIMERS ---
+        self.distancia_ir_is_monitoring = False # Marcar como no monitoreando IR
+        self.manage_graph_timer()                # Gestionar timer compartido inteligentemente
+          # Actualizar interfaz        self.start_distancia_ir_btn.setText("▶️ Iniciar Monitoreo")
+        self.start_distancia_ir_btn.setStyleSheet("QPushButton { background-color: #e74c3c; border-color: #e74c3c; color: white; padding: 10px; }")
 
-def update_distancia_cap_data(self, estado_digital):
-    """
-    Actualiza la interfaz con datos del sensor de distancia capacitivo digital.
-    
-    PARÁMETROS:
-    - estado_digital (bool): Estado del sensor (True/False del GPIO)
-    
-    LÓGICA DE INVERSIÓN:
-    - GPIO = 1 (HIGH) → "NO DETECTADO" (estado normal del sensor)
-    - GPIO = 0 (LOW)  → "DETECTADO" (objeto cerca del sensor)
-    - Se invierte la lógica para que True = detectado
-    
-    ACTUALIZACIÓN VISUAL:
-    - Cambia texto del indicador de estado
-    - Modifica colores dinámicamente (verde/rojo)
-    - Aplica estilos CSS responsivos
-    - Actualiza bordes y fondos según el estado
-    
-    NOTA: Los sensores digitales no generan gráficas continuas,
-    solo muestran el estado actual ON/OFF en tiempo real.        """
-    # --- PROCESAR LÓGICA INVERSAS DEL SENSOR ---
-    # Inversión necesaria: sensor capacitivo entrega HIGH cuando NO detecta
-    try:
-        # Verificar que el widget existe antes de actualizarlo
-        if not hasattr(self, 'distancia_cap_status'):
+    def update_distancia_ir_data(self, estado_digital):
+        """Actualiza los datos del sensor de distancia IR (digital)"""
+        try:
+            # Verificar que el widget existe antes de actualizarlo
+            if not hasattr(self, 'distancia_ir_status'):
+                return
+            
+            # Invertir lógica: 1 = NO DETECTADO, 0 = DETECTADO
+            estado_digital = not estado_digital
+            estado_texto = "DETECTADO" if estado_digital else "NO DETECTADO"
+            color = "#27ae60" if estado_digital else "#e74c3c"
+            self.distancia_ir_status.setText(f"Estado: {estado_texto}")
+            self.distancia_ir_status.setStyleSheet(f"""
+                font-size: 18px;
+                font-weight: bold;
+                color: {color};
+                padding: 15px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                border: 2px solid {color};
+            """)
+            # No necesitamos gráficas para sensores digitales, solo estado actual
+            # Marcar para actualización si es necesario
+            self.pending_updates = True
+            self.pending_distancia_ir_data = estado_digital
+        except RuntimeError:
+            # Widget fue eliminado durante la actualización
+            self.distancia_ir_is_monitoring = False
             return
-            
-        estado_digital = not estado_digital
-        estado_texto = "🟢 DETECTADO" if estado_digital else "🔴 SIN DETECCIÓN"
-        color = "#28a745" if estado_digital else "#dc3545"
+    
+    def clear_distancia_ir_graph(self):
+        """Resetea el estado del sensor de distancia IR digital"""
+        # Para sensores digitales, no hay datos continuos que exportar
+        # Solo exportamos el estado actual si está disponible
+        QMessageBox.information(self, "Sensor Digital", 
+            "Los sensores digitales no generan datos continuos para exportar.\n\n"
+            "El sensor IR solo proporciona estado ON/OFF en tiempo real.\n"
+            "Estado actual visible en la interfaz.")
         
-        # --- ACTUALIZAR INTERFAZ VISUAL ---
-        self.distancia_cap_status.setText(estado_texto)
-        self.distancia_cap_status.setStyleSheet(f"""
+        # Resetear estado visual al estado inicial
+        self.distancia_ir_status.setText("🔴 SIN DETECCIÓN")
+        self.distancia_ir_status.setStyleSheet("""
             font-size: 28px;
             font-weight: bold;
-            color: {color};
+            color: #dc3545;
             padding: 20px;
             background-color: #f8f9fa;
             border-radius: 12px;
-            border: 3px solid {color};
+            border: 3px solid #dc3545;
             text-align: center;
         """)
-            # --- MARCAR PARA ACTUALIZACIÓN DE GRÁFICAS ---
-        # No se usan gráficas para sensores digitales, solo estado actual
-        self.pending_updates = True
-        self.pending_distancia_cap_data = estado_digital
-    except RuntimeError:
-        # Widget fue eliminado durante la actualización
-        self.distancia_cap_is_monitoring = False
-        return
-# ============================================================================
-# FUNCIONES DE MONITOREO - DISTANCIA ULTRASÓNICO
-# ============================================================================
-
-def toggle_distancia_ultra_monitoring(self):
-    """
-    Controla el estado de monitoreo del sensor de distancia ultrasónico HC-SR04.
-    
-    FUNCIONALIDAD:
-    - Si el monitoreo está inactivo: inicia el monitoreo
-    - Si el monitoreo está activo: detiene el monitoreo
-    - Proporciona control unificado para el sensor ultrasónico
-    
-    SENSOR ULTRASÓNICO HC-SR04:
-    - Tipo: Analógico (valores continuos)
-    - Rango: 2-400 cm aproximadamente
-    - Principio: Tiempo de vuelo de ondas ultrasónicas
-    - Precisión: ±3mm bajo condiciones ideales
-    - Frecuencia: ~40 kHz
-    - Alimentación: 5V (con divisor de voltaje para ESP32)
-    """
-    if not self.distancia_ultra_is_monitoring:
-        self.start_distancia_ultra_monitoring()
-    else:
-        self.stop_distancia_ultra_monitoring()
-
-def start_distancia_ultra_monitoring(self):
-    """
-    Inicia el monitoreo del sensor de distancia ultrasónico HC-SR04.
-    
-    PROCESO DE INICIALIZACIÓN:
-    1. Verificar conexión con ESP32
-    2. Crear thread de comunicación (DistanciaUltrasonicThread)
-    3. Configurar callback para datos analógicos continuos
-    4. Iniciar thread para lectura en tiempo real
-    5. Habilitar interfaz gráfica y controles de exportación
-    6. Activar timers para actualización de gráficas en vivo
-    
-    COMUNICACIÓN:
-    - Protocolo: TCP Socket con ESP32
-    - Comando: "DISTANCIA_ULTRA" enviado al ESP32
-    - Respuesta: Lectura ADC, voltaje calculado, distancia en cm
-    - Frecuencia: ~10 Hz (cada 100ms aproximadamente)
-    - Thread dedicado para no bloquear UI principal
-    
-    CONFIGURACIÓN DEL SENSOR:
-    - Trigger Pin: GPIO configurable (ej: GPIO 25)
-    - Echo Pin: GPIO configurable (ej: GPIO 26)
-    - Conversión: tiempo_echo * 0.034 / 2 = distancia_cm
-    """
-    if not self.is_connected:
-        QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
         return
     
-    try:
-        # --- CREAR Y CONFIGURAR THREAD DE COMUNICACIÓN ---
-        self.distancia_ultra_thread = DistanciaUltrasonicThread(self.esp_client.esp32_ip)
-        self.distancia_ultra_thread.data_received.connect(self.update_distancia_ultra_data)
+    def export_distancia_ir_to_excel(self):
+        """Exporta los datos del sensor de distancia IR a Excel"""
+        if not self.distancia_ir_lecturas:
+            QMessageBox.information(self, "Sin datos", "No hay datos para exportar")
+            return
         
-        # --- INICIAR MONITOREO EN SEGUNDO PLANO ---
-        self.distancia_ultra_thread.start()
-        self.distancia_ultra_is_monitoring = True
-            # --- ACTUALIZAR INTERFAZ DE USUARIO ---
-        self.start_distancia_ultra_btn.setText("⏸️ Pausar")
-        self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")
-        if hasattr(self, 'export_distancia_ultra_btn'):
-            self.export_distancia_ultra_btn.setEnabled(True)
-            # --- ACTIVAR TIMER DE ACTUALIZACIÓN GRÁFICA ---
-        self.manage_graph_timer()
-        
-    except Exception as e:
-        QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
-
-def stop_distancia_ultra_monitoring(self):
-    """
-    Detiene el monitoreo del sensor de distancia ultrasónico.
-    
-    PROCESO DE APAGADO:
-    1. Verificar estado del thread de comunicación
-    2. Enviar señal de stop al thread ultrasónico
-    3. Esperar finalización y liberar recursos del thread
-    4. Actualizar variables de estado interno
-    5. Detener timers de actualización de gráficas
-    6. Restaurar interfaz gráfica al estado inicial
-    
-    LIMPIEZA DE RECURSOS:
-    - Finaliza thread de comunicación TCP con ESP32
-    - Libera memoria de buffer de datos ultrasónicos
-    - Resetea banderas de estado de monitoreo
-    - Optimiza CPU deteniendo actualizaciones innecesarias
-    """
-    # --- FINALIZAR THREAD DE COMUNICACIÓN ---
-    if self.distancia_ultra_thread and self.distancia_ultra_thread.isRunning():
-        self.distancia_ultra_thread.stop()     # Enviar señal de parada
-        self.distancia_ultra_thread = None     # Liberar referencia del thread
-        # --- ACTUALIZAR ESTADO Y TIMERS ---
-    self.distancia_ultra_is_monitoring = False # Marcar como no monitoreando ultrasónico
-    self.manage_graph_timer()                   # Gestionar timer compartido inteligentemente
-        # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---
-    self.start_distancia_ultra_btn.setText("▶️ Iniciar Monitoreo")
-    self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #17a2b8; border-color: #17a2b8; color: white; padding: 10px; }")
-
-def update_distancia_ultra_data(self, distancia_cm):
-    """
-    Actualiza datos en tiempo real del sensor de distancia ultrasónico.
-    
-    PARÁMETROS:
-    - distancia_cm (float): Distancia calculada en centímetros
-    
-    GESTIÓN DE MEMORIA:
-    - Mantiene buffer circular de 500 puntos máximo
-    - Elimina datos antiguos automáticamente (FIFO)
-    - Optimiza memoria para sesiones largas de monitoreo
-    
-    ACTUALIZACIÓN DE GRÁFICAS:
-    - Actualiza línea de gráfica con nuevos datos
-    - Ajusta límites del eje X dinámicamente
-    - Calcula límites del eje Y con margen automático
-    - Optimiza rendimiento con actualización diferida
-    
-    INTERFAZ EN TIEMPO REAL:
-    - Actualiza etiqueta de distancia formateada
-    - Proporciona retroalimentación visual continua
-    """
-    # --- GESTIÓN DE MEMORIA CON BUFFER CIRCULAR ---
-    max_points = 500  # Límite para evitar consumo excesivo de memoria
-    
-    self.distancia_ultra_cm.append(distancia_cm)
-    
-    # Mantener solo los últimos max_points (comportamiento FIFO)
-    if len(self.distancia_ultra_cm) > max_points:
-        self.distancia_ultra_cm.pop(0)
-        # --- ACTUALIZAR ETIQUETA EN TIEMPO REAL ---
-    try:
-        # Verificar que el widget existe antes de actualizarlo
-        if hasattr(self, 'distancia_ultra_label'):
-            self.distancia_ultra_label.setText(f"Distancia: {distancia_cm:.1f} cm")
-        
-        # --- ACTUALIZAR GRÁFICA DE FORMA OPTIMIZADA ---
-        if hasattr(self, 'line_ultra'):
-            x_data = list(range(len(self.distancia_ultra_cm)))
-            self.line_ultra.set_data(x_data, self.distancia_ultra_cm)
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename, _ = QFileDialog.getSaveFileName(
+                self, "Guardar datos",
+                f"SensoraCore_DistanciaIR_{timestamp}.xlsx",
+                "Excel files (*.xlsx)"
+            )
             
-            # Ajustar límites del eje X dinámicamente
-            if len(self.distancia_ultra_cm) > 0:
-                self.ax_ultra.set_xlim(0, max(100, len(self.distancia_ultra_cm)))
+            if filename:
+                # Crear workbook
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Datos Distancia IR"
                 
-                # Ajustar límites del eje Y con margen automático
-                min_dist = min(self.distancia_ultra_cm)
-                max_dist = max(self.distancia_ultra_cm)
-                margin = (max_dist - min_dist) * 0.1 if max_dist > min_dist else 10
-                self.ax_ultra.set_ylim(max(0, min_dist - margin), max_dist + margin)
-            # --- MARCAR PARA ACTUALIZACIÓN DIFERIDA ---
-        self.pending_updates = True
-        self.pending_distancia_ultra_data = distancia_cm
-    except RuntimeError:
-        # Widget fue eliminado durante la actualización
-        self.distancia_ultra_is_monitoring = False
-        return
+                # Headers
+                ws['A1'] = "Muestra"
+                ws['B1'] = "Lectura ADC"
+                ws['C1'] = "Voltaje (V)"
+                ws['D1'] = "Distancia (cm)"
+                ws['E1'] = "Timestamp"
+                
+                # Datos
+                for i, (lectura, voltaje, distancia) in enumerate(zip(self.distancia_ir_lecturas, self.distancia_ir_voltajes, self.distancia_ir_cm)):
+                    ws[f'A{i+2}'] = i+1
+                    ws[f'B{i+2}'] = lectura
+                    ws[f'C{i+2}'] = voltaje
+                    ws[f'D{i+2}'] = distancia
+                    ws[f'E{i+2}'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Crear gráfica
+                chart = LineChart()
+                chart.title = "Distancia IR vs Tiempo"
+                chart.y_axis.title = "Distancia (cm)"
+                chart.x_axis.title = "Muestra"
+                
+                data = Reference(ws, min_col=4, min_row=1, max_row=len(self.distancia_ir_cm)+1)
+                categories = Reference(ws, min_col=1, min_row=2, max_row=len(self.distancia_ir_cm)+1)
+                chart.add_data(data, titles_from_data=True)
+                chart.set_categories(categories)
+                
+                ws.add_chart(chart, "G2")
+                
+                # Guardar
+                wb.save(filename)
+                QMessageBox.information(self, "Éxito", f"Datos exportados a {filename}")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")    
+    # ============================================================================
+    # FUNCIONES DE MONITOREO - DISTANCIA CAPACITIVO
+    # ============================================================================
+    
+    def toggle_distancia_cap_monitoring(self):
+        """
+        Controla el estado de monitoreo del sensor de distancia capacitivo.
+        
+        FUNCIONALIDAD:
+        - Si el monitoreo está inactivo: inicia el monitoreo
+        - Si el monitoreo está activo: detiene el monitoreo
+        - Proporciona un punto de entrada unificado para el control del sensor capacitivo
+        
+        SENSOR CAPACITIVO:
+        - Tipo: Digital (ON/OFF)
+        - GPIO: Pin 35 (configurable en ESP32)
+        - Principio: Detección de proximidad por cambio de capacitancia
+        - Rango típico: 0-10 cm aproximadamente
+        - Sensible a objetos metálicos y no metálicos
+        """
+        if not self.distancia_cap_is_monitoring:
+            self.start_distancia_cap_monitoring()
+        else:
+            self.stop_distancia_cap_monitoring()
+    
+    def start_distancia_cap_monitoring(self):
+        """
+        Inicia el monitoreo del sensor de distancia capacitivo digital.
+        
+        PROCESO DE INICIALIZACIÓN:
+        1. Verificar conexión ESP32
+        2. Crear thread de comunicación (DistanciaCapThread)
+        3. Configurar callback para recepción de datos
+        4. Iniciar thread de monitoreo en segundo plano
+        5. Actualizar interfaz gráfica y habilitar controles
+        6. Activar timer de actualización de gráficas
+        
+        COMUNICACIÓN:
+        - Protocolo: TCP Socket con ESP32
+        - Comando: "DISTANCIA_CAP" al puerto TCP del ESP32
+        - Respuesta: Estado digital (0 o 1) cada ~100ms
+        - Thread independiente para no bloquear UI
+        
+        ERROR HANDLING:
+        - Valida conexión antes de iniciar
+        - Captura excepciones de creación de thread
+        - Muestra mensajes de error específicos al usuario
+        """
+        if not self.is_connected:
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return
+        
+        try:
+            # --- CREAR Y CONFIGURAR THREAD DE COMUNICACIÓN ---
+            self.distancia_cap_thread = DistanciaCapThread(self.esp_client.esp32_ip)
+            self.distancia_cap_thread.data_received.connect(self.update_distancia_cap_data)
+            
+            # --- INICIAR MONITOREO EN SEGUNDO PLANO ---
+            self.distancia_cap_thread.start()
+            self.distancia_cap_is_monitoring = True
+              # --- ACTUALIZAR INTERFAZ DE USUARIO ---
+            self.start_distancia_cap_btn.setText("⏸️ Pausar")
+            self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")
+            if hasattr(self, 'export_distancia_cap_btn'):
+                self.export_distancia_cap_btn.setEnabled(True)
+            
+            # --- ACTIVAR TIMER DE ACTUALIZACIÓN GRÁFICA ---
+            self.manage_graph_timer()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+    
+    def stop_distancia_cap_monitoring(self):
+        """
+        Detiene el monitoreo del sensor de distancia capacitivo.
+        
+        PROCESO DE APAGADO:
+        1. Verificar existencia y estado del thread
+        2. Enviar señal de stop al thread
+        3. Esperar finalización del thread y liberar recursos
+        4. Actualizar variables de estado interno
+        5. Detener timer de actualización de gráficas
+        6. Restaurar interfaz gráfica al estado inicial
+        
+        LIMPIEZA DE RECURSOS:
+        - Finaliza thread de comunicación TCP
+        - Libera socket de conexión con ESP32
+        - Resetea variables de estado de monitoreo
+        - Detiene timers de actualización para optimizar CPU
+        """
+        # --- FINALIZAR THREAD DE COMUNICACIÓN ---
+        if self.distancia_cap_thread and self.distancia_cap_thread.isRunning():
+            self.distancia_cap_thread.stop()    # Enviar señal de parada
+            self.distancia_cap_thread = None    # Liberar referencia del thread
+          # --- ACTUALIZAR ESTADO Y TIMERS ---
+        self.distancia_cap_is_monitoring = False # Marcar como no monitoreando capacitivo
+        self.manage_graph_timer()                 # Gestionar timer compartido inteligentemente
+          # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---
+        self.start_distancia_cap_btn.setText("▶️ Iniciar Monitoreo")
+        self.start_distancia_cap_btn.setStyleSheet("QPushButton { background-color: #3498db; border-color: #3498db; color: white; padding: 10px; }")
+    
+    def update_distancia_cap_data(self, estado_digital):
+        """
+        Actualiza la interfaz con datos del sensor de distancia capacitivo digital.
+        
+        PARÁMETROS:
+        - estado_digital (bool): Estado del sensor (True/False del GPIO)
+        
+        LÓGICA DE INVERSIÓN:
+        - GPIO = 1 (HIGH) → "NO DETECTADO" (estado normal del sensor)
+        - GPIO = 0 (LOW)  → "DETECTADO" (objeto cerca del sensor)
+        - Se invierte la lógica para que True = detectado
+        
+        ACTUALIZACIÓN VISUAL:
+        - Cambia texto del indicador de estado
+        - Modifica colores dinámicamente (verde/rojo)
+        - Aplica estilos CSS responsivos
+        - Actualiza bordes y fondos según el estado
+        
+        NOTA: Los sensores digitales no generan gráficas continuas,
+        solo muestran el estado actual ON/OFF en tiempo real.        """
+        # --- PROCESAR LÓGICA INVERSAS DEL SENSOR ---
+        # Inversión necesaria: sensor capacitivo entrega HIGH cuando NO detecta
+        try:
+            # Verificar que el widget existe antes de actualizarlo
+            if not hasattr(self, 'distancia_cap_status'):
+                return
+                
+            estado_digital = not estado_digital
+            estado_texto = "🟢 DETECTADO" if estado_digital else "🔴 SIN DETECCIÓN"
+            color = "#28a745" if estado_digital else "#dc3545"
+            
+            # --- ACTUALIZAR INTERFAZ VISUAL ---
+            self.distancia_cap_status.setText(estado_texto)
+            self.distancia_cap_status.setStyleSheet(f"""
+                font-size: 28px;
+                font-weight: bold;
+                color: {color};
+                padding: 20px;
+                background-color: #f8f9fa;
+                border-radius: 12px;
+                border: 3px solid {color};
+                text-align: center;
+            """)
+              # --- MARCAR PARA ACTUALIZACIÓN DE GRÁFICAS ---
+            # No se usan gráficas para sensores digitales, solo estado actual
+            self.pending_updates = True
+            self.pending_distancia_cap_data = estado_digital
+        except RuntimeError:
+            # Widget fue eliminado durante la actualización
+            self.distancia_cap_is_monitoring = False
+            return
+    # ============================================================================
+    # FUNCIONES DE MONITOREO - DISTANCIA ULTRASÓNICO
+    # ============================================================================
+    
+    def toggle_distancia_ultra_monitoring(self):
+        """
+        Controla el estado de monitoreo del sensor de distancia ultrasónico HC-SR04.
+        
+        FUNCIONALIDAD:
+        - Si el monitoreo está inactivo: inicia el monitoreo
+        - Si el monitoreo está activo: detiene el monitoreo
+        - Proporciona control unificado para el sensor ultrasónico
+        
+        SENSOR ULTRASÓNICO HC-SR04:
+        - Tipo: Analógico (valores continuos)
+        - Rango: 2-400 cm aproximadamente
+        - Principio: Tiempo de vuelo de ondas ultrasónicas
+        - Precisión: ±3mm bajo condiciones ideales
+        - Frecuencia: ~40 kHz
+        - Alimentación: 5V (con divisor de voltaje para ESP32)
+        """
+        if not self.distancia_ultra_is_monitoring:
+            self.start_distancia_ultra_monitoring()
+        else:
+            self.stop_distancia_ultra_monitoring()
+    
+    def start_distancia_ultra_monitoring(self):
+        """
+        Inicia el monitoreo del sensor de distancia ultrasónico HC-SR04.
+        
+        PROCESO DE INICIALIZACIÓN:
+        1. Verificar conexión con ESP32
+        2. Crear thread de comunicación (DistanciaUltrasonicThread)
+        3. Configurar callback para datos analógicos continuos
+        4. Iniciar thread para lectura en tiempo real
+        5. Habilitar interfaz gráfica y controles de exportación
+        6. Activar timers para actualización de gráficas en vivo
+        
+        COMUNICACIÓN:
+        - Protocolo: TCP Socket con ESP32
+        - Comando: "DISTANCIA_ULTRA" enviado al ESP32
+        - Respuesta: Lectura ADC, voltaje calculado, distancia en cm
+        - Frecuencia: ~10 Hz (cada 100ms aproximadamente)
+        - Thread dedicado para no bloquear UI principal
+        
+        CONFIGURACIÓN DEL SENSOR:
+        - Trigger Pin: GPIO configurable (ej: GPIO 25)
+        - Echo Pin: GPIO configurable (ej: GPIO 26)
+        - Conversión: tiempo_echo * 0.034 / 2 = distancia_cm
+        """
+        if not self.is_connected:
+            QMessageBox.warning(self, "Sin conexión", "Debes conectar al ESP32 primero")
+            return
+        
+        try:
+            # --- CREAR Y CONFIGURAR THREAD DE COMUNICACIÓN ---
+            self.distancia_ultra_thread = DistanciaUltrasonicThread(self.esp_client.esp32_ip)
+            self.distancia_ultra_thread.data_received.connect(self.update_distancia_ultra_data)
+            
+            # --- INICIAR MONITOREO EN SEGUNDO PLANO ---
+            self.distancia_ultra_thread.start()
+            self.distancia_ultra_is_monitoring = True
+              # --- ACTUALIZAR INTERFAZ DE USUARIO ---
+            self.start_distancia_ultra_btn.setText("⏸️ Pausar")
+            self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #ffc107; border-color: #ffc107; color: white; padding: 10px; }")
+            if hasattr(self, 'export_distancia_ultra_btn'):
+                self.export_distancia_ultra_btn.setEnabled(True)
+              # --- ACTIVAR TIMER DE ACTUALIZACIÓN GRÁFICA ---
+            self.manage_graph_timer()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al iniciar monitoreo: {str(e)}")
+    
+    def stop_distancia_ultra_monitoring(self):
+        """
+        Detiene el monitoreo del sensor de distancia ultrasónico.
+        
+        PROCESO DE APAGADO:
+        1. Verificar estado del thread de comunicación
+        2. Enviar señal de stop al thread ultrasónico
+        3. Esperar finalización y liberar recursos del thread
+        4. Actualizar variables de estado interno
+        5. Detener timers de actualización de gráficas
+        6. Restaurar interfaz gráfica al estado inicial
+        
+        LIMPIEZA DE RECURSOS:
+        - Finaliza thread de comunicación TCP con ESP32
+        - Libera memoria de buffer de datos ultrasónicos
+        - Resetea banderas de estado de monitoreo
+        - Optimiza CPU deteniendo actualizaciones innecesarias
+        """
+        # --- FINALIZAR THREAD DE COMUNICACIÓN ---
+        if self.distancia_ultra_thread and self.distancia_ultra_thread.isRunning():
+            self.distancia_ultra_thread.stop()     # Enviar señal de parada
+            self.distancia_ultra_thread = None     # Liberar referencia del thread
+          # --- ACTUALIZAR ESTADO Y TIMERS ---
+        self.distancia_ultra_is_monitoring = False # Marcar como no monitoreando ultrasónico
+        self.manage_graph_timer()                   # Gestionar timer compartido inteligentemente
+          # --- RESTAURAR INTERFAZ AL ESTADO INICIAL ---
+        self.start_distancia_ultra_btn.setText("▶️ Iniciar Monitoreo")
+        self.start_distancia_ultra_btn.setStyleSheet("QPushButton { background-color: #17a2b8; border-color: #17a2b8; color: white; padding: 10px; }")
+    
+    def update_distancia_ultra_data(self, distancia_cm):
+        """
+        Actualiza datos en tiempo real del sensor de distancia ultrasónico.
+        
+        PARÁMETROS:
+        - distancia_cm (float): Distancia calculada en centímetros
+        
+        GESTIÓN DE MEMORIA:
+        - Mantiene buffer circular de 500 puntos máximo
+        - Elimina datos antiguos automáticamente (FIFO)
+        - Optimiza memoria para sesiones largas de monitoreo
+        
+        ACTUALIZACIÓN DE GRÁFICAS:
+        - Actualiza línea de gráfica con nuevos datos
+        - Ajusta límites del eje X dinámicamente
+        - Calcula límites del eje Y con margen automático
+        - Optimiza rendimiento con actualización diferida
+        
+        INTERFAZ EN TIEMPO REAL:
+        - Actualiza etiqueta de distancia formateada
+        - Proporciona retroalimentación visual continua
+        """
+        # --- GESTIÓN DE MEMORIA CON BUFFER CIRCULAR ---
+        max_points = 500  # Límite para evitar consumo excesivo de memoria
+        
+        self.distancia_ultra_cm.append(distancia_cm)
+        
+        # Mantener solo los últimos max_points (comportamiento FIFO)
+        if len(self.distancia_ultra_cm) > max_points:
+            self.distancia_ultra_cm.pop(0)
+          # --- ACTUALIZAR ETIQUETA EN TIEMPO REAL ---
+        try:
+            # Verificar que el widget existe antes de actualizarlo
+            if hasattr(self, 'distancia_ultra_label'):
+                self.distancia_ultra_label.setText(f"Distancia: {distancia_cm:.1f} cm")
+            
+            # --- ACTUALIZAR GRÁFICA DE FORMA OPTIMIZADA ---
+            if hasattr(self, 'line_ultra'):
+                x_data = list(range(len(self.distancia_ultra_cm)))
+                self.line_ultra.set_data(x_data, self.distancia_ultra_cm)
+                
+                # Ajustar límites del eje X dinámicamente
+                if len(self.distancia_ultra_cm) > 0:
+                    self.ax_ultra.set_xlim(0, max(100, len(self.distancia_ultra_cm)))
+                    
+                    # Ajustar límites del eje Y con margen automático
+                    min_dist = min(self.distancia_ultra_cm)
+                    max_dist = max(self.distancia_ultra_cm)
+                    margin = (max_dist - min_dist) * 0.1 if max_dist > min_dist else 10
+                    self.ax_ultra.set_ylim(max(0, min_dist - margin), max_dist + margin)
+              # --- MARCAR PARA ACTUALIZACIÓN DIFERIDA ---
+            self.pending_updates = True
+            self.pending_distancia_ultra_data = distancia_cm
+        except RuntimeError:
+            # Widget fue eliminado durante la actualización
+            self.distancia_ultra_is_monitoring = False
+            return
+    
+    def clear_distancia_ultra_graph(self):
+        """
+        Limpia la gráfica y datos del sensor de distancia ultrasónico.
+          OPERACIONES DE LIMPIEZA:
+        1. Vaciar lista de datos de distancia
+        2. Resetear línea de gráfica a estado vacío
+        3. Restaurar límites por defecto de los ejes
+        4. Forzar redibujado del canvas de matplotlib
+        5. Resetear etiqueta numérica al estado inicial
+        6. Mostrar confirmación al usuario
+        
+        CONFIGURACIÓN POR DEFECTO:
+        - Eje X: 0 a 100 muestras
+        - Eje Y: 0 a 400 cm (rango típico del HC-SR04)
+        - Etiquetas: Mostrar "--" para indicar sin datos
+        
+        USO: Ideal para limpiar datos antes de una nueva sesión
+        de monitoreo o cuando se requiere reiniciar mediciones.
+        """        # --- LIMPIAR LISTA DE DATOS ---
+        self.distancia_ultra_cm.clear()
+        
+        # --- RESETEAR GRÁFICA A ESTADO INICIAL ---
+        if hasattr(self, 'line_ultra'):
+            self.line_ultra.set_data([], [])           # Vaciar datos de la línea
+            self.ax_ultra.set_xlim(0, 100)             # Restaurar límite X
+            self.ax_ultra.set_ylim(0, 400)             # Restaurar límite Y (rango HC-SR04)
+            self.canvas_ultra.draw()                   # Forzar redibujado
+        
+        # --- RESETEAR ETIQUETA NUMÉRICA ---
+        if hasattr(self, 'distancia_ultra_distancia_label'):
+            self.distancia_ultra_distancia_label.setText("Distancia: --")
+        
+        # --- CONFIRMAR OPERACIÓN AL USUARIO ---
+        QMessageBox.information(self, "Gráfica Limpia", "Los datos del sensor ultrasónico han sido eliminados")
+    
+    def export_distancia_ultra_to_excel(self):
+        """
+        Exporta los datos del sensor de distancia ultrasónico a un archivo Excel.
+          CONTENIDO DEL ARCHIVO:
+        1. Datos tabulares: Tiempo, Distancia
+        2. Gráfica integrada: Distancia vs Tiempo con formato profesional
+        3. Estadísticas calculadas: Mín, Máx, Promedio de distancias
+        4. Metadatos: Timestamp de exportación y configuración del sensor
+        
+        FORMATO DE DATOS:
+        - Columna A: Tiempo estimado en segundos (basado en frecuencia de muestreo)
+        - Columna B: Distancia en centímetros con 1 decimal
+        
+        CARACTERÍSTICAS:
+        - Encabezados con formato bold y centrado
+        - Gráfica de líneas insertada automáticamente
+        - Cálculos estadísticos incluidos
+        - Nombre de archivo con timestamp único
+        - Validación de dependencias (openpyxl)
+        
+        ERROR HANDLING:
+        - Verifica existencia de datos antes de exportar
+        - Maneja errores de dependencias faltantes
+        - Captura excepciones de escritura de archivos
+        - Muestra mensajes informativos al usuario
+        """        """Exporta los datos del sensor de distancia ultrasónico a Excel"""
+        # --- VALIDAR EXISTENCIA DE DATOS ---
+        if not self.distancia_ultra_cm:
+            QMessageBox.warning(self, "Sin datos", "No hay datos para exportar")
+            return
+        
+        try:
+            # --- IMPORTAR DEPENDENCIAS PARA EXCEL ---
+            from openpyxl import Workbook
+            from openpyxl.chart import LineChart, Reference
+            from openpyxl.styles import Font, Alignment
+            import os
+            from datetime import datetime
+            
+            # --- CREAR LIBRO DE TRABAJO ---
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Datos Ultrasónico"
+              # --- CONFIGURAR ENCABEZADOS CON FORMATO ---
+            headers = ["Tiempo (s)", "Distancia (cm)"]
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = Font(bold=True)                    # Texto en negrita
+                cell.alignment = Alignment(horizontal='center') # Centrar texto
+            
+            # --- ESCRIBIR DATOS TABULARES ---
+            for i, distancia in enumerate(self.distancia_ultra_cm):
+                ws.cell(row=i+2, column=1, value=i*0.1)  # Tiempo estimado (100ms por muestra)
+                ws.cell(row=i+2, column=2, value=distancia)
+            
+            # --- CREAR GRÁFICA INTEGRADA ---
+            chart = LineChart()
+            chart.title = "Distancia Ultrasónica vs Tiempo"
+            chart.x_axis.title = "Tiempo (s)"
+            chart.y_axis.title = "Distancia (cm)"
+              # Configurar datos para la gráfica
+            data = Reference(ws, min_col=2, min_row=1, max_row=len(self.distancia_ultra_cm)+1)
+            chart.add_data(data, titles_from_data=True)
+            
+            # Agregar gráfica al worksheet
+            ws.add_chart(chart, "D2")
+            
+            # --- AGREGAR ESTADÍSTICAS CALCULADAS ---
+            stats_row = len(self.distancia_ultra_cm) + 5
+            ws.cell(row=stats_row, column=1, value="Estadísticas:")
+            ws.cell(row=stats_row, column=1).font = Font(bold=True)
+            
+            ws.cell(row=stats_row+1, column=1, value="Distancia mínima:")
+            ws.cell(row=stats_row+1, column=2, value=f"{min(self.distancia_ultra_cm):.2f} cm")
+            
+            ws.cell(row=stats_row+2, column=1, value="Distancia máxima:")
+            ws.cell(row=stats_row+2, column=2, value=f"{max(self.distancia_ultra_cm):.2f} cm")
+            
+            ws.cell(row=stats_row+3, column=1, value="Distancia promedio:")
+            ws.cell(row=stats_row+3, column=2, value=f"{sum(self.distancia_ultra_cm)/len(self.distancia_ultra_cm):.2f} cm")
+            
+            # --- GUARDAR ARCHIVO CON TIMESTAMP ---
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"datos_ultrasonico_{timestamp}.xlsx"
+            wb.save(filename)
+            
+            # --- CONFIRMAR ÉXITO AL USUARIO ---
+            QMessageBox.information(self, "Exportación exitosa", 
+                                    f"Datos exportados a: {os.path.abspath(filename)}")
+            
+        except ImportError:
+            # --- MANEJAR DEPENDENCIA FALTANTE ---
+            QMessageBox.warning(self, "Dependencia faltante", 
+                                "Se requiere 'openpyxl' para exportar a Excel.\n"
+                                "Instálalo con: pip install openpyxl")
+        except Exception as e:        # --- MANEJAR ERRORES GENERALES ---
+            QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
+      # ============================================================================
+    # MÉTODO: DETENER TODOS LOS THREADS DE MONITOREO
+    # ============================================================================
+    def stop_all_monitoring_threads(self):
+        """
+        Detiene todos los threads de monitoreo activos de forma segura
+        
+        Propósito: Limpiar todos los recursos cuando se cambia de sensor o se cierra la aplicación
+        Threads afectados: Ángulo simple, brazo robótico, IR, capacitivo, ultrasónico
+        Seguridad: Verifica existencia y estado antes de detener cada thread
+        Recursos: Libera memoria y conexiones TCP con ESP32
+        """
+        
+        # --- DETENER THREAD DE ÁNGULO SIMPLE ---
+        if hasattr(self, 'angulo_thread') and self.angulo_thread and self.angulo_thread.isRunning():
+            self.angulo_thread.stop()
+            self.angulo_thread.wait(2000)  # Esperar máximo 2 segundos
+            self.angulo_thread = None
+            self.is_monitoring = False
+        
+        # --- DETENER THREAD DE BRAZO ROBÓTICO ---
+        if hasattr(self, 'brazo_thread') and self.brazo_thread and self.brazo_thread.isRunning():
+            self.brazo_thread.stop()
+            self.brazo_thread.wait(2000)  # Esperar máximo 2 segundos
+            self.brazo_thread = None
+            self.brazo_is_monitoring = False
+        
+        # --- DETENER THREAD DE DISTANCIA IR ---
+        if hasattr(self, 'distancia_ir_thread') and self.distancia_ir_thread and self.distancia_ir_thread.isRunning():
+            self.distancia_ir_thread.stop()
+            self.distancia_ir_thread.wait(2000)  # Esperar máximo 2 segundos
+            self.distancia_ir_thread = None
+            self.distancia_ir_is_monitoring = False
+        
+        # --- DETENER THREAD DE DISTANCIA CAPACITIVO ---
+        if hasattr(self, 'distancia_cap_thread') and self.distancia_cap_thread and self.distancia_cap_thread.isRunning():
+            self.distancia_cap_thread.stop()
+            self.distancia_cap_thread.wait(2000)  # Esperar máximo 2 segundos
+            self.distancia_cap_thread = None
+            self.distancia_cap_is_monitoring = False
+        
+        # --- DETENER THREAD DE DISTANCIA ULTRASÓNICO ---
+        if hasattr(self, 'distancia_ultra_thread') and self.distancia_ultra_thread and self.distancia_ultra_thread.isRunning():
+            self.distancia_ultra_thread.stop()
+            self.distancia_ultra_thread.wait(2000)  # Esperar máximo 2 segundos
+            self.distancia_ultra_thread = None
+            self.distancia_ultra_is_monitoring = False
+        
+        # --- GESTIONAR TIMER COMPARTIDO ---
+        self.manage_graph_timer()  # Detener timer si no hay sensores activos
 
-def clear_distancia_ultra_graph(self):
-    """
-    Limpia la gráfica y datos del sensor de distancia ultrasónico.
-        OPERACIONES DE LIMPIEZA:
-    1. Vaciar lista de datos de distancia
-    2. Resetear línea de gráfica a estado vacío
-    3. Restaurar límites por defecto de los ejes
-    4. Forzar redibujado del canvas de matplotlib
-    5. Resetear etiqueta numérica al estado inicial
-    6. Mostrar confirmación al usuario
-    
-    CONFIGURACIÓN POR DEFECTO:
-    - Eje X: 0 a 100 muestras
-    - Eje Y: 0 a 400 cm (rango típico del HC-SR04)
-    - Etiquetas: Mostrar "--" para indicar sin datos
-    
-    USO: Ideal para limpiar datos antes de una nueva sesión
-    de monitoreo o cuando se requiere reiniciar mediciones.
-    """        # --- LIMPIAR LISTA DE DATOS ---
-    self.distancia_ultra_cm.clear()
-    
-    # --- RESETEAR GRÁFICA A ESTADO INICIAL ---
-    if hasattr(self, 'line_ultra'):
-        self.line_ultra.set_data([], [])           # Vaciar datos de la línea
-        self.ax_ultra.set_xlim(0, 100)             # Restaurar límite X
-        self.ax_ultra.set_ylim(0, 400)             # Restaurar límite Y (rango HC-SR04)
-        self.canvas_ultra.draw()                   # Forzar redibujado
-    
-    # --- RESETEAR ETIQUETA NUMÉRICA ---
-    if hasattr(self, 'distancia_ultra_distancia_label'):
-        self.distancia_ultra_distancia_label.setText("Distancia: --")
-    
-    # --- CONFIRMAR OPERACIÓN AL USUARIO ---
-    QMessageBox.information(self, "Gráfica Limpia", "Los datos del sensor ultrasónico han sido eliminados")
+    # =====================================================================================
+    # MÉTODO: REINICIO COMPLETO DE LA APLICACIÓN
+    # =====================================================================================
+    def restart_application(self):
+        """
+        Reinicia completamente la aplicación manteniendo la conexión ESP32
+        
+        Propósito: Limpiar toda la interfaz y datos como si acabara de conectar al ESP32
+        Funcionamiento: Detiene todos los threads, limpia datos, reinicia la UI
+        Conexión: Mantiene la conexión TCP con el ESP32 sin desconectarla
+        Estado: Preserva el estado de conexión pero reinicia todo lo demás
+        UI: Vuelve a la pantalla de bienvenida y resetea todos los controles
+        """
+        
+        # --- VERIFICAR CONEXIÓN REQUERIDA ---
+        if not self.is_connected:
+            QMessageBox.warning(self, "Sin conexión", "No hay conexión ESP32 para reiniciar")
+            return
+        
+        # --- CONFIRMAR REINICIO CON EL USUARIO ---
+        reply = QMessageBox.question(self, "Confirmar Reinicio", 
+                                   "¿Estás seguro de que quieres reiniciar la interfaz?\n\n"
+                                   "Se mantendrá la conexión ESP32 pero se limpiarán todos los datos.",
+                                   QMessageBox.Yes | QMessageBox.No,
+                                   QMessageBox.No)
+        
+        if reply != QMessageBox.Yes:
+            return  # Usuario canceló el reinicio
+        
+        # --- PASO 1: DETENER TODOS LOS THREADS ACTIVOS ---
+        print("🔄 Iniciando reinicio - Deteniendo threads...")
+        self.stop_all_monitoring_threads()      # Detener todos los sensores activos
+        
+        # --- PASO 2: LIMPIAR TODOS LOS DATOS DE SENSORES ---
+        print("🧹 Limpiando datos de sensores...")
+        self.clear_all_sensor_data()
+        
+        # --- PASO 3: RESETEAR ESTADO DE LA INTERFAZ ---
+        print("🖥️ Reseteando interfaz de usuario...")
+        self.reset_interface_state()
+        
+        # --- PASO 4: MOSTRAR PANTALLA DE BIENVENIDA ---
+        print("🏠 Volviendo a pantalla de bienvenida...")
+        self.show_welcome_screen()
+        
+        # --- CONFIRMACIÓN FINAL ---
+        print("✅ Reinicio completado - Conexión ESP32 mantenida")
+        QMessageBox.information(self, "Reinicio Completado", 
+                              "La interfaz se ha reiniciado exitosamente.\n\n"
+                              "La conexión ESP32 se mantiene activa.")
 
-def export_distancia_ultra_to_excel(self):
-    """
-    Exporta los datos del sensor de distancia ultrasónico a un archivo Excel.
-        CONTENIDO DEL ARCHIVO:
-    1. Datos tabulares: Tiempo, Distancia
-    2. Gráfica integrada: Distancia vs Tiempo con formato profesional
-    3. Estadísticas calculadas: Mín, Máx, Promedio de distancias
-    4. Metadatos: Timestamp de exportación y configuración del sensor
-    
-    FORMATO DE DATOS:
-    - Columna A: Tiempo estimado en segundos (basado en frecuencia de muestreo)
-    - Columna B: Distancia en centímetros con 1 decimal
-    
-    CARACTERÍSTICAS:
-    - Encabezados con formato bold y centrado
-    - Gráfica de líneas insertada automáticamente
-    - Cálculos estadísticos incluidos
-    - Nombre de archivo con timestamp único
-    - Validación de dependencias (openpyxl)
-    
-    ERROR HANDLING:
-    - Verifica existencia de datos antes de exportar
-    - Maneja errores de dependencias faltantes
-    - Captura excepciones de escritura de archivos
-    - Muestra mensajes informativos al usuario
-    """        """Exporta los datos del sensor de distancia ultrasónico a Excel"""
-    # --- VALIDAR EXISTENCIA DE DATOS ---
-    if not self.distancia_ultra_cm:
-        QMessageBox.warning(self, "Sin datos", "No hay datos para exportar")
-        return
-    
-    try:
-        # --- IMPORTAR DEPENDENCIAS PARA EXCEL ---
-        from openpyxl import Workbook
-        from openpyxl.chart import LineChart, Reference
-        from openpyxl.styles import Font, Alignment
-        import os
-        from datetime import datetime
+    # =====================================================================================
+    # MÉTODO: LIMPIAR TODOS LOS DATOS DE SENSORES
+    # =====================================================================================
+    def clear_all_sensor_data(self):
+        """
+        Limpia todos los datos almacenados de todos los sensores
         
-        # --- CREAR LIBRO DE TRABAJO ---
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Datos Ultrasónico"
-            # --- CONFIGURAR ENCABEZADOS CON FORMATO ---
-        headers = ["Tiempo (s)", "Distancia (cm)"]
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col, value=header)
-            cell.font = Font(bold=True)                    # Texto en negrita
-            cell.alignment = Alignment(horizontal='center') # Centrar texto
+        Propósito: Borrar historial de lecturas y resetear gráficas
+        Sensores: Ángulo simple, brazo robótico, IR, capacitivo, ultrasónico
+        Memoria: Libera listas de datos para optimizar memoria
+        """
         
-        # --- ESCRIBIR DATOS TABULARES ---
-        for i, distancia in enumerate(self.distancia_ultra_cm):
-            ws.cell(row=i+2, column=1, value=i*0.1)  # Tiempo estimado (100ms por muestra)
-            ws.cell(row=i+2, column=2, value=distancia)
+        # --- LIMPIAR DATOS DE ÁNGULO SIMPLE ---
+        self.angulos = []                        # Limpiar lista de ángulos
+        self.lecturas = []                       # Limpiar lista de lecturas ADC
         
-        # --- CREAR GRÁFICA INTEGRADA ---
-        chart = LineChart()
-        chart.title = "Distancia Ultrasónica vs Tiempo"
-        chart.x_axis.title = "Tiempo (s)"
-        chart.y_axis.title = "Distancia (cm)"
-            # Configurar datos para la gráfica
-        data = Reference(ws, min_col=2, min_row=1, max_row=len(self.distancia_ultra_cm)+1)
-        chart.add_data(data, titles_from_data=True)
+        # --- LIMPIAR DATOS DE BRAZO ROBÓTICO ---
+        if hasattr(self, 'brazo_angulos1'):
+            self.brazo_angulos1 = []             # Limpiar ángulos potenciómetro 1
+        if hasattr(self, 'brazo_angulos2'):
+            self.brazo_angulos2 = []             # Limpiar ángulos potenciómetro 2
+        if hasattr(self, 'brazo_angulos3'):
+            self.brazo_angulos3 = []             # Limpiar ángulos potenciómetro 3
+        if hasattr(self, 'brazo_lecturas1'):
+            self.brazo_lecturas1 = []            # Limpiar lecturas ADC brazo
+        if hasattr(self, 'brazo_lecturas2'):
+            self.brazo_lecturas2 = []
+        if hasattr(self, 'brazo_lecturas3'):
+            self.brazo_lecturas3 = []
         
-        # Agregar gráfica al worksheet
-        ws.add_chart(chart, "D2")
+        # --- LIMPIAR DATOS DE SENSORES DE DISTANCIA ---
+        if hasattr(self, 'distancia_ultra_data'):
+            self.distancia_ultra_data = []       # Limpiar datos ultrasónicos
         
-        # --- AGREGAR ESTADÍSTICAS CALCULADAS ---
-        stats_row = len(self.distancia_ultra_cm) + 5
-        ws.cell(row=stats_row, column=1, value="Estadísticas:")
-        ws.cell(row=stats_row, column=1).font = Font(bold=True)
+        # --- LIMPIAR GRÁFICAS SI EXISTEN ---
+        if hasattr(self, 'ax') and self.ax:
+            self.ax.clear()                      # Limpiar gráfica principal
+            self.ax.set_title('Sensor de Ángulo Simple - Tiempo Real', fontsize=14, fontweight='bold')
+            self.ax.set_xlabel('Tiempo (s)', fontsize=12)
+            self.ax.set_ylabel('Ángulo (grados)', fontsize=12)
+            self.ax.grid(True, alpha=0.3)
+            self.ax.set_facecolor('#f8f9fa')
+            
+        if hasattr(self, 'ax_brazo') and self.ax_brazo:
+            self.ax_brazo.clear()                # Limpiar gráfica de brazo
+            self.ax_brazo.set_title('Brazo Robótico - 3 Sensores + Capacitivo', fontsize=14, fontweight='bold')
+            self.ax_brazo.set_xlabel('Tiempo (s)', fontsize=12)
+            self.ax_brazo.set_ylabel('Ángulo (grados)', fontsize=12)
+            self.ax_brazo.grid(True, alpha=0.3)
+            self.ax_brazo.set_facecolor('#f8f9fa')
+            
+        if hasattr(self, 'ax_ultra') and self.ax_ultra:
+            self.ax_ultra.clear()                # Limpiar gráfica ultrasónica
+            self.ax_ultra.set_title('Sensor Ultrasónico HC-SR04 - Tiempo Real', fontsize=14, fontweight='bold')
+            self.ax_ultra.set_xlabel('Tiempo (s)', fontsize=12)
+            self.ax_ultra.set_ylabel('Distancia (cm)', fontsize=12)
+            self.ax_ultra.grid(True, alpha=0.3)
+            self.ax_ultra.set_facecolor('#f8f9fa')
+          # --- REDIBUJAR GRÁFICAS VACÍAS (CON MANEJO SEGURO) ---
+        try:
+            if hasattr(self, 'canvas') and self.canvas:
+                self.canvas.draw()
+        except RuntimeError:
+            # Canvas ya eliminado, ignorar error
+            pass
+            
+        try:
+            if hasattr(self, 'canvas_brazo') and self.canvas_brazo:
+                self.canvas_brazo.draw()
+        except RuntimeError:
+            # Canvas ya eliminado, ignorar error
+            pass
+            
+        try:
+            if hasattr(self, 'canvas_ultra') and self.canvas_ultra:
+                self.canvas_ultra.draw()
+        except RuntimeError:
+            # Canvas ya eliminado, ignorar error
+            pass
+
+    # =====================================================================================
+    # MÉTODO: RESETEAR ESTADO DE LA INTERFAZ
+    # =====================================================================================
+    def reset_interface_state(self):
+        """
+        Resetea todos los estados de la interfaz a valores iniciales
         
-        ws.cell(row=stats_row+1, column=1, value="Distancia mínima:")
-        ws.cell(row=stats_row+1, column=2, value=f"{min(self.distancia_ultra_cm):.2f} cm")
+        Propósito: Volver botones y controles a estado original
+        Estado: Mantiene conexión pero resetea flags de monitoreo
+        UI: Restaura textos de botones y estilos originales
+        """
         
-        ws.cell(row=stats_row+2, column=1, value="Distancia máxima:")
-        ws.cell(row=stats_row+2, column=2, value=f"{max(self.distancia_ultra_cm):.2f} cm")
+        # --- RESETEAR FLAGS DE MONITOREO ---
+        self.is_monitoring = False                       # Ángulo simple no monitoreando
+        self.brazo_is_monitoring = False                 # Brazo no monitoreando
+        self.distancia_ir_is_monitoring = False          # IR no monitoreando
+        self.distancia_cap_is_monitoring = False         # Capacitivo no monitoreando
+        self.distancia_ultra_is_monitoring = False       # Ultrasónico no monitoreando
         
-        ws.cell(row=stats_row+3, column=1, value="Distancia promedio:")
-        ws.cell(row=stats_row+3, column=2, value=f"{sum(self.distancia_ultra_cm)/len(self.distancia_ultra_cm):.2f} cm")
+        # --- RESETEAR DATOS PENDIENTES ---
+        self.pending_updates = False
+        self.pending_simple_data = None
+        self.pending_brazo_data = None
+        self.pending_distancia_ir_data = None
+        self.pending_distancia_cap_data = None
+        self.pending_distancia_ultra_data = None
         
-        # --- GUARDAR ARCHIVO CON TIMESTAMP ---
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"datos_ultrasonico_{timestamp}.xlsx"
-        wb.save(filename)
+        # --- RESETEAR BOTONES DE EXPORTACIÓN ---
+        # Los botones de exportación se habilitarán automáticamente cuando haya datos nuevos
         
-        # --- CONFIRMAR ÉXITO AL USUARIO ---
-        QMessageBox.information(self, "Exportación exitosa", 
-                                f"Datos exportados a: {os.path.abspath(filename)}")
+        print("🔧 Estado de interfaz reseteado completamente")
+
+    # =====================================================================================
+    # MÉTODO: MOSTRAR PANTALLA DE BIENVENIDA
+    # =====================================================================================
+    def show_welcome_screen(self):
+        """
+        Muestra la pantalla de bienvenida inicial
         
-    except ImportError:
-        # --- MANEJAR DEPENDENCIA FALTANTE ---
-        QMessageBox.warning(self, "Dependencia faltante", 
-                            "Se requiere 'openpyxl' para exportar a Excel.\n"
-                            "Instálalo con: pip install openpyxl")
-    except Exception as e:        # --- MANEJAR ERRORES GENERALES ---
-        QMessageBox.critical(self, "Error", f"Error al exportar: {str(e)}")
+        Propósito: Volver al estado inicial como si acabara de conectar
+        UI: Oculta detalles de sensores y muestra mensaje de bienvenida
+        Estado: Mantiene lista de sensores visible pero sin selección
+        """
+        
+        # --- MOSTRAR PANTALLA DE BIENVENIDA ---
+        if hasattr(self, 'welcome_widget') and self.welcome_widget:
+            self.welcome_widget.setVisible(True)     # Mostrar mensaje de bienvenida
+        
+        # --- OCULTAR DETALLES DE SENSORES ---
+        if hasattr(self, 'sensor_details') and self.sensor_details:
+            self.sensor_details.setVisible(False)   # Ocultar área de detalles
+        
+        # --- DESELECCIONAR ELEMENTOS DE LA LISTA ---
+        if hasattr(self, 'sensors_list') and self.sensors_list:
+            self.sensors_list.clearSelection()      # Quitar selección de sensores
+        
+        print("🏠 Pantalla de bienvenida mostrada")
