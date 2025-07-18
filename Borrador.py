@@ -44,11 +44,11 @@ from PySide6.QtGui import (QFont,                 # Configuración de fuentes
                           QColor)                 # Definición de colores
 
 # --- Módulo personalizado para comunicación ESP32 ---
-from network_client import ESP32Client            # Cliente para conectar con ESP32
+from network_client import ESP32Client            # type: ignore # Cliente para conectar con ESP32
 
 # --- Módulos personalizados para calibración ---
-from modules.calibration import LinearCalibration # Sistema de calibración lineal
-from ui.calibration_dialog import CalibrationDialog # Diálogo de calibración
+from modules.calibration import LinearCalibration # type: ignore # Sistema de calibración lineal
+from ui.calibration_dialog import CalibrationDialog # type: ignore # Diálogo de calibración
 
 # --- Bibliotecas estándar de Python ---
 import socket                                     # Comunicación de red TCP/IP
