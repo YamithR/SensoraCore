@@ -1,34 +1,3 @@
-# Python cache files
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-
-# PyInstaller build files
-build/
-dist/
-dist/*.exe
-*.spec
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Virtual environments
-venv/
-env/
-.env
-
-# Temporary files
-*.tmp
-*.temp
+/ResidualRWV1
+/TempFiles
+/SensoraCore/Compilador/Versiones
