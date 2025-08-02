@@ -17,7 +17,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QGroupBox,
     QLabel, QLineEdit, QMainWindow, QPushButton,
-    QSizePolicy, QSpacerItem, QVBoxLayout, QWidget)
+    QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout,
+    QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -35,8 +36,7 @@ class Ui_MainWindow(object):
         self.PantallaPrincipal.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
         self.PantallaPrincipal.setStyleSheet(u"border-radius: 10px;\n"
 "border-color: rgb(255, 0, 0);\n"
-"border-width: 1px;\n"
-"border: 2px solid #2ecc71;\n"
+"border: 1px solid #2ecc71;\n"
 "background-color: rgb(255, 255, 255);")
         self.PantallaPrincipal.setFrameShape(QFrame.Shape.StyledPanel)
         self.PantallaPrincipal.setFrameShadow(QFrame.Shadow.Raised)
@@ -100,14 +100,14 @@ class Ui_MainWindow(object):
         self.gridLayout_3 = QGridLayout(self.IP)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.gridLayout_3.setVerticalSpacing(6)
-        self.lineEdit = QLineEdit(self.IP)
-        self.lineEdit.setObjectName(u"lineEdit")
-        self.lineEdit.setMinimumSize(QSize(0, 40))
-        self.lineEdit.setMaximumSize(QSize(16777215, 50))
-        self.lineEdit.setStyleSheet(u"color: rgb(177, 177, 177);\n"
+        self.ipEdit = QLineEdit(self.IP)
+        self.ipEdit.setObjectName(u"ipEdit")
+        self.ipEdit.setMinimumSize(QSize(0, 40))
+        self.ipEdit.setMaximumSize(QSize(16777215, 50))
+        self.ipEdit.setStyleSheet(u"color: rgb(177, 177, 177);\n"
 "font-size: 18px;")
 
-        self.gridLayout_3.addWidget(self.lineEdit, 0, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.ipEdit, 0, 0, 1, 1)
 
 
         self.verticalLayout.addWidget(self.IP)
@@ -166,9 +166,18 @@ class Ui_MainWindow(object):
 "\n"
 "    border-radius: 5px;\n"
 "}")
-        self.verticalLayout_2 = QVBoxLayout(self.list)
+        self.gridLayout_5 = QGridLayout(self.list)
+        self.gridLayout_5.setObjectName(u"gridLayout_5")
+        self.gridLayout_5.setContentsMargins(2, -1, 2, -1)
+        self.scrollArea = QScrollArea(self.list)
+        self.scrollArea.setObjectName(u"scrollArea")
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollAreaWidgetContents = QWidget()
+        self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 322, 322))
+        self.verticalLayout_2 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.simpleAngle = QWidget(self.list)
+        self.simpleAngle = QWidget(self.scrollAreaWidgetContents)
         self.simpleAngle.setObjectName(u"simpleAngle")
         self.simpleAngle.setMinimumSize(QSize(0, 20))
         self.simpleAngle.setMaximumSize(QSize(16777215, 60))
@@ -226,7 +235,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_2.addWidget(self.simpleAngle)
 
-        self.angleArm = QWidget(self.list)
+        self.angleArm = QWidget(self.scrollAreaWidgetContents)
         self.angleArm.setObjectName(u"angleArm")
         self.angleArm.setMinimumSize(QSize(0, 20))
         self.angleArm.setMaximumSize(QSize(16777215, 60))
@@ -283,6 +292,10 @@ class Ui_MainWindow(object):
 
 
         self.verticalLayout_2.addWidget(self.angleArm)
+
+        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+
+        self.gridLayout_5.addWidget(self.scrollArea, 0, 0, 1, 1)
 
 
         self.verticalLayout_3.addWidget(self.list)
@@ -367,7 +380,6 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.PantallaPrincipal, 0, 1, 1, 1)
 
         MainWindow.setCentralWidget(self.centralwidget)
-        QWidget.setTabOrder(self.lineEdit, self.Conectar)
 
         self.retranslateUi(MainWindow)
 
@@ -379,7 +391,7 @@ class Ui_MainWindow(object):
         self.Titulo.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:24pt; font-weight:700; color:#007bff;\">SensoraCore</span></p><p align=\"center\"><span style=\" font-size:12pt; color:#969696;\">Sistema de Monitoreo de Sensores WiFi</span></p></body></html>", None))
         self.Conf.setTitle(QCoreApplication.translate("MainWindow", u"Configuraci\u00f3n de Conexi\u00f3n", None))
         self.IP.setTitle(QCoreApplication.translate("MainWindow", u"IP del ESP32:", None))
-        self.lineEdit.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Ejemplo: 192.168.1.100", None))
+        self.ipEdit.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Ejemplo: 192.168.1.100", None))
         self.Conectar.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd0c Conectar a ESP32", None))
         self.Status.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:14pt;\">\ud83d\udd34</span><span style=\" font-size:14pt; font-weight:700;\">Desconectado</span></p></body></html>", None))
         self.list.setTitle(QCoreApplication.translate("MainWindow", u"Sensores Disponibles", None))

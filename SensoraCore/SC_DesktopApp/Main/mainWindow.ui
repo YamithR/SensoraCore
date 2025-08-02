@@ -38,8 +38,7 @@
       <property name="styleSheet">
        <string notr="true">border-radius: 10px;
 border-color: rgb(255, 0, 0);
-border-width: 1px;
-border: 2px solid #2ecc71;
+border: 1px solid #2ecc71;
 background-color: rgb(255, 255, 255);</string>
       </property>
       <property name="frameShape">
@@ -152,7 +151,7 @@ background-color: rgb(255, 255, 255);</string>
                  <number>6</number>
                 </property>
                 <item row="0" column="0">
-                 <widget class="QLineEdit" name="lineEdit">
+                 <widget class="QLineEdit" name="ipEdit">
                   <property name="minimumSize">
                    <size>
                     <width>0</width>
@@ -274,23 +273,44 @@ background-color: rgb(255, 210, 211);</string>
             <property name="title">
              <string>Sensores Disponibles</string>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_2">
-             <item>
-              <widget class="QWidget" name="simpleAngle" native="true">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>20</height>
-                </size>
+            <layout class="QGridLayout" name="gridLayout_5">
+             <property name="leftMargin">
+              <number>2</number>
+             </property>
+             <property name="rightMargin">
+              <number>2</number>
+             </property>
+             <item row="0" column="0">
+              <widget class="QScrollArea" name="scrollArea">
+               <property name="widgetResizable">
+                <bool>true</bool>
                </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>60</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">QWidget{
+               <widget class="QWidget" name="scrollAreaWidgetContents">
+                <property name="geometry">
+                 <rect>
+                  <x>0</x>
+                  <y>0</y>
+                  <width>322</width>
+                  <height>322</height>
+                 </rect>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_2">
+                 <item>
+                  <widget class="QWidget" name="simpleAngle" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
 color: rgb(0, 0, 0);
 	border-top-color: rgb(222, 222, 222);
 	border-bottom-color: rgb(222, 222, 222);
@@ -324,63 +344,63 @@ background-color: rgba(255, 255, 127, 20);
 QWidget:hover{
 	background-color: rgba(0, 123, 255, 20);
 }</string>
-               </property>
-               <layout class="QVBoxLayout" name="verticalLayout_5">
-                <item>
-                 <widget class="QPushButton" name="simpleAngleBT">
-                  <property name="minimumSize">
-                   <size>
-                    <width>105</width>
-                    <height>25</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>999</width>
-                    <height>999</height>
-                   </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">text-align: left;
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_5">
+                    <item>
+                     <widget class="QPushButton" name="simpleAngleBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
 padding-left: 10px;</string>
-                  </property>
-                  <property name="text">
-                   <string>🎛️SIMPLE ALGLE</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLabel" name="text">
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>20</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string> Potenciometro como sensor de angulo</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QWidget" name="angleArm" native="true">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>20</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>60</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">QWidget{
+                      </property>
+                      <property name="text">
+                       <string>🎛️SIMPLE ALGLE</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="text">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string> Potenciometro como sensor de angulo</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="angleArm" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
 color: rgb(0, 0, 0);
 	border-top-color: rgb(222, 222, 222);
 	border-bottom-color: rgb(222, 222, 222);
@@ -414,45 +434,49 @@ background-color: rgba(255, 255, 127, 20);
 QWidget:hover{
 	background-color: rgba(0, 123, 255, 20);
 }</string>
-               </property>
-               <layout class="QVBoxLayout" name="verticalLayout_6">
-                <item>
-                 <widget class="QPushButton" name="angleArmTB">
-                  <property name="minimumSize">
-                   <size>
-                    <width>105</width>
-                    <height>25</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>999</width>
-                    <height>999</height>
-                   </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">text-align: left;
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_6">
+                    <item>
+                     <widget class="QPushButton" name="angleArmTB">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
 padding-left: 10px;</string>
-                  </property>
-                  <property name="text">
-                   <string>🦾ANGLE ARM</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLabel" name="text_2">
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>20</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>Multiples Potenciometros como simulacion de Brazo</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
+                      </property>
+                      <property name="text">
+                       <string>🦾ANGLE ARM</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="text_2">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Multiples Potenciometros como simulacion de Brazo</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
               </widget>
              </item>
             </layout>
@@ -597,7 +621,6 @@ background-color: rgba(0, 123, 255, 20);</string>
   </widget>
  </widget>
  <tabstops>
-  <tabstop>lineEdit</tabstop>
   <tabstop>Conectar</tabstop>
  </tabstops>
  <resources/>
