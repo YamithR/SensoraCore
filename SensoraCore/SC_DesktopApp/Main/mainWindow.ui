@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1123</width>
-    <height>758</height>
+    <width>1127</width>
+    <height>762</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -495,7 +495,7 @@ QGroupBox::title {
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
-           <widget class="QWidget" name="widget" native="true">
+           <widget class="QWidget" name="Welcome" native="true">
             <layout class="QGridLayout" name="gridLayout_4">
              <item row="1" column="1">
               <widget class="QLabel" name="label">
