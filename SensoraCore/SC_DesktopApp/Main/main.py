@@ -17,11 +17,44 @@ class ui(QMainWindow):
         Inicializa todos los componentes de la interfaz y variables de estado
         """
         super().__init__()
+        # Crear una barra de carga simple
+        splash = QSplashScreen()
+        splash.setPixmap(QPixmap("SensoraCore/SC_DesktopApp/Assets/loading.png"))
+        splash.show()
         
+        progress_bar = QProgressBar(splash)
+        progress_bar.setGeometry(10, splash.height() - 30, splash.width() - 20, 20)
+        progress_bar.setRange(0, 100)
+        progress_bar.setValue(0)
+        progress_bar.setTextVisible(True)
+        progress_bar.setStyleSheet("""
+            QProgressBar {
+            border: 2px solid #8f8f91;
+            border-radius: 5px;
+            text-align: center;
+            }
+            QProgressBar::chunk {
+            background-color: #05B8CC;
+            width: 20px;
+            }
+        """)
+        
+        for i in range(0, 101, 5):
+            progress_bar.setValue(i)
+            splash.showMessage(f"Cargando... {i}%", Qt.AlignHCenter | Qt.AlignBottom, Qt.black)
+            QCoreApplication.processEvents()
+            QThread.msleep(100)  # Simular carga
+        
+        splash.close()
+
         loader = QUiLoader() # Crear objeto de loader
         loaded_ui = loader.load("SensoraCore/SC_DesktopApp/Main/mainWindow.ui") # Cargar el archivo .ui
         self.setCentralWidget(loaded_ui)
         self.setWindowTitle("SensoraCore") #Titulo de la ventana
+        
+        # Configurar el grupo de widgets para la lista de sensores
+        self.listaSensores = self.findChild(QGroupBox, "list")
+        self.listaSensores.setVisible(False)
 
         # Conectar el botón 'Conectar' a la función conectar
         btn = self.findChild(QPushButton, "Conectar")
@@ -69,6 +102,8 @@ class ui(QMainWindow):
                 font-size: 18px;
                 font-weight: bold;
             """)
+            btn.setEnabled(False)
+            self.listaSensores.setVisible(True)
             QMessageBox.information(self, "Conexión exitosa", f"Conectado a ESP32 en {esp32_ip}")
         else:
             status.setText("❌ Error de conexión")
@@ -81,9 +116,28 @@ class ui(QMainWindow):
                 font-weight: bold;
             """)
             btn.setEnabled(True)
-            QMessageBox.critical(self, "Fallo de conexión", f"No se pudo conectar: {response}")
-        
-##
+            QMessageBox.critical(self, "Fallo de conexión", f"No se pudo conectar a la IP: {esp32_ip} \n  Respuesta de log: \n {response}")
+
+    def sensorSeleccionado(self):
+        """
+        Maneja la selección de un sensor en la interfaz.
+        """
+        # Obtener el sensor seleccionado
+        sensor = self.findChild(QComboBox, "simpleAngleBT")
+        if sensor is None:
+            return
+        sensor_id = sensor.currentData()
+        if sensor_id is None:
+            return
+        # Ocultar el widget de bienvenida si existe
+        welcome_widget = self.findChild(QWidget, "Welcome")
+        if welcome_widget:
+            welcome_widget.setVisible(False)
+        # Realizar acción con el sensor seleccionado
+        print(f"Sensor seleccionado: {sensor_id}")
+
+
+###
 class ESP32Client:
     """
     Clase controladora para la coneccion por wifi con el microcontrolador ESP32
@@ -109,15 +163,9 @@ class ESP32Client:
 
     def led_off(self):
         return self.send_command('LED_OFF')
+    
+
 ###
-
-
-
-
-
-
-
-
 
 
 

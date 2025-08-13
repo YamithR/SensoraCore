@@ -24,7 +24,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1127, 762)
+        MainWindow.resize(1125, 760)
         MainWindow.setStyleSheet(u"background-color: rgb(216, 216, 216);")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
@@ -117,7 +117,7 @@ class Ui_MainWindow(object):
         self.Conectar.setMinimumSize(QSize(0, 50))
         self.Conectar.setMaximumSize(QSize(16777215, 50))
         self.Conectar.setStyleSheet(u"#Conectar {\n"
-"	background-color: rgb(186, 186, 186);\n"
+"	background-color: rgba(0, 255, 0, 20);\n"
 "	font-size: 18px;\n"
 "	color: rgb(0, 0, 0);\n"
 "	font-weight: bold;\n"
@@ -128,7 +128,10 @@ class Ui_MainWindow(object):
 "}\n"
 "#Conectar:hover:pressed {\n"
 "	color:rrgb(255, 0, 0);\n"
-"	background-color: rgb(0, 255, 127)\n"
+"	background-color: rgb(0, 255, 127);\n"
+"}\n"
+"#Conectar:disabled{\n"
+"	background-color: rgb(186, 186, 186);\n"
 "}\n"
 "")
 
@@ -174,7 +177,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 322, 322))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 322, 320))
         self.verticalLayout_2 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.simpleAngle = QWidget(self.scrollAreaWidgetContents)
@@ -329,38 +332,38 @@ class Ui_MainWindow(object):
         self.Welcome.setObjectName(u"Welcome")
         self.gridLayout_4 = QGridLayout(self.Welcome)
         self.gridLayout_4.setObjectName(u"gridLayout_4")
-        self.label = QLabel(self.Welcome)
-        self.label.setObjectName(u"label")
-
-        self.gridLayout_4.addWidget(self.label, 1, 1, 1, 1)
-
         self.label_2 = QLabel(self.Welcome)
         self.label_2.setObjectName(u"label_2")
 
-        self.gridLayout_4.addWidget(self.label_2, 2, 1, 1, 1)
+        self.gridLayout_4.addWidget(self.label_2, 3, 1, 1, 1)
+
+        self.label = QLabel(self.Welcome)
+        self.label.setObjectName(u"label")
+
+        self.gridLayout_4.addWidget(self.label, 2, 1, 1, 1)
+
+        self.verticalSpacer = QSpacerItem(20, 43, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_4.addItem(self.verticalSpacer, 5, 1, 1, 1)
+
+        self.horizontalSpacer = QSpacerItem(252, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_4.addItem(self.horizontalSpacer, 2, 2, 2, 1)
+
+        self.horizontalSpacer_2 = QSpacerItem(253, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_4.addItem(self.horizontalSpacer_2, 2, 0, 2, 1)
 
         self.label_3 = QLabel(self.Welcome)
         self.label_3.setObjectName(u"label_3")
         self.label_3.setStyleSheet(u"border-color: rgba(0, 170, 255, 50);\n"
 "background-color: rgba(0, 123, 255, 20);")
 
-        self.gridLayout_4.addWidget(self.label_3, 3, 1, 1, 1)
-
-        self.verticalSpacer = QSpacerItem(20, 43, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout_4.addItem(self.verticalSpacer, 4, 1, 1, 1)
-
-        self.horizontalSpacer = QSpacerItem(252, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_4.addItem(self.horizontalSpacer, 1, 2, 2, 1)
-
-        self.horizontalSpacer_2 = QSpacerItem(253, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_4.addItem(self.horizontalSpacer_2, 1, 0, 2, 1)
+        self.gridLayout_4.addWidget(self.label_3, 4, 1, 1, 1)
 
         self.verticalSpacer_2 = QSpacerItem(20, 25, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_4.addItem(self.verticalSpacer_2, 0, 1, 1, 1)
+        self.gridLayout_4.addItem(self.verticalSpacer_2, 1, 1, 1, 1)
 
 
         self.verticalLayout_4.addWidget(self.Welcome)
@@ -399,8 +402,8 @@ class Ui_MainWindow(object):
         self.text.setText(QCoreApplication.translate("MainWindow", u" Potenciometro como sensor de angulo", None))
         self.angleArmTB.setText(QCoreApplication.translate("MainWindow", u"\ud83e\uddbeANGLE ARM", None))
         self.text_2.setText(QCoreApplication.translate("MainWindow", u"Multiples Potenciometros como simulacion de Brazo", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:72pt;\">\ud83d\udd27</span></p></body></html>", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:11pt; color:#b1b1b1;\">Conecta tu ESP32 y selecciona un sensor</span></p><p align=\"center\"><span style=\" font-size:11pt; color:#b1b1b1;\">para comenzar a monitorear datos</span></p></body></html>", None))
+        self.label.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:72pt;\">\ud83d\udd27</span></p></body></html>", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:11pt; color:#666666;\">\ud83d\uddd2\ufe0fUna vez conectado encontrar\u00e1s el diagrama</span></p><p align=\"center\"><span style=\" font-size:11pt; color:#666666;\">de conecxiones ESP32 en cada sensor y los controles de monitoreo</span></p></body></html>", None))
     # retranslateUi
 

@@ -2,3 +2,4 @@
 /TempFiles
 /SensoraCore/Compilador/Versiones
 /.venv
+/SensoraCore/SC_DesktopApp/Main/__pycache__

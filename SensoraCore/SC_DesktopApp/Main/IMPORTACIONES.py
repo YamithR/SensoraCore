@@ -26,8 +26,9 @@ from sklearn.linear_model import LinearRegression
 
 # --- Bibliotecas para la interfaz gráfica (PySide6) ---
 from PySide6.QtCore import (QEasingCurve, QPropertyAnimation, 
-                            QRect, QThread,QTimer, Qt, Signal,Qt, QPointF )
-from PySide6.QtGui import (QColor, QFont, QPalette,QPainter, QPen )
+                            QRect, QThread,QTimer, Qt, Signal,Qt, QPointF, QCoreApplication )
+
+from PySide6.QtGui import (QColor, QFont, QPalette,QPainter, QPen ,QPixmap )
 from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QFileDialog, QFrame, 
                               QGraphicsOpacityEffect, QSlider,QStylePainter,
                               QGridLayout, QGroupBox, 
