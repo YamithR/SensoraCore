@@ -8,8 +8,75 @@ from PySide6.QtWidgets import *
 from PySide6.QtUiTools import QUiLoader
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
-import sys
 
+
+class LoadingSplashScreen(QSplashScreen):
+    """
+    Pantalla de carga con barra de progreso.
+    """
+    def __init__(self):
+        super().__init__()
+        self.setWindowFlag(Qt.FramelessWindowHint)  # Sin bordes
+        self.setWindowFlag(Qt.WindowStaysOnTopHint)  # Siempre encima
+        self.setWindowFlag(Qt.SubWindow)  # Permitir mover la ventana
+        self.setWindowTitle("Bienvenido a SensoraCore")
+        self.setFixedSize(400, 100)  # Tamaño de la pantalla de carga
+        self.setStyleSheet("background-color: white; border: 2px solid gray;")
+        self.progress = 0  # Progreso inicial
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_progress)
+        self.timer.start(50)  # Actualizar cada 50 ms
+
+    def update_progress(self):
+        """
+        Actualiza el progreso de la barra y redibuja la pantalla.
+        """
+        self.progress += 1  # Incrementar el progreso
+        if self.progress > 100:
+            self.timer.stop()  # Detener el temporizador cuando llegue al 100%
+        self.update()  # Redibujar la pantalla
+
+    def paintEvent(self, event):
+        """
+        Dibuja la barra de progreso en la pantalla de carga.
+        """
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        # Dibujar fondo
+        painter.setBrush(QColor(240, 240, 240))
+        painter.drawRect(self.rect())
+
+        # Dibujar barra de progreso
+        bar_width = int(self.width() * (self.progress / 100))
+        painter.setBrush(QColor(100, 180, 255))
+        painter.drawRect(0, self.height() - 30, bar_width, 30)
+
+        # Dibujar texto
+        painter.setPen(Qt.black)
+        painter.setFont(QFont("Arial", 12, QFont.Bold))
+        painter.drawText(self.rect(), Qt.AlignCenter, f"Bienvenido a SensoraCore... {self.progress}%")
+
+        painter.end()
+
+    def mousePressEvent(self, event):
+        """
+        Permite mover la ventana al hacer clic y arrastrar.
+        """
+        if event.button() == Qt.LeftButton:
+            self.drag_position = self.mapToGlobal(event.position().toPoint()) - self.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        """
+        Actualiza la posición de la ventana mientras se arrastra.
+        """
+        if event.buttons() == Qt.LeftButton:
+            self.move(self.mapToGlobal(event.position().toPoint()) - self.drag_position)
+            event.accept()
+
+
+###
 class ui(QMainWindow):
     def __init__(self):
         """
@@ -17,36 +84,10 @@ class ui(QMainWindow):
         Inicializa todos los componentes de la interfaz y variables de estado
         """
         super().__init__()
-        # Crear una barra de carga simple
-        splash = QSplashScreen()
-        splash.setPixmap(QPixmap("SensoraCore/SC_DesktopApp/Assets/loading.png"))
-        splash.show()
-        
-        progress_bar = QProgressBar(splash)
-        progress_bar.setGeometry(10, splash.height() - 30, splash.width() - 20, 20)
-        progress_bar.setRange(0, 100)
-        progress_bar.setValue(0)
-        progress_bar.setTextVisible(True)
-        progress_bar.setStyleSheet("""
-            QProgressBar {
-            border: 2px solid #8f8f91;
-            border-radius: 5px;
-            text-align: center;
-            }
-            QProgressBar::chunk {
-            background-color: #05B8CC;
-            width: 20px;
-            }
-        """)
-        
-        for i in range(0, 101, 5):
-            progress_bar.setValue(i)
-            splash.showMessage(f"Cargando... {i}%", Qt.AlignHCenter | Qt.AlignBottom, Qt.black)
-            QCoreApplication.processEvents()
-            QThread.msleep(100)  # Simular carga
-        
-        splash.close()
-
+  
+        app = QApplication.instance()
+        if app:
+            app.processEvents()
         loader = QUiLoader() # Crear objeto de loader
         loaded_ui = loader.load("SensoraCore/SC_DesktopApp/Main/mainWindow.ui") # Cargar el archivo .ui
         self.setCentralWidget(loaded_ui)
@@ -61,6 +102,110 @@ class ui(QMainWindow):
         if btn:
             btn.clicked.connect(self.conectar)
 
+        # Conectar el QPushButton 'Terminal' para abrir/cerrar la ventana de log
+        terminal_button = self.findChild(QPushButton, "Terminal")
+        if terminal_button:
+            terminal_button.clicked.connect(self.toggle_ventana_log)
+
+        # Inicializar la ventana de log como None
+        self.log_window = None
+
+        #Inicializar boton de reinicio
+        reset_btn = self.findChild(QPushButton, "resetBT")
+        if reset_btn:
+            reset_btn.clicked.connect(self.reset)
+
+        # Definir los nombres de los botones de sensores y sus atributos
+        sensor_button_info = [
+            ("simple_angle_btn", "simpleAngleBT"),
+            ("angle_arm_btn", "angleArmBT"),
+            ("infrared_btn", "infraredBT"),
+            ("capasitive_btn", "capasitiveBT"),
+            ("ultrasonic_btn", "ultrasonicBT"),
+            ("optical_speed_btn", "OpticalSpeedBT"),
+            ("ir_steering_btn", "irSteeringBT"),
+            ("thermoregulation_btn", "thermoregulationBT"),
+            ("gas_regulation_btn", "gasRegulationBT"),
+            ("brightness_btn", "brightnessBT"),
+            ("color_cny_btn", "colorCNYBT"),
+            ("color_tcs_btn", "colorTCSBT"),
+        ]
+
+        # Recorrer la lista y asignar los atributos dinámicamente
+        for attr_name, btn_name in sensor_button_info:
+            setattr(self, attr_name, self.findChild(QPushButton, btn_name))
+        # Mapeo de botones a sus IDs de sensor
+        sensor_buttons_map = {
+            self.simple_angle_btn: "simpleAngle",
+            self.angle_arm_btn: "angleArm",
+            self.infrared_btn: "infrared",
+            self.capasitive_btn: "capasitive",
+            self.ultrasonic_btn: "ultrasonic",
+            self.optical_speed_btn: "opticalSpeed",
+            self.ir_steering_btn: "irSteering",
+            self.thermoregulation_btn: "thermoregulation",
+            self.gas_regulation_btn: "gasRegulation",
+            self.brightness_btn: "brightness",
+            self.color_cny_btn: "colorCNY",
+            self.color_tcs_btn: "colorTCS"
+        }
+        for btn, sensor_id in sensor_buttons_map.items():
+            if btn:
+                btn.clicked.connect(lambda _, sid=sensor_id: self.sensorSeleccionado(sid))
+
+    def toggle_ventana_log(self):
+        """
+        Abre o cierra la ventana de log al presionar el botón 'terminal'.
+        """
+        if self.log_window and self.log_window.isVisible():
+            self.log_window.close()
+            self.log_window = None
+        else:
+            self.abrir_ventana_log()
+
+    def reset(self):
+        """
+        Reinicia la conexión y la interfaz.
+        """
+        self.listaSensores.setVisible(False)
+        btn = self.findChild(QPushButton, "Conectar")
+        if btn:
+            btn.setEnabled(True)
+        status = self.findChild(QLabel, "Status")
+        if status:
+            status.setText("🔴Desconectado")
+            status.setStyleSheet("""
+                padding: 8px;
+                border-radius: 4px;
+                background-color: #f8d7da;
+                color: #721c24;
+                font-size: 18px;
+                font-weight: bold;
+                qproperty-alignment: 'AlignCenter';
+            """)
+        # Hacer visible el widget de bienvenida si existe
+        welcome_widget = self.findChild(QWidget, "Welcome")
+        if welcome_widget:
+            welcome_widget.setVisible(True)
+        # Deshabilitar botones de sensores
+        sensor_buttons = [
+            self.simple_angle_btn,
+            self.angle_arm_btn,
+            self.infrared_btn,
+            self.capasitive_btn,
+            self.ultrasonic_btn,
+            self.optical_speed_btn,
+            self.ir_steering_btn,
+            self.thermoregulation_btn,
+            self.gas_regulation_btn,
+            self.brightness_btn,
+            self.color_cny_btn,
+            self.color_tcs_btn
+        ]
+        for sensor_button in sensor_buttons:
+            if sensor_button:
+                sensor_button.setEnabled(False)
+
     def conectar(self):
         """
         Prueba la conexión TCP/IP con el ESP32 usando la IP proporcionada en el campo ipEdit
@@ -70,13 +215,30 @@ class ui(QMainWindow):
         ip = self.findChild(QLineEdit, "ipEdit")
         btn = self.findChild(QPushButton, "Conectar")
         status = self.findChild(QLabel, "Status")
-        if ip is None or btn is None or status is None:
-            QMessageBox.critical(self, "Error", "No se encontraron los widgets necesarios (ipEdit, Conectar, Status)")
+        ###<---------DEFINICION DE BOTONES DE SENSORES--------->###
+        sensor_buttons = [
+            self.simple_angle_btn,
+            self.angle_arm_btn,
+            self.infrared_btn,
+            self.capasitive_btn,
+            self.ultrasonic_btn,
+            self.optical_speed_btn,
+            self.ir_steering_btn,
+            self.thermoregulation_btn,
+            self.gas_regulation_btn,
+            self.brightness_btn,
+            self.color_cny_btn,
+            self.color_tcs_btn
+        ]
+        if ip is None or btn is None or status is None or any(b is None for b in sensor_buttons):
+            QMessageBox.critical(self, "Error", "No se encontraron los widgets necesarios (ipEdit, Conectar, Status, Sensores)")
             return
+
         esp32_ip = ip.text().strip()
         if not esp32_ip:
             QMessageBox.warning(self, "Advertencia", "Por favor ingrese la IP del ESP32.")
             return
+
         # Deshabilitar botón y mostrar estado de conexión en progreso
         btn.setEnabled(False)
         status.setText("🔄 Conectando...")
@@ -89,6 +251,7 @@ class ui(QMainWindow):
             font-weight: bold;
         """)
         self.repaint()
+
         # Crear cliente y probar conexión
         client = ESP32Client(esp32_ip)
         response = client.led_on()
@@ -104,7 +267,12 @@ class ui(QMainWindow):
             """)
             btn.setEnabled(False)
             self.listaSensores.setVisible(True)
+            # Habilitar botones de sensores
+            for sensor_button in sensor_buttons:
+                sensor_button.setEnabled(True)
+
             QMessageBox.information(self, "Conexión exitosa", f"Conectado a ESP32 en {esp32_ip}")
+
         else:
             status.setText("❌ Error de conexión")
             status.setStyleSheet("""
@@ -116,23 +284,44 @@ class ui(QMainWindow):
                 font-weight: bold;
             """)
             btn.setEnabled(True)
-            QMessageBox.critical(self, "Fallo de conexión", f"No se pudo conectar a la IP: {esp32_ip} \n  Respuesta de log: \n {response}")
 
-    def sensorSeleccionado(self):
+            # Deshabilitar botones de sensores
+            for sensor_button in sensor_buttons:
+                sensor_button.setEnabled(False)
+
+            QMessageBox.critical(self, "Fallo de conexión", f"No se pudo conectar a la IP: {esp32_ip} \n  Respuesta de log: \n {response}")
+            print(f"Error de conexión: {response} \n No se pudo conectar al ESP32 en la IP: {esp32_ip}")
+
+    def abrir_ventana_log(self):
+        """
+        Abre una ventana de log para mostrar todos los prints y mensajes de depuración.
+        """
+        self.log_window = QMainWindow(self)
+        self.log_window.setWindowTitle("Log de Depuración")
+        self.log_window.setGeometry(100, 100, 600, 400)
+
+        # Crear un widget de texto para mostrar el log
+        self.log_text_edit = QTextEdit(self.log_window)
+        self.log_text_edit.setReadOnly(True)
+        self.log_text_edit.setStyleSheet("background-color: black; color: white; font-family: Consolas; font-size: 12px;")
+
+        # Establecer el widget de texto como el central de la ventana
+        self.log_window.setCentralWidget(self.log_text_edit)
+        self.log_window.show()
+
+        # Redirigir la salida estándar y de error a la ventana de log
+        sys.stdout = EmittingStream(self.log_text_edit)
+        sys.stderr = EmittingStream(self.log_text_edit)
+
+    def sensorSeleccionado(self, sensor_id):
         """
         Maneja la selección de un sensor en la interfaz.
         """
-        # Obtener el sensor seleccionado
-        sensor = self.findChild(QComboBox, "simpleAngleBT")
-        if sensor is None:
-            return
-        sensor_id = sensor.currentData()
-        if sensor_id is None:
-            return
         # Ocultar el widget de bienvenida si existe
         welcome_widget = self.findChild(QWidget, "Welcome")
         if welcome_widget:
             welcome_widget.setVisible(False)
+
         # Realizar acción con el sensor seleccionado
         print(f"Sensor seleccionado: {sensor_id}")
 
@@ -166,33 +355,35 @@ class ESP32Client:
     
 
 ###
+class EmittingStream:
+    """
+    Clase para redirigir la salida estándar y de error a un QTextEdit.
+    """
+    def __init__(self, text_edit):
+        self.text_edit = text_edit
+
+    def write(self, text):
+        self.text_edit.append(text)
+
+    def flush(self):
+        pass
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+###
 if __name__ == "__main__":
-    app = QApplication(sys.argv) # Crear una aplicación Qt
+    app = QApplication(sys.argv)
+
+    # Crear la pantalla de carga
+    splash = LoadingSplashScreen()
+    splash.show()
+
+    for _ in range(100):
+        time.sleep(0.05) 
+        app.processEvents() 
+
+    # Cargar la ventana principal
     window = ui()
-    window.show() # Mostrar la ventana
-    app.exec() # Ejecutar el bucle de eventos
+    splash.close()  # Cerrar la pantalla de carga
+    window.show()
+
+    app.exec()

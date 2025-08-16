@@ -6,6 +6,9 @@ import json
 import os
 import socket
 import sys
+import time
+import math
+
 from datetime import datetime
 from typing import List, Optional, Tuple
 
@@ -37,4 +40,3 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QFileDialog, QF
                               QMessageBox, QPushButton, QScrollArea, 
                               QSplitter, QTableWidget, QStackedWidget,
                               QTableWidgetItem, QVBoxLayout, QWidget)
-# --- Módulos personalizados ---

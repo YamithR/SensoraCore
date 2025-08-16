@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1125</width>
-    <height>760</height>
+    <width>1236</width>
+    <height>758</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,7 +38,7 @@
       <property name="styleSheet">
        <string notr="true">border-radius: 10px;
 border-color: rgb(255, 0, 0);
-border: 1px solid #2ecc71;
+border: 0px solid #2ecc71;
 background-color: rgb(255, 255, 255);</string>
       </property>
       <property name="frameShape">
@@ -48,446 +48,6 @@ background-color: rgb(255, 255, 255);</string>
        <enum>QFrame::Shadow::Raised</enum>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="0" column="1">
-        <widget class="QWidget" name="Mlateral" native="true">
-         <property name="minimumSize">
-          <size>
-           <width>350</width>
-           <height>700</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>350</width>
-           <height>9999</height>
-          </size>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
-          <item>
-           <widget class="QLabel" name="Titulo">
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:24pt; font-weight:700; color:#007bff;&quot;&gt;SensoraCore&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:12pt; color:#969696;&quot;&gt;Sistema de Monitoreo de Sensores WiFi&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QGroupBox" name="Conf">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>250</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">#Conf {
-    color: rgb(102, 102, 102) ;
-    border: 2px solid rgb(177, 177, 177) ;
-    border-radius: 5px;
-    margin-top: 15px; /* espacio para el título */
-    font: bold 14px;
-}
-#Conf::title {
-    subcontrol-origin: margin;
-    subcontrol-position: top left ;
-    left: 20px;
-    background-color: rgba(255, 255, 255, 255);
-	padding: 2px;
-
-    border-radius: 5px;
-}</string>
-            </property>
-            <property name="title">
-             <string>Configuración de Conexión</string>
-            </property>
-            <layout class="QVBoxLayout" name="verticalLayout">
-             <property name="spacing">
-              <number>6</number>
-             </property>
-             <property name="leftMargin">
-              <number>6</number>
-             </property>
-             <property name="topMargin">
-              <number>22</number>
-             </property>
-             <property name="rightMargin">
-              <number>6</number>
-             </property>
-             <property name="bottomMargin">
-              <number>5</number>
-             </property>
-             <item>
-              <widget class="QGroupBox" name="IP">
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>75</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">
-#IP {
-    color: rgb(102, 102, 102) ;
-    border: 2px solid rgb(177, 177, 177) ;
-    border-radius: 5px;
-    margin-top: 15px; /* espacio para el título */
-    font: bold 14px;
-	margin-top:20px;
-	font-size: 13px;
-}
-#IP::title {
-	margin-top:8px;
-    subcontrol-origin: margin;
-    subcontrol-position: top left ;
-	bottom:10px;
-    background-color: rgba(255, 255, 255, 255);
-    border-radius: 5px;
-}</string>
-               </property>
-               <property name="title">
-                <string>IP del ESP32:</string>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_3">
-                <property name="verticalSpacing">
-                 <number>6</number>
-                </property>
-                <item row="0" column="0">
-                 <widget class="QLineEdit" name="ipEdit">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>50</height>
-                   </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">color: rgb(177, 177, 177);
-font-size: 18px;</string>
-                  </property>
-                  <property name="placeholderText">
-                   <string>Ejemplo: 192.168.1.100</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="Conectar">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>50</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>50</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">#Conectar {
-	background-color: rgba(0, 255, 0, 20);
-	font-size: 18px;
-	color: rgb(0, 0, 0);
-	font-weight: bold;
-}
-#Conectar:hover {
-	color:rgb(255, 255, 255);
-	background-color: rgb(0, 123, 255);
-}
-#Conectar:hover:pressed {
-	color:rrgb(255, 0, 0);
-	background-color: rgb(0, 255, 127);
-}
-#Conectar:disabled{
-	background-color: rgb(186, 186, 186);
-}
-</string>
-               </property>
-               <property name="text">
-                <string>🔌 Conectar a ESP32</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="Status">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>50</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>50</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">color: rgb(134, 15, 17);
-background-color: rgb(255, 210, 211);</string>
-               </property>
-               <property name="text">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;🔴&lt;/span&gt;&lt;span style=&quot; font-size:14pt; font-weight:700;&quot;&gt;Desconectado&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QGroupBox" name="list">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>300</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>90000</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">#list {
-    color: rgb(102, 102, 102) ;
-    border: 2px solid rgb(177, 177, 177) ;
-    border-radius: 5px;
-    margin-top: 15px; /* espacio para el título */
-    font: bold 14px;
-}
-#list::title {
-    subcontrol-origin: margin;
-    subcontrol-position: top left ;
-    left: 20px;
-    background-color: rgba(255, 255, 255, 255);
-	padding: 2px;
-
-    border-radius: 5px;
-}</string>
-            </property>
-            <property name="title">
-             <string>Sensores Disponibles</string>
-            </property>
-            <layout class="QGridLayout" name="gridLayout_5">
-             <property name="leftMargin">
-              <number>2</number>
-             </property>
-             <property name="rightMargin">
-              <number>2</number>
-             </property>
-             <item row="0" column="0">
-              <widget class="QScrollArea" name="scrollArea">
-               <property name="widgetResizable">
-                <bool>true</bool>
-               </property>
-               <widget class="QWidget" name="scrollAreaWidgetContents">
-                <property name="geometry">
-                 <rect>
-                  <x>0</x>
-                  <y>0</y>
-                  <width>322</width>
-                  <height>320</height>
-                 </rect>
-                </property>
-                <layout class="QVBoxLayout" name="verticalLayout_2">
-                 <item>
-                  <widget class="QWidget" name="simpleAngle" native="true">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>60</height>
-                    </size>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">QWidget{
-color: rgb(0, 0, 0);
-	border-top-color: rgb(222, 222, 222);
-	border-bottom-color: rgb(222, 222, 222);
-  
-	border-left: none;
-	border-right: none;
-
-	border-radius:0px
-}
-QLabel{
-border:none;
-background-color: rgba(0, 0, 0, 0);
-
-}
-QLabel:hover{
-border:none;
-background-color: rgba(0, 0, 0, 0);
-}
-QPushButton{
-border:none;
-background-color: rgba(0, 0, 0, 0);
-}
-QPushButton:hover{
-border:none;
-background-color: rgba(0, 0, 0, 0);
-}
-QPushButton:hover:pressed{
-border:none;
-background-color: rgba(255, 255, 127, 20);
-}
-QWidget:hover{
-	background-color: rgba(0, 123, 255, 20);
-}</string>
-                   </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_5">
-                    <item>
-                     <widget class="QPushButton" name="simpleAngleBT">
-                      <property name="minimumSize">
-                       <size>
-                        <width>105</width>
-                        <height>25</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>999</width>
-                        <height>999</height>
-                       </size>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">text-align: left;
-padding-left: 10px;</string>
-                      </property>
-                      <property name="text">
-                       <string>🎛️SIMPLE ALGLE</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QLabel" name="text">
-                      <property name="maximumSize">
-                       <size>
-                        <width>16777215</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string> Potenciometro como sensor de angulo</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QWidget" name="angleArm" native="true">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>16777215</width>
-                     <height>60</height>
-                    </size>
-                   </property>
-                   <property name="styleSheet">
-                    <string notr="true">QWidget{
-color: rgb(0, 0, 0);
-	border-top-color: rgb(222, 222, 222);
-	border-bottom-color: rgb(222, 222, 222);
-  
-	border-left: none;
-	border-right: none;
-
-	border-radius:0px
-}
-QLabel{
-border:none;
-background-color: rgba(0, 0, 0, 0);
-
-}
-QLabel:hover{
-border:none;
-background-color: rgba(0, 0, 0, 0);
-}
-QPushButton{
-border:none;
-background-color: rgba(0, 0, 0, 0);
-}
-QPushButton:hover{
-border:none;
-background-color: rgba(0, 0, 0, 0);
-}
-QPushButton:hover:pressed{
-border:none;
-background-color: rgba(255, 255, 127, 20);
-}
-QWidget:hover{
-	background-color: rgba(0, 123, 255, 20);
-}</string>
-                   </property>
-                   <layout class="QVBoxLayout" name="verticalLayout_6">
-                    <item>
-                     <widget class="QPushButton" name="angleArmTB">
-                      <property name="minimumSize">
-                       <size>
-                        <width>105</width>
-                        <height>25</height>
-                       </size>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>999</width>
-                        <height>999</height>
-                       </size>
-                      </property>
-                      <property name="styleSheet">
-                       <string notr="true">text-align: left;
-padding-left: 10px;</string>
-                      </property>
-                      <property name="text">
-                       <string>🦾ANGLE ARM</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QLabel" name="text_2">
-                      <property name="maximumSize">
-                       <size>
-                        <width>16777215</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string>Multiples Potenciometros como simulacion de Brazo</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
        <item row="0" column="3">
         <widget class="QWidget" name="SensorUI" native="true">
          <property name="minimumSize">
@@ -617,15 +177,1459 @@ background-color: rgba(0, 123, 255, 20);</string>
          </property>
         </widget>
        </item>
+       <item row="0" column="0">
+        <widget class="QWidget" name="Mlateral" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>350</width>
+           <height>700</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>350</width>
+           <height>9999</height>
+          </size>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <widget class="QLabel" name="Titulo">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:24pt; font-weight:700; color:#007bff;&quot;&gt;SensoraCore&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:12pt; color:#969696;&quot;&gt;Sistema de Monitoreo de Sensores WiFi&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="Conf">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>250</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">#Conf {
+    color: rgb(102, 102, 102) ;
+    border: 2px solid rgb(177, 177, 177) ;
+    border-radius: 5px;
+    margin-top: 15px; /* espacio para el título */
+    font: bold 14px;
+}
+#Conf::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left ;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 255);
+	padding: 2px;
+
+    border-radius: 5px;
+}</string>
+            </property>
+            <property name="title">
+             <string>Configuración de Conexión</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout">
+             <property name="spacing">
+              <number>6</number>
+             </property>
+             <property name="leftMargin">
+              <number>6</number>
+             </property>
+             <property name="topMargin">
+              <number>22</number>
+             </property>
+             <property name="rightMargin">
+              <number>6</number>
+             </property>
+             <property name="bottomMargin">
+              <number>5</number>
+             </property>
+             <item>
+              <widget class="QGroupBox" name="IP">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>75</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">
+#IP {
+    color: rgb(102, 102, 102) ;
+    border: 2px solid rgb(177, 177, 177) ;
+    border-radius: 5px;
+    margin-top: 15px; /* espacio para el título */
+    font: bold 14px;
+	margin-top:20px;
+	font-size: 13px;
+}
+#IP::title {
+	margin-top:8px;
+    subcontrol-origin: margin;
+    subcontrol-position: top left ;
+	bottom:10px;
+    background-color: rgba(255, 255, 255, 255);
+    border-radius: 5px;
+}</string>
+               </property>
+               <property name="title">
+                <string>IP del ESP32:</string>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_3">
+                <property name="verticalSpacing">
+                 <number>6</number>
+                </property>
+                <item row="0" column="0">
+                 <widget class="QLineEdit" name="ipEdit">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>50</height>
+                   </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">color: rgb(177, 177, 177);
+font-size: 18px;</string>
+                  </property>
+                  <property name="placeholderText">
+                   <string>Ejemplo: 192.168.1.100</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QPushButton" name="Terminal">
+                  <property name="minimumSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="sizeIncrement">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#Terminal{
+background-color: rgb(0, 0, 0);
+border-color:none;
+}
+
+#Terminal:hover {
+	color:rgb(255, 255, 255);
+	background-color: rgb(0, 123, 255);
+}
+#Terminal:hover:pressed {
+	color:rrgb(255, 0, 0);
+background-color: rgb(0, 255, 127);
+}</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="Conectar">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>50</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>50</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">#Conectar {
+	background-color: rgba(0, 255, 0, 20);
+	font-size: 18px;
+	color: rgb(0, 0, 0);
+	font-weight: bold;
+}
+#Conectar:hover {
+	color:rgb(255, 255, 255);
+	background-color: rgb(0, 123, 255);
+}
+#Conectar:hover:pressed {
+	color:rrgb(255, 0, 0);
+	background-color: rgb(0, 255, 127);
+}
+#Conectar:disabled{
+	background-color: rgb(186, 186, 186);
+}
+</string>
+               </property>
+               <property name="text">
+                <string>🔌 Conectar a ESP32</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QWidget" name="widget" native="true">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>67</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true"/>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout">
+                <property name="spacing">
+                 <number>1</number>
+                </property>
+                <property name="leftMargin">
+                 <number>1</number>
+                </property>
+                <property name="topMargin">
+                 <number>1</number>
+                </property>
+                <property name="rightMargin">
+                 <number>1</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>1</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="Status">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>50</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>250</width>
+                    <height>55</height>
+                   </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">color: rgb(134, 15, 17);
+background-color: rgb(255, 210, 211);</string>
+                  </property>
+                  <property name="text">
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;🔴&lt;/span&gt;&lt;span style=&quot; font-size:14pt; font-weight:700;&quot;&gt;Desconectado&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="resetBT">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>55</width>
+                    <height>55</height>
+                   </size>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>CrossCursor</cursorShape>
+                  </property>
+                  <property name="toolTip">
+                   <string notr="true"/>
+                  </property>
+                  <property name="layoutDirection">
+                   <enum>Qt::LayoutDirection::LeftToRight</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">background-color: rgb(0, 166, 237);
+font-size:40px;
+text-align: center;
+</string>
+                  </property>
+                  <property name="text">
+                   <string>🔄️</string>
+                  </property>
+                  <property name="checkable">
+                   <bool>false</bool>
+                  </property>
+                  <property name="autoDefault">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="list">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>300</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>90000</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">#list {
+    color: rgb(102, 102, 102) ;
+    border: 2px solid rgb(177, 177, 177) ;
+    border-radius: 5px;
+    margin-top: 15px; /* espacio para el título */
+    font: bold 14px;
+}
+#list::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left ;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 255);
+	padding: 2px;
+
+    border-radius: 5px;
+}</string>
+            </property>
+            <property name="title">
+             <string>Sensores Disponibles</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_5">
+             <property name="leftMargin">
+              <number>2</number>
+             </property>
+             <property name="rightMargin">
+              <number>2</number>
+             </property>
+             <item row="0" column="1">
+              <widget class="QScrollArea" name="scrollArea">
+               <property name="widgetResizable">
+                <bool>true</bool>
+               </property>
+               <widget class="QWidget" name="scrollAreaWidgetContents">
+                <property name="geometry">
+                 <rect>
+                  <x>0</x>
+                  <y>-120</y>
+                  <width>312</width>
+                  <height>804</height>
+                 </rect>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_2">
+                 <item>
+                  <widget class="QWidget" name="simpleAngle" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_15">
+                    <item>
+                     <widget class="QPushButton" name="simpleAngleBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>SIMPLE ALGLE</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="simpleAngletext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string> Potenciometro como sensor de angulo</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="angleArm" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_6">
+                    <item>
+                     <widget class="QPushButton" name="angleArmBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>ANGLE ARM</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="angleArmtext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Potenciometros como simulacion de Brazo</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="infrared" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_7">
+                    <item>
+                     <widget class="QPushButton" name="infraredBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>INFRARED</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="infraredtext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Sensor de proximidad con Infrarojos</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="capasitive" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_8">
+                    <item>
+                     <widget class="QPushButton" name="capasitiveBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>CAPASITIVE</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="capasitivetext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Sensor de proximidad con sensor Capasitivo</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="ultrasonic" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_9">
+                    <item>
+                     <widget class="QPushButton" name="ultrasonicBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>ULTRASONIC</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="ultrasonictext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Sensor de distancia con Ultrasonidos</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="OpticalSpeed" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_10">
+                    <item>
+                     <widget class="QPushButton" name="OpticalSpeedBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>OPTICAL SPEED</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="OpticalSpeedtext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Control y monitoreo de Velocidad</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="irSteering" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_5">
+                    <item>
+                     <widget class="QPushButton" name="irSteeringBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>IR STEERING</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="irSteeringtext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Direccion de según infrarojos</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="thermoregulation" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_16">
+                    <item>
+                     <widget class="QPushButton" name="thermoregulationBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>THERMOREGULATION</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="thermoregulationtext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Control y monitoreo de temperatura</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="gasRegulation" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_14">
+                    <item>
+                     <widget class="QPushButton" name="gasRegulationBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>GAS REGULATION</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="gasRegulationtext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Control de flujo de aire y densidad de gases</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="brightness" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_13">
+                    <item>
+                     <widget class="QPushButton" name="brightnessBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>BRIGHTNESS</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="brightnesstext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Sensor de brillo</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="colorCNY" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_12">
+                    <item>
+                     <widget class="QPushButton" name="colorCNYBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>COLOR CNY</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="colorCNYtext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Color según infrarojos</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="colorTCS" native="true">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>290</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">QWidget{
+color: rgb(0, 0, 0);
+	border-top-color: rgb(222, 222, 222);
+	border-bottom-color: rgb(222, 222, 222);
+  
+	border-left: none;
+	border-right: none;
+
+	border-radius:0px
+}
+QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+}
+QPushButton:hover:pressed{
+border:none;
+background-color: rgba(255, 255, 127, 20);
+}
+QWidget:hover{
+	background-color: rgba(0, 123, 255, 20);
+}</string>
+                   </property>
+                   <layout class="QVBoxLayout" name="verticalLayout_11">
+                    <item>
+                     <widget class="QPushButton" name="colorTCSBT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>105</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>999</width>
+                        <height>999</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">text-align: left;
+padding-left: 10px;</string>
+                      </property>
+                      <property name="text">
+                       <string>COLOR TCS</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="colorTCStext">
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Color según TCS3200</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
    </layout>
   </widget>
  </widget>
- <tabstops>
-  <tabstop>Conectar</tabstop>
- </tabstops>
  <resources/>
  <connections/>
 </ui>
