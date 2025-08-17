@@ -45,7 +45,7 @@ class Ui_MainWindow(object):
         self.SensorUI = QWidget(self.PantallaPrincipal)
         self.SensorUI.setObjectName(u"SensorUI")
         self.SensorUI.setMinimumSize(QSize(700, 700))
-        self.SensorUI.setMaximumSize(QSize(900, 16777215))
+        self.SensorUI.setMaximumSize(QSize(999999, 16777215))
         self.SensorUI.setStyleSheet(u"QGroupBox {\n"
 "    color: rgb(102, 102, 102) ;\n"
 "    border: 2px solid rgb(177, 177, 177) ;\n"
@@ -184,7 +184,7 @@ class Ui_MainWindow(object):
 
         self.Terminal = QPushButton(self.IP)
         self.Terminal.setObjectName(u"Terminal")
-        self.Terminal.setMinimumSize(QSize(20, 20))
+        self.Terminal.setMinimumSize(QSize(27, 20))
         self.Terminal.setMaximumSize(QSize(16777215, 16777215))
         self.Terminal.setSizeIncrement(QSize(0, 0))
         self.Terminal.setStyleSheet(u"#Terminal{\n"
@@ -257,7 +257,7 @@ class Ui_MainWindow(object):
         self.resetBT.setToolTip(u"")
 #endif // QT_CONFIG(tooltip)
         self.resetBT.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        self.resetBT.setStyleSheet(u"background-color: rgb(0, 166, 237);\n"
+        self.resetBT.setStyleSheet(u"background-color: rgba(255, 255, 255, 0);\n"
 "font-size:40px;\n"
 "text-align: center;\n"
 "")
@@ -300,7 +300,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, -120, 312, 804))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 312, 804))
         self.verticalLayout_2 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.simpleAngle = QWidget(self.scrollAreaWidgetContents)
@@ -1028,10 +1028,10 @@ class Ui_MainWindow(object):
         self.Conf.setTitle(QCoreApplication.translate("MainWindow", u"Configuraci\u00f3n de Conexi\u00f3n", None))
         self.IP.setTitle(QCoreApplication.translate("MainWindow", u"IP del ESP32:", None))
         self.ipEdit.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Ejemplo: 192.168.1.100", None))
-        self.Terminal.setText("")
+        self.Terminal.setText(QCoreApplication.translate("MainWindow", u"_", None))
         self.Conectar.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd0c Conectar a ESP32", None))
         self.Status.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:14pt;\">\ud83d\udd34</span><span style=\" font-size:14pt; font-weight:700;\">Desconectado</span></p></body></html>", None))
-        self.resetBT.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd04\ufe0f", None))
+        self.resetBT.setText(QCoreApplication.translate("MainWindow", u"\ud83d\udd3b", None))
         self.list.setTitle(QCoreApplication.translate("MainWindow", u"Sensores Disponibles", None))
         self.simpleAngleBT.setText(QCoreApplication.translate("MainWindow", u"SIMPLE ALGLE", None))
         self.simpleAngletext.setText(QCoreApplication.translate("MainWindow", u" Potenciometro como sensor de angulo", None))

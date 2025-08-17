@@ -39,4 +39,5 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QFileDialog, QF
                               QListWidget, QListWidgetItem, QMainWindow, 
                               QMessageBox, QPushButton, QScrollArea, 
                               QSplitter, QTableWidget, QStackedWidget,
-                              QTableWidgetItem, QVBoxLayout, QWidget)
+                              QTableWidgetItem, QVBoxLayout, QWidget, QSplashScreen, QTextEdit)
+from PySide6.QtUiTools import QUiLoader

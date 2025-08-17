@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>simpleAngle</class>
+ <widget class="QWidget" name="simpleAngle">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>749</width>
+    <height>696</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">background-color: rgb(255, 255, 255);
+border: 1px solid rgb(221, 221, 221);
+border-radius: 5px;
+color: rgb(0, 0, 0);</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QFrame" name="frame">
+     <property name="frameShape">
+      <enum>QFrame::Shape::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Shadow::Raised</enum>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_6">
+      <item row="0" column="0" colspan="3">
+       <widget class="QLabel" name="titulo">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>45</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">        background-color: #f8f9fa;       
+        border: 2px solid #dee2e6;         
+        border-radius: 6px;              
+   </string>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:22pt; font-weight:700; color:#007bff;&quot;&gt;Monitoreo de Sensor de Ángulo&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0" colspan="3">
+       <widget class="QGroupBox" name="controles">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>150</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>150</height>
+         </size>
+        </property>
+        <property name="sizeIncrement">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QGroupBox {
+    color: rgb(102, 102, 102) ;
+    background-color: #f8f9fa;        
+    border-radius: 6px;
+    border: 1px solid rgb(177, 177, 177) ;
+    border-radius: 5px;
+    margin-top: 15px; /* espacio para el título */
+    font: bold 12px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left ;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 255);
+	padding: 2px;
+    border-radius: 5px;
+}
+
+</string>
+        </property>
+        <property name="title">
+         <string>Controles</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QWidget" name="botones" native="true">
+           <layout class="QGridLayout" name="gridLayout_3">
+            <item row="0" column="0">
+             <widget class="QPushButton" name="iniciar">
+              <property name="styleSheet">
+               <string notr="true">font-size: 14px;                   
+font-weight: bold;             
+color: rgb(0, 0, 0);
+padding: 8px;                
+background-color: rgb(236, 236, 236);         
+border-radius: 4px;           
+border: 1px solid rgb(0, 0, 0);     
+margin-top: 5px;        </string>
+              </property>
+              <property name="text">
+               <string>Iniciar Monitoreo</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QPushButton" name="calibrar">
+              <property name="styleSheet">
+               <string notr="true">        font-size: 14px;                    /* Tamaño menor para información secundaria */
+        font-weight: bold;                  /* Texto en negrita */
+        color: #856404;                     /* Color ámbar para indicar estado */
+        padding: 8px;                       /* Espacio interno menor */
+        background-color: #fff3cd;          /* Fondo ámbar claro */
+        border-radius: 4px;                 /* Esquinas redondeadas menores */
+        border: 1px solid #ffeaa7;          /* Borde ámbar */
+        margin-top: 5px;                    /* Separación superior */</string>
+              </property>
+              <property name="text">
+               <string>No Calibrado</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QPushButton" name="limpiar">
+              <property name="styleSheet">
+               <string notr="true">        font-size: 14px;                    /* Tamaño menor para información secundaria */
+        font-weight: bold;                  /* Texto en negrita */
+        color: #856404;                     /* Color ámbar para indicar estado */
+        padding: 8px;                       /* Espacio interno menor */
+        background-color: #fff3cd;          /* Fondo ámbar claro */
+        border-radius: 4px;                 /* Esquinas redondeadas menores */
+        border: 1px solid #ffeaa7;          /* Borde ámbar */
+        margin-top: 5px;                    /* Separación superior */</string>
+              </property>
+              <property name="text">
+               <string>Limpiar Gráfica</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QPushButton" name="exportar">
+              <property name="styleSheet">
+               <string notr="true">        font-size: 14px;                    /* Tamaño menor para información secundaria */
+        font-weight: bold;                  /* Texto en negrita */
+        color: #856404;                     /* Color ámbar para indicar estado */
+        padding: 8px;                       /* Espacio interno menor */
+        background-color: #fff3cd;          /* Fondo ámbar claro */
+        border-radius: 4px;                 /* Esquinas redondeadas menores */
+        border: 1px solid #ffeaa7;          /* Borde ámbar */
+        margin-top: 5px;                    /* Separación superior */</string>
+              </property>
+              <property name="text">
+               <string>Exportal a Exel</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QWidget" name="datos" native="true">
+           <property name="maximumSize">
+            <size>
+             <width>900</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="0" column="0">
+             <widget class="QLabel" name="datosLabel">
+              <property name="text">
+               <string>Datos</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="analogo">
+              <property name="text">
+               <string>Análogo</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QLabel" name="angulo">
+              <property name="text">
+               <string>Ángulo</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="lectura">
+              <property name="text">
+               <string>Lectura</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="analogoDt">
+              <property name="text">
+               <string>--</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QLabel" name="anguloDt">
+              <property name="text">
+               <string>--</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0" colspan="3">
+             <widget class="QWidget" name="calBox" native="true">
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <property name="leftMargin">
+                <number>3</number>
+               </property>
+               <property name="topMargin">
+                <number>3</number>
+               </property>
+               <property name="rightMargin">
+                <number>3</number>
+               </property>
+               <property name="bottomMargin">
+                <number>3</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="calibrado">
+                 <property name="text">
+                  <string>Calibrado</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="analogoDtCal">
+                 <property name="text">
+                  <string>--</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="anguloDtCal">
+                 <property name="text">
+                  <string>--</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QGroupBox" name="diagrama">
+        <property name="maximumSize">
+         <size>
+          <width>300</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QGroupBox {
+    color: rgb(102, 102, 102) ;
+    background-color: #f8f9fa;        
+    border-radius: 6px;
+    border: 1px solid rgb(177, 177, 177) ;
+    border-radius: 5px;
+    margin-top: 15px; /* espacio para el título */
+    font: bold 12px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left ;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 255);
+	padding: 2px;
+    border-radius: 5px;
+}
+
+</string>
+        </property>
+        <property name="title">
+         <string>Diagrama de Conexiones</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="QLabel" name="dibujo">
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;pre style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;┌─────────────────────────────────┐&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  ESP32 DevKit V1                │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│                                 │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  3V3  ○ ←── Potenciómetro (+)   │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  D32  ○ ←── Potenciómetro (S)   │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  GND  ○ ←── Potenciómetro (-)   │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│                                 │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  LED integrado: GPIO 2          │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;└─────────────────────────────────┘&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;&lt;br/&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; font-weight:700; color:#495057;&quot;&gt;Potenciómetro 10kΩ:&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt; • Pin (+): Alimentación 3.3V&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt; • Pin (-): Tierra (GND)  &lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt; • Pin (S): Señal analógica → GPIO 32&lt;/span&gt;&lt;/pre&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="nota">
+           <property name="maximumSize">
+            <size>
+             <width>999</width>
+             <height>75</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">        font-size: 13px;                    /* Tamaño menor para nota */
+        color: #856404;                     /* Color ámbar oscuro */
+        background-color: #fff3cd;          /* Fondo ámbar claro (alerta) */
+        border: 1px solid #ffeaa7;          /* Borde ámbar */
+        border-radius: 4px;                 /* Esquinas redondeadas */
+        padding: 8px;                       /* Espacio interno */
+        margin-top: 5px;                    /* Separación superior */
+</string>
+           </property>
+           <property name="text">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;justify&quot;&gt;💡 &lt;span style=&quot; font-weight:700;&quot;&gt;Nota:&lt;/span&gt; Asegúrate de conectar el &lt;br/&gt;potenciómetro correctamente antes &lt;br/&gt;de iniciar el monitoreo&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="1" colspan="2">
+       <widget class="QGroupBox" name="grafica">
+        <property name="styleSheet">
+         <string notr="true">QGroupBox {
+    color: rgb(102, 102, 102) ;
+    background-color: #f8f9fa;        
+    border-radius: 6px;
+    border: 1px solid rgb(177, 177, 177) ;
+    border-radius: 5px;
+    margin-top: 15px; /* espacio para el título */
+    font: bold 12px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left ;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 255);
+	padding: 2px;
+    border-radius: 5px;
+}
+
+</string>
+        </property>
+        <property name="title">
+         <string>Gráfica</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="0" column="0">
+          <widget class="QWidget" name="grapWid" native="true"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="3">
+       <widget class="QLabel" name="descripcion">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>60</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">        background-color: #f8f9fa;       
+        border: 2px solid #dee2e6;         
+        border-radius: 6px;              
+   </string>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:10pt; font-style:italic;&quot;&gt;Monitorea en tiempo real la lectura analógico digital del sensor potenciómetro conectado a un pin GPIO del microcontrolador &lt;br/&gt;para traducirlo a Ángulo y su posterior calibración por medio de Regresión Lineal Asistida. Incluye información didáctica&lt;br/&gt; para su caracterización.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'simpleAngle.ui'
+## Form generated from reading UI file 'colorTCS.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.1
 ##
@@ -17,19 +17,19 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QSizePolicy, QWidget)
 
-class Ui_Form(object):
-    def setupUi(self, Form):
-        if not Form.objectName():
-            Form.setObjectName(u"Form")
-        Form.resize(969, 653)
-        Form.setStyleSheet(u"background-color: rgb(237, 34, 255);")
+class Ui_colorTCS(object):
+    def setupUi(self, colorTCS):
+        if not colorTCS.objectName():
+            colorTCS.setObjectName(u"colorTCS")
+        colorTCS.resize(969, 653)
+        colorTCS.setStyleSheet(u"background-color: rgba(126, 82, 220, 1);")
 
-        self.retranslateUi(Form)
+        self.retranslateUi(colorTCS)
 
-        QMetaObject.connectSlotsByName(Form)
+        QMetaObject.connectSlotsByName(colorTCS)
     # setupUi
 
-    def retranslateUi(self, Form):
-        Form.setWindowTitle(QCoreApplication.translate("Form", u"Form", None))
+    def retranslateUi(self, colorTCS):
+        colorTCS.setWindowTitle(QCoreApplication.translate("colorTCS", u"Form", None))
     # retranslateUi
 

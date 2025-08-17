@@ -4,8 +4,8 @@ Función: Define la ventana principal y todas las interfaces de los sensores
 Propósito: Crear una aplicación desktop para monitoreo de sensores ESP32
 """
 #Importando componentes necesarios
-from PySide6.QtWidgets import *
-from PySide6.QtUiTools import QUiLoader
+#from PySide6.QtWidgets import *
+from SensoraCore.SC_DesktopApp.Modules.simpleAngle.simpleAngle_logic import SimpleAngleLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -92,6 +92,20 @@ class ui(QMainWindow):
         loaded_ui = loader.load("SensoraCore/SC_DesktopApp/Main/mainWindow.ui") # Cargar el archivo .ui
         self.setCentralWidget(loaded_ui)
         self.setWindowTitle("SensoraCore") #Titulo de la ventana
+        # Configuracion de widgets de modulos
+        self.simpleAngleUi = loader.load("SensoraCore/SC_DesktopApp/Modules/simpleAngle/simpleAngle.ui")
+        self.angleArmUi = loader.load("SensoraCore/SC_DesktopApp/Modules/angleArm/angleArm.ui")
+        self.infraredUi = loader.load("SensoraCore/SC_DesktopApp/Modules/infrared/infrared.ui")
+        self.capasitiveUi = loader.load("SensoraCore/SC_DesktopApp/Modules/capasitive/capasitive.ui")
+        self.ultrasonicUi = loader.load("SensoraCore/SC_DesktopApp/Modules/ultrasonic/ultrasonic.ui")
+        self.opticalSpeedUi = loader.load("SensoraCore/SC_DesktopApp/Modules/opticalSpeed/opticalSpeed.ui")
+        self.irSteeringUi = loader.load("SensoraCore/SC_DesktopApp/Modules/irSteering/irSteering.ui")
+        self.thermoregulationUi = loader.load("SensoraCore/SC_DesktopApp/Modules/thermoregulation/thermoregulation.ui")
+        self.gasRegulationUi = loader.load("SensoraCore/SC_DesktopApp/Modules/gasRegulation/gasRegulation.ui")
+        self.brightnessUi = loader.load("SensoraCore/SC_DesktopApp/Modules/brightness/brightness.ui")
+        self.colorCNYUi = loader.load("SensoraCore/SC_DesktopApp/Modules/colorCNY/colorCNY.ui")
+        self.colorTCSUi = loader.load("SensoraCore/SC_DesktopApp/Modules/colorTCS/colorTCS.ui")
+        
         
         # Configurar el grupo de widgets para la lista de sensores
         self.listaSensores = self.findChild(QGroupBox, "list")
@@ -114,6 +128,9 @@ class ui(QMainWindow):
         reset_btn = self.findChild(QPushButton, "resetBT")
         if reset_btn:
             reset_btn.clicked.connect(self.reset)
+
+
+
 
         # Definir los nombres de los botones de sensores y sus atributos
         sensor_button_info = [
@@ -153,6 +170,9 @@ class ui(QMainWindow):
             if btn:
                 btn.clicked.connect(lambda _, sid=sensor_id: self.sensorSeleccionado(sid))
 
+        # Definir el widget de bienvenida
+        self.welcome_widget = self.findChild(QWidget, "Welcome")
+
     def toggle_ventana_log(self):
         """
         Abre o cierra la ventana de log al presionar el botón 'terminal'.
@@ -183,28 +203,26 @@ class ui(QMainWindow):
                 font-weight: bold;
                 qproperty-alignment: 'AlignCenter';
             """)
-        # Hacer visible el widget de bienvenida si existe
-        welcome_widget = self.findChild(QWidget, "Welcome")
-        if welcome_widget:
-            welcome_widget.setVisible(True)
-        # Deshabilitar botones de sensores
-        sensor_buttons = [
-            self.simple_angle_btn,
-            self.angle_arm_btn,
-            self.infrared_btn,
-            self.capasitive_btn,
-            self.ultrasonic_btn,
-            self.optical_speed_btn,
-            self.ir_steering_btn,
-            self.thermoregulation_btn,
-            self.gas_regulation_btn,
-            self.brightness_btn,
-            self.color_cny_btn,
-            self.color_tcs_btn
-        ]
-        for sensor_button in sensor_buttons:
-            if sensor_button:
-                sensor_button.setEnabled(False)
+
+        # Si hay widgets de sensores abiertos, cerrarlos
+        sensor_ui = self.findChild(QWidget, "SensorUI")
+        if sensor_ui:
+            layout = sensor_ui.layout()
+            if layout is not None:
+                while layout.count():
+                    child = layout.takeAt(0)
+                    if child.widget():
+                        child.widget().setParent(None)
+
+        # Volver a hacer visible la ventana de "welcome"
+        sensor_ui = self.findChild(QWidget, "SensorUI")
+        if sensor_ui and self.welcome_widget:
+            layout = sensor_ui.layout()
+            self.welcome_widget.setParent(sensor_ui)
+            layout.addWidget(self.welcome_widget)
+            self.welcome_widget.setVisible(True)
+        
+        print("Interfaz reiniciada. Listo para una nueva conexión.")
 
     def conectar(self):
         """
@@ -272,7 +290,11 @@ class ui(QMainWindow):
                 sensor_button.setEnabled(True)
 
             QMessageBox.information(self, "Conexión exitosa", f"Conectado a ESP32 en {esp32_ip}")
-
+            print(f"Conexión exitosa: {esp32_ip}")
+            print("Sensor UI habilitada.")
+            print("Botones de sensores habilitados.")
+            print("Interfaz lista para uso.")
+            print("Ya puede seleccionar un sensor.")
         else:
             status.setText("❌ Error de conexión")
             status.setStyleSheet("""
@@ -290,7 +312,7 @@ class ui(QMainWindow):
                 sensor_button.setEnabled(False)
 
             QMessageBox.critical(self, "Fallo de conexión", f"No se pudo conectar a la IP: {esp32_ip} \n  Respuesta de log: \n {response}")
-            print(f"Error de conexión: {response} \n No se pudo conectar al ESP32 en la IP: {esp32_ip}")
+            print(f"Error de conexión: {response} \n No se pudo conectar al ESP32 en la IP: {esp32_ip} \n Verifique la IP y el estado del dispositivo.")
 
     def abrir_ventana_log(self):
         """
@@ -317,13 +339,84 @@ class ui(QMainWindow):
         """
         Maneja la selección de un sensor en la interfaz.
         """
-        # Ocultar el widget de bienvenida si existe
-        welcome_widget = self.findChild(QWidget, "Welcome")
-        if welcome_widget:
-            welcome_widget.setVisible(False)
+        try:
+            print(f"Intentando seleccionar el sensor: {sensor_id}")
 
-        # Realizar acción con el sensor seleccionado
-        print(f"Sensor seleccionado: {sensor_id}")
+            # Ocultar el widget de bienvenida si existe
+            welcome_widget = self.findChild(QWidget, "Welcome")
+            if welcome_widget:
+                welcome_widget.setVisible(False)
+
+            # Buscar el contenedor donde se muestran los widgets de sensores
+            sensor_ui = self.findChild(QWidget, "SensorUI")
+            if not sensor_ui:
+                print("Error: No se encontró el contenedor SensorUI.")
+                return
+
+            # Verificar si el contenedor tiene un layout, si no, asignar uno
+            layout = sensor_ui.layout()
+            if layout is None:
+                print("El contenedor SensorUI no tiene un layout. Asignando uno nuevo.")
+                from PySide6.QtWidgets import QVBoxLayout
+                layout = QVBoxLayout()
+                sensor_ui.setLayout(layout)
+
+            # Eliminar widgets existentes en el contenedor
+            while layout.count():
+                child = layout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
+
+            # Cargar el widget correspondiente al sensor seleccionado
+            if sensor_id == "simpleAngle":
+                print("Cargando lógica para el sensor simpleAngle.")
+                # Usar directamente la lógica de SimpleAngleLogic como widget
+                from SensoraCore.SC_DesktopApp.Modules.simpleAngle.simpleAngle_logic import SimpleAngleLogic
+                simple_angle_logic = SimpleAngleLogic(self.simpleAngleUi)
+                layout.addWidget(simple_angle_logic)
+                simple_angle_logic.show()
+
+            print(f"Sensor {sensor_id} seleccionado correctamente.")
+        except Exception as e:
+            print(f"Error al seleccionar el sensor {sensor_id}: {e}")
+
+        # Buscar el contenedor donde se muestran los widgets de sensores
+        sensor_ui = self.findChild(QWidget, "SensorUI")
+        if sensor_ui:
+            layout = sensor_ui.layout()
+            if layout is not None:
+            # Eliminar widgets existentes
+                while layout.count():
+                    child = layout.takeAt(0)
+                    if child.widget():
+                        child.widget().setParent(None)
+
+                # Diccionario de widgets de sensores
+                sensor_widgets = {
+                "simpleAngle": self.simpleAngleUi,
+                "angleArm": self.angleArmUi,
+                "infrared": self.infraredUi,
+                "capasitive": self.capasitiveUi,
+                "ultrasonic": self.ultrasonicUi,
+                "opticalSpeed": self.opticalSpeedUi,
+                "irSteering": self.irSteeringUi,
+                "thermoregulation": self.thermoregulationUi,
+                "gasRegulation": self.gasRegulationUi,
+                "brightness": self.brightnessUi,
+                "colorCNY": self.colorCNYUi,
+                "colorTCS": self.colorTCSUi,
+                }
+
+                # Obtener el widget correspondiente al sensor seleccionado
+                widget = sensor_widgets.get(sensor_id)
+                if widget is not None and layout is not None:
+                    widget.setParent(sensor_ui)
+                    layout.addWidget(widget)
+                    widget.setVisible(True)
+
+
+
+
 
 
 ###

@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>gasRegulation</class>
+ <widget class="QWidget" name="gasRegulation">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>969</width>
-    <height>653</height>
+    <width>168</width>
+    <height>16</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-color: rgb(237, 34, 255);</string>
+   <string notr="true">background-color: rgb(0, 255, 38);</string>
   </property>
  </widget>
  <resources/>
