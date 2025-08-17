@@ -4,8 +4,12 @@ Función: Define la ventana principal y todas las interfaces de los sensores
 Propósito: Crear una aplicación desktop para monitoreo de sensores ESP32
 """
 #Importando componentes necesarios
+import sys
+import os
+# Agregar el directorio padre al path para poder importar módulos
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 #from PySide6.QtWidgets import *
-from SensoraCore.SC_DesktopApp.Modules.simpleAngle.simpleAngle_logic import SimpleAngleLogic
+from Modules.simpleAngle.simpleAngle_logic import SimpleAngleLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -214,13 +218,30 @@ class ui(QMainWindow):
                     if child.widget():
                         child.widget().setParent(None)
 
+        # Verificar si el widget de bienvenida sigue siendo válido
+        welcome_widget_valid = False
+        try:
+            # Intentar acceder al widget de bienvenida de forma segura
+            if self.welcome_widget is not None and self.welcome_widget.isVisible():
+                welcome_widget_valid = True
+        except RuntimeError:
+            # El widget ha sido eliminado, necesitamos recrearlo
+            print("Widget de bienvenida eliminado, recreando...")
+            self.welcome_widget = None
+        
+        if not welcome_widget_valid:
+            print("Recreando el widget de bienvenida...")
+            if sensor_ui:
+                self.welcome_widget = QWidget(sensor_ui)
+                self.welcome_widget.setObjectName("Welcome")
+
         # Volver a hacer visible la ventana de "welcome"
-        sensor_ui = self.findChild(QWidget, "SensorUI")
         if sensor_ui and self.welcome_widget:
             layout = sensor_ui.layout()
-            self.welcome_widget.setParent(sensor_ui)
-            layout.addWidget(self.welcome_widget)
-            self.welcome_widget.setVisible(True)
+            if layout is not None:
+                self.welcome_widget.setParent(sensor_ui)
+                layout.addWidget(self.welcome_widget)
+                self.welcome_widget.setVisible(True)
         
         print("Interfaz reiniciada. Listo para una nueva conexión.")
 
@@ -344,8 +365,13 @@ class ui(QMainWindow):
 
             # Ocultar el widget de bienvenida si existe
             welcome_widget = self.findChild(QWidget, "Welcome")
-            if welcome_widget:
-                welcome_widget.setVisible(False)
+            try:
+                if welcome_widget and welcome_widget.isVisible():
+                    welcome_widget.setVisible(False)
+            except RuntimeError:
+                # Widget ha sido eliminado, continuar
+                print("Widget de bienvenida ya eliminado.")
+                pass
 
             # Buscar el contenedor donde se muestran los widgets de sensores
             sensor_ui = self.findChild(QWidget, "SensorUI")
@@ -357,7 +383,6 @@ class ui(QMainWindow):
             layout = sensor_ui.layout()
             if layout is None:
                 print("El contenedor SensorUI no tiene un layout. Asignando uno nuevo.")
-                from PySide6.QtWidgets import QVBoxLayout
                 layout = QVBoxLayout()
                 sensor_ui.setLayout(layout)
 
@@ -371,10 +396,9 @@ class ui(QMainWindow):
             if sensor_id == "simpleAngle":
                 print("Cargando lógica para el sensor simpleAngle.")
                 # Usar directamente la lógica de SimpleAngleLogic como widget
-                from SensoraCore.SC_DesktopApp.Modules.simpleAngle.simpleAngle_logic import SimpleAngleLogic
                 simple_angle_logic = SimpleAngleLogic(self.simpleAngleUi)
-                layout.addWidget(simple_angle_logic)
-                simple_angle_logic.show()
+                layout.addWidget(self.simpleAngleUi)  # Agregar el widget de la interfaz directamente
+                print("SimpleAngleLogic integrado en el layout correctamente.")
 
             print(f"Sensor {sensor_id} seleccionado correctamente.")
         except Exception as e:

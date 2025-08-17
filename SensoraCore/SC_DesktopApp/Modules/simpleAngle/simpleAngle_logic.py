@@ -1,19 +1,15 @@
-from PySide6.QtWidgets import QWidget, QMessageBox
 from PySide6.QtCore import QTimer
-from SensoraCore.SC_DesktopApp.Modules.simpleAngle.simpleAngle_ui import Ui_simpleAngle
+from PySide6.QtWidgets import QWidget
+from .simpleAngle_ui import Ui_simpleAngle
 
 class SimpleAngleLogic(QWidget):
     def __init__(self, ui_widget):
+        super().__init__()
         try:
             print("Inicializando SimpleAngleLogic...")
-            super().__init__()
 
             # Usar el widget de interfaz proporcionado
             self.ui = ui_widget
-
-            # Verificar si los botones están correctamente definidos
-            if not hasattr(self.ui, 'iniciar') or not hasattr(self.ui, 'calibrar') or not hasattr(self.ui, 'limpiar') or not hasattr(self.ui, 'exportar'):
-                raise AttributeError("Uno o más botones no están definidos correctamente en la interfaz.")
 
             # Conectar botones a funciones con mensajes de depuración
             self.ui.iniciar.clicked.connect(lambda: print("Botón 'Iniciar' presionado") or self.iniciar_monitoreo())
@@ -22,7 +18,7 @@ class SimpleAngleLogic(QWidget):
             self.ui.exportar.clicked.connect(lambda: print("Botón 'Exportar' presionado") or self.exportar_datos())
 
             # Inicializar variables
-            self.timer = QTimer(self)
+            self.timer = QTimer()
             self.timer.timeout.connect(self.actualizar_datos)
             self.monitoreo_activo = False
 
@@ -42,16 +38,17 @@ class SimpleAngleLogic(QWidget):
 
     def calibrar_sensor(self):
         # Lógica para calibrar el sensor
-        QMessageBox.information(self, "Calibración", "El sensor ha sido calibrado.")
+        print("El sensor ha sido calibrado.")
         self.ui.calibrar.setText("Calibrado")
+        self.ui.calibrar.setStyleSheet("background-color: green; color: white;")
 
     def limpiar_grafica(self):
         # Lógica para limpiar la gráfica
-        QMessageBox.information(self, "Limpieza", "La gráfica ha sido limpiada.")
+        print("La gráfica ha sido limpiada.")
 
     def exportar_datos(self):
         # Lógica para exportar datos a Excel
-        QMessageBox.information(self, "Exportar", "Los datos han sido exportados a Excel.")
+        print("Los datos han sido exportados a Excel.")
 
     def actualizar_datos(self):
         # Lógica para actualizar los datos en la interfaz
