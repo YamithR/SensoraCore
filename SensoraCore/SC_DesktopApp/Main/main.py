@@ -177,6 +177,30 @@ class ui(QMainWindow):
         # Definir el widget de bienvenida
         self.welcome_widget = self.findChild(QWidget, "Welcome")
 
+    def closeEvent(self, event):
+        """
+        Maneja el evento de cierre de la aplicación principal.
+        Detiene todos los procesos activos antes de cerrar.
+        """
+        print("Cerrando aplicación principal...")
+        
+        # Detener todos los procesos activos
+        self._cleanup_active_sensors()
+        
+        # Cerrar ventana de log si está abierta
+        if hasattr(self, 'log_window') and self.log_window:
+            try:
+                if self.log_window.isVisible():
+                    self.log_window.close()
+                # Restaurar stdout y stderr
+                sys.stdout = sys.__stdout__
+                sys.stderr = sys.__stderr__
+            except:
+                pass
+        
+        print("Aplicación cerrada correctamente.")
+        event.accept()
+
     def toggle_ventana_log(self):
         """
         Abre o cierra la ventana de log al presionar el botón 'terminal'.
@@ -191,10 +215,14 @@ class ui(QMainWindow):
         """
         Reinicia la conexión y la interfaz completamente.
         Vuelve al estado inicial antes de la conexión con el ESP32.
+        Detiene cualquier proceso activo con el ESP32.
         """
         print("Iniciando reset completo de la interfaz...")
         
-        # Cerrar ventana de log si está abierta
+        # PASO 1: Detener todos los procesos activos con el ESP32
+        self._cleanup_active_sensors()
+        
+        # PASO 2: Cerrar ventana de log si está abierta
         if hasattr(self, 'log_window') and self.log_window:
             try:
                 if self.log_window.isVisible():
@@ -203,18 +231,19 @@ class ui(QMainWindow):
                 # Restaurar stdout y stderr
                 sys.stdout = sys.__stdout__
                 sys.stderr = sys.__stderr__
+                print("Ventana de log cerrada y streams restaurados.")
             except RuntimeError:
                 pass
         
-        # Ocultar lista de sensores
+        # PASO 3: Ocultar lista de sensores
         self.listaSensores.setVisible(False)
         
-        # Habilitar botón conectar
+        # PASO 4: Habilitar botón conectar
         btn = self.findChild(QPushButton, "Conectar")
         if btn:
             btn.setEnabled(True)
             
-        # Actualizar status a desconectado
+        # PASO 5: Actualizar status a desconectado
         status = self.findChild(QLabel, "Status")
         if status:
             status.setText("🔴Desconectado")
@@ -228,7 +257,7 @@ class ui(QMainWindow):
                 qproperty-alignment: 'AlignCenter';
             """)
 
-        # Deshabilitar todos los botones de sensores
+        # PASO 6: Deshabilitar todos los botones de sensores
         sensor_buttons = [
             self.simple_angle_btn,
             self.angle_arm_btn,
@@ -248,7 +277,7 @@ class ui(QMainWindow):
             if sensor_button:
                 sensor_button.setEnabled(False)
 
-        # Limpiar completamente el área de sensores
+        # PASO 7: Limpiar completamente el área de sensores
         sensor_ui = self.findChild(QWidget, "SensorUI")
         if sensor_ui:
             # Eliminar el layout actual y todos sus widgets
@@ -264,10 +293,10 @@ class ui(QMainWindow):
             new_layout = QVBoxLayout()
             sensor_ui.setLayout(new_layout)
 
-        # Recrear todos los widgets de sensores desde cero
+        # PASO 8: Recrear todos los widgets de sensores desde cero
         self._recreate_sensor_widgets()
 
-        # Recrear el widget de bienvenida
+        # PASO 9: Recrear el widget de bienvenida
         if sensor_ui:
             self.welcome_widget = QWidget(sensor_ui)
             self.welcome_widget.setObjectName("Welcome")
@@ -276,7 +305,7 @@ class ui(QMainWindow):
                 layout.addWidget(self.welcome_widget)
                 self.welcome_widget.setVisible(True)
         
-        print("Reset completo terminado. Interfaz lista para nueva conexión.")
+        print("Reset completo terminado. Todos los procesos ESP32 detenidos. Interfaz lista para nueva conexión.")
 
     def _recreate_sensor_widgets(self):
         """
@@ -285,13 +314,8 @@ class ui(QMainWindow):
         try:
             print("Recreando widgets de sensores...")
             
-            # Limpiar instancias de lógica existentes
-            if hasattr(self, 'current_simple_angle_logic') and self.current_simple_angle_logic:
-                try:
-                    self.current_simple_angle_logic.cleanup()
-                except:
-                    pass
-                self.current_simple_angle_logic = None
+            # Limpiar instancias de lógica existentes usando la función de limpieza
+            self._cleanup_active_sensors()
             
             loader = QUiLoader()
             
@@ -427,8 +451,13 @@ class ui(QMainWindow):
     def sensorSeleccionado(self, sensor_id):
         """
         Maneja la selección de un sensor en la interfaz.
+        Detiene cualquier proceso activo antes de cambiar de sensor.
         """
         try:
+            print(f"Cambiando a sensor: {sensor_id}")
+            
+            # PASO 1: Detener cualquier proceso activo del sensor anterior
+            self._cleanup_active_sensors()
 
             # Ocultar el widget de bienvenida si existe
             try:
@@ -550,6 +579,31 @@ class ui(QMainWindow):
             print(f"Sensor {sensor_id} seleccionado correctamente.")
         except Exception as e:
             print(f"Error al seleccionar el sensor {sensor_id}: {e}")
+
+    def _cleanup_active_sensors(self):
+        """
+        Detiene cualquier proceso activo de sensores antes de cambiar o resetear.
+        """
+        try:
+            print("Limpiando procesos activos de sensores...")
+            
+            # Limpiar SimpleAngle si está activo
+            if hasattr(self, 'current_simple_angle_logic') and self.current_simple_angle_logic:
+                try:
+                    print("Deteniendo procesos de SimpleAngle...")
+                    self.current_simple_angle_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar SimpleAngle: {e}")
+                self.current_simple_angle_logic = None
+            
+            # Aquí se pueden agregar otros sensores cuando tengan lógica propia
+            # Por ejemplo:
+            # if hasattr(self, 'current_ultrasonic_logic') and self.current_ultrasonic_logic:
+            #     self.current_ultrasonic_logic.cleanup()
+            
+            print("Limpieza de sensores completada.")
+        except Exception as e:
+            print(f"Error durante la limpieza de sensores: {e}")
 
     def reconstruirSensorUi(self, sensor_id):
         """

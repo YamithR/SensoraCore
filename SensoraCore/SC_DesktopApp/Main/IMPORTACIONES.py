@@ -25,7 +25,7 @@ import openpyxl
 from openpyxl.chart import LineChart, Reference
 
 # --- Bibliotecas para análisis de datos ---
-from sklearn.linear_model import LinearRegression
+# from sklearn.linear_model import LinearRegression  # No necesaria para calibración manual
 
 # --- Bibliotecas para la interfaz gráfica (PySide6) ---
 from PySide6.QtCore import (QEasingCurve, QPropertyAnimation, 
