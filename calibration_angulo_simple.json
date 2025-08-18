@@ -1,0 +1,11 @@
+{
+    "sensor_type": "simple_angle",
+    "calibration_method": "linear_regression",
+    "raw_values": [],
+    "reference_values": [],
+    "slope": null,
+    "intercept": null,
+    "r_squared": null,
+    "is_calibrated": false,
+    "timestamp": "2025-08-17 21:36:47"
+}

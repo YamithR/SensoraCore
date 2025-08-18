@@ -1,8 +1,11 @@
 from PySide6.QtCore import QTimer, QThread, Signal
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QSizePolicy
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QSizePolicy, QInputDialog, QMessageBox, QDialog
 from .simpleAngle_ui import Ui_simpleAngle
 import socket
 import time
+import os
+import json
+import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
@@ -149,6 +152,18 @@ class SimpleAngleLogic(QWidget):
             self.tiempo = []    # Tiempo en segundos
             self.muestra_actual = 0  # Contador de muestras
             self.MAX_MUESTRAS = 25   # Límite de muestras en la gráfica (reducido de 50 a 25)
+            # Para calibración
+            self.last_lectura = None
+            self.last_angulo = None
+            self.calibrated = False
+            self.cal_m = 1.0
+            self.cal_b = 0.0
+            self.cal_points = []  # lista de (lectura, angulo)
+            # Intentar cargar calibración previa
+            try:
+                self._load_calibration()
+            except Exception:
+                pass
 
             # Configurar gráfica con dos ejes Y
             self.figure = Figure(figsize=(8, 5), tight_layout=True)
@@ -174,9 +189,10 @@ class SimpleAngleLogic(QWidget):
             # Configurar título
             self.figure.suptitle("Sensor de Ángulo Simple - Tiempo Real", fontsize=12, fontweight='bold')
             
-            # Líneas de la gráfica
+            # Líneas de la gráfica (original y calibrada)
             self.line1, = self.ax1.plot([], [], 'b-', label='Lectura AD', linewidth=2, alpha=0.8)
-            self.line2, = self.ax2.plot([], [], 'r-', label='Ángulo (°)', linewidth=2, alpha=0.8)
+            self.line2, = self.ax2.plot([], [], 'r-', label='Ángulo Original', linewidth=1.5, alpha=0.6, linestyle='--')
+            self.line3, = self.ax2.plot([], [], 'g-', label='Ángulo Calibrado', linewidth=2, alpha=0.8)
             
             # Leyenda compacta
             lines1, labels1 = self.ax1.get_legend_handles_labels()
@@ -185,6 +201,9 @@ class SimpleAngleLogic(QWidget):
             
             # Ajustar márgenes para que se vea bien en el widget
             self.figure.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.15)
+
+            # Variables para almacenar datos originales separados
+            self.angulos_originales = []  # Ángulos sin calibración
 
             # Asegurar que grapWid tenga un layout y configurar el canvas
             if not self.ui.grapWid.layout():
@@ -230,32 +249,196 @@ class SimpleAngleLogic(QWidget):
 
 
     def calibrar_sensor(self):
+        """
+        Flujo interactivo de calibración por referencia con número personalizable de puntos.
+        Se piden N puntos de referencia (ángulos conocidos). El usuario posiciona el potenciómetro,
+        pulsa OK en el diálogo y se captura la lectura AD actual. Se calcula una regresión lineal
+        (ángulo = m * lectura + b) y se guarda en disco. Al final muestra una gráfica de calibración.
+        """
         try:
-            # Lógica para calibrar el sensor
-            print("El sensor ha sido calibrado.")
+            # Si no hay monitoreo activo, pedir al usuario que lo inicie
+            if not self.monitoreo_activo:
+                QMessageBox.information(self, "Calibración", "Para calibrar, primero inicie el monitoreo y asegúrese de que llegan datos.")
+                return
+
+            # Si ya está calibrado, preguntar si desea recalibrar o resetear
+            if self.calibrated:
+                resp = QMessageBox.question(self, "Calibración", "Ya existe una calibración. ¿Desea reemplazarla?", QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                if resp != QMessageBox.Yes:
+                    return
+
+            # Preguntar cuántos puntos de calibración desea
+            num_points, ok = QInputDialog.getInt(self, "Calibración", "¿Cuántos puntos de calibración desea usar?\n(Mínimo: 2, Máximo: 10)", value=3)
+            if not ok:
+                QMessageBox.information(self, "Calibración", "Calibración cancelada por el usuario.")
+                return
+                
+            # Validar rango manualmente
+            if num_points < 2:
+                QMessageBox.warning(self, "Calibración", "Mínimo 2 puntos de calibración requeridos.")
+                return
+            elif num_points > 10:
+                QMessageBox.warning(self, "Calibración", "Máximo 10 puntos de calibración permitidos.")
+                return
+
+            puntos = []
+            # Sugerencias de ángulos de referencia basadas en la tabla (ángulo simple)
+            sugeridos = [-90.0, -45.0, 0.0, 45.0, 90.0, -120.0, 120.0, -135.0, 135.0, -60.0]
+            
+            for i in range(1, num_points + 1):
+                # Pedir al usuario el ángulo de referencia
+                default = sugeridos[i-1] if i-1 < len(sugeridos) else 0.0
+                angle, ok = QInputDialog.getDouble(self, f"Calibración - Punto {i} de {num_points}", 
+                                                 f"Mueva el potenciómetro a la posición deseada y escriba el ángulo de referencia (grados):\n\nPunto {i}/{num_points}", 
+                                                 value=default, decimals=1)
+                if not ok:
+                    QMessageBox.information(self, "Calibración", "Calibración cancelada por el usuario.")
+                    return
+
+                # Capturar la última lectura conocida
+                if self.last_lectura is None:
+                    QMessageBox.warning(self, "Calibración", "No se detectan lecturas. Asegúrese de que el monitoreo está activo y que el ESP32 envía datos.")
+                    return
+
+                lectura = int(self.last_lectura)
+                puntos.append((lectura, float(angle)))
+                print(f"Punto {i}: Lectura AD = {lectura}, Ángulo = {angle}°")
+
+            # Calcular regresión lineal simple (y = m*x + b) con los puntos
+            xs = [p[0] for p in puntos]
+            ys = [p[1] for p in puntos]
+            n = len(xs)
+            mean_x = sum(xs) / n
+            mean_y = sum(ys) / n
+            num = sum((xs[i] - mean_x) * (ys[i] - mean_y) for i in range(n))
+            den = sum((xs[i] - mean_x) ** 2 for i in range(n))
+            if den == 0:
+                QMessageBox.warning(self, "Calibración", "No se puede calcular calibración: varianza en lecturas = 0")
+                return
+
+            m = num / den
+            b = mean_y - m * mean_x
+
+            # Calcular R² (coeficiente de determinación)
+            ss_res = sum((ys[i] - (m * xs[i] + b)) ** 2 for i in range(n))
+            ss_tot = sum((ys[i] - mean_y) ** 2 for i in range(n))
+            r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 1.0
+
+            # Guardar parámetros
+            self.cal_m = m
+            self.cal_b = b
+            self.cal_points = puntos
+            self.calibrated = True
+            self._save_calibration()
+
+            # Actualizar UI
             if hasattr(self.ui, 'calibrar') and self.ui.calibrar is not None:
                 self.ui.calibrar.setText("Calibrado")
+                # color neutro/verde suave (evita saturar con colores intensos)
                 self.ui.calibrar.setStyleSheet(
                     "font-size: 14px;"
                     "font-weight: bold;"
-                    "color: rgb(0, 60, 0);"
-                    "padding: 8px;"
-                    "background-color: rgb(200, 255, 200);"
+                    "color: rgb(20, 80, 20);"
+                    "padding: 6px;"
+                    "background-color: rgb(220, 255, 220);"
                     "border-radius: 4px;"
-                    "border: 1px solid rgb(0, 120, 0);"
-                    "margin-top: 5px;"
+                    "border: 1px solid rgb(120, 180, 120);"
                 )
             if hasattr(self.ui, 'calBox') and self.ui.calBox is not None:
                 self.ui.calBox.setVisible(True)
 
-        except RuntimeError as e:
+            # Mostrar gráfica de calibración
+            self._show_calibration_graph(puntos, m, b, r_squared)
+
+            QMessageBox.information(self, "Calibración", f"Calibración completada con {num_points} puntos.\n\nEcuación: y = {m:.6f}x + {b:.3f}\nR² = {r_squared:.4f}")
+
+        except Exception as e:
             print(f"Error en calibrar_sensor: {e}")
+            QMessageBox.critical(self, "Error", f"Error durante la calibración: {e}")
+
+    def apply_calibration(self, lectura, raw_angle=None):
+        """
+        Devuelve el ángulo calibrado usando la regresión calculada y recorta al rango físico (-135..135).
+        Si no hay calibración, devuelve raw_angle (si se proporcionó) o None.
+        """
+        if not self.calibrated:
+            return raw_angle
+        ang = self.cal_m * lectura + self.cal_b
+        # Clamp al rango físico del sensor (-135 a 135) según la tabla de sensores
+        ang = max(-135.0, min(135.0, ang))
+        return ang
+
+    def _show_calibration_graph(self, puntos, m, b, r_squared):
+        """
+        Muestra una ventana con la gráfica de calibración, puntos capturados, línea de tendencia y ecuación.
+        """
+        try:
+            # Crear ventana de diálogo
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Resultados de Calibración")
+            dialog.setModal(True)
+            dialog.resize(600, 500)
+            
+            # Layout del diálogo
+            layout = QVBoxLayout(dialog)
+            
+            # Crear figura de matplotlib
+            fig = Figure(figsize=(8, 6), dpi=100)
+            canvas = FigureCanvas(fig)
+            
+            # Crear subplot
+            ax = fig.add_subplot(111)
+            
+            # Extraer datos
+            xs = [p[0] for p in puntos]
+            ys = [p[1] for p in puntos]
+            
+            # Rango de lecturas para la línea de tendencia
+            x_min, x_max = min(xs) if xs else 0, max(xs) if xs else 4095
+            x_range = np.linspace(x_min - 100, x_max + 100, 100)
+            y_trend = m * x_range + b
+            
+            # Gráfica de puntos de calibración
+            ax.scatter(xs, ys, color='red', s=100, alpha=0.8, label=f'Puntos de calibración ({len(puntos)})', zorder=3)
+            
+            # Línea de tendencia
+            ax.plot(x_range, y_trend, 'b-', linewidth=2, alpha=0.7, label='Línea de tendencia', zorder=2)
+            
+            # Configuración de la gráfica
+            ax.set_xlabel('Lectura Analógica (AD)', fontsize=12)
+            ax.set_ylabel('Ángulo de Referencia (°)', fontsize=12)
+            ax.set_title(f'Calibración del Sensor de Ángulo\ny = {m:.6f}x + {b:.3f}  (R² = {r_squared:.4f})', fontsize=14, fontweight='bold')
+            ax.grid(True, alpha=0.3)
+            ax.legend(fontsize=10)
+            
+            # Configurar límites
+            ax.set_xlim(0, 4095)
+            ax.set_ylim(-150, 150)
+            
+            # Añadir texto con la ecuación
+            textstr = f'Ecuación: y = {m:.6f}x + {b:.3f}\nR² = {r_squared:.4f}\nPuntos: {len(puntos)}'
+            props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
+            ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=10,
+                   verticalalignment='top', bbox=props)
+            
+            fig.tight_layout()
+            
+            # Añadir canvas al layout
+            layout.addWidget(canvas)
+            
+            # Mostrar diálogo
+            dialog.exec()
+            
+        except Exception as e:
+            print(f"Error mostrando gráfica de calibración: {e}")
+            QMessageBox.warning(self, "Error", f"No se pudo mostrar la gráfica de calibración: {e}")
 
     def limpiar_grafica(self):
         try:
             # Lógica para limpiar la gráfica
             self.lecturas.clear()
             self.angulos.clear()
+            self.angulos_originales.clear()
             self.tiempo.clear()
             self.muestra_actual = 0
             self.update_graph()
@@ -265,6 +448,13 @@ class SimpleAngleLogic(QWidget):
 
             if hasattr(self.ui, 'anguloDt'):
                 self.ui.anguloDt.setText("--")
+                
+            # Limpiar también labels de calibración
+            if hasattr(self.ui, 'analogoDtCal'):
+                self.ui.analogoDtCal.setText("--")
+
+            if hasattr(self.ui, 'anguloDtCal'):
+                self.ui.anguloDtCal.setText("--")
 
             print("Gráfica limpiada correctamente.")
         except RuntimeError as e:
@@ -400,26 +590,103 @@ class SimpleAngleLogic(QWidget):
         except Exception as e:
             print(f"Error al detener monitoreo: {e}")
 
+    # ----------------------
+    # Calibración: persistencia
+    # ----------------------
+    def _cal_file_path(self):
+        # Guardar junto al módulo (por simplicidad)
+        base = os.path.dirname(__file__)
+        return os.path.join(base, 'simpleAngle_calibration.json')
+
+    def _save_calibration(self):
+        path = self._cal_file_path()
+        payload = {
+            'm': self.cal_m,
+            'b': self.cal_b,
+            'points': self.cal_points
+        }
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(payload, f, indent=2)
+            print(f"Calibración guardada en {path}")
+        except Exception as e:
+            print(f"No se pudo guardar calibración: {e}")
+
+    def _load_calibration(self):
+        path = self._cal_file_path()
+        if not os.path.exists(path):
+            return
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                payload = json.load(f)
+            self.cal_m = float(payload.get('m', 1.0))
+            self.cal_b = float(payload.get('b', 0.0))
+            self.cal_points = payload.get('points', [])
+            self.calibrated = True
+            # Update UI markers if available
+            if hasattr(self.ui, 'calibrar') and self.ui.calibrar is not None:
+                self.ui.calibrar.setText("Calibrado")
+            if hasattr(self.ui, 'calBox') and self.ui.calBox is not None:
+                self.ui.calBox.setVisible(True)
+            print(f"Calibración cargada desde {path}: m={self.cal_m}, b={self.cal_b}")
+        except Exception as e:
+            print(f"No se pudo cargar calibración: {e}")
+
+    def _reset_calibration(self):
+        self.cal_m = 1.0
+        self.cal_b = 0.0
+        self.cal_points = []
+        self.calibrated = False
+        path = self._cal_file_path()
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            pass
+        # Reset UI
+        if hasattr(self.ui, 'calibrar') and self.ui.calibrar is not None:
+            self.ui.calibrar.setText("No Calibrado")
+            try:
+                self.ui.calibrar.setStyleSheet("")
+            except Exception:
+                pass
+        if hasattr(self.ui, 'calBox') and self.ui.calBox is not None:
+            self.ui.calBox.setVisible(False)
+
     def update_angulo_data(self, lectura, angulo):
         """
         Procesa y actualiza los datos recibidos del sensor de ángulo simple.
         Implementa ventana deslizante de 25 muestras con muestreo cada 0.5 segundos.
+        Almacena tanto datos originales como calibrados por separado.
         """
         try:
             # Incrementar contador de muestras
             self.muestra_actual += 1
-            
+
+            # Guardar última lectura cruda para calibración
+            self.last_lectura = lectura
+            self.last_angulo = angulo
+
+            # Aplicar calibración si está disponible (ángulo_cal = m * lectura + b)
+            if self.calibrated:
+                angulo_cal = self.apply_calibration(lectura, angulo)
+            else:
+                angulo_cal = angulo
+
             # Calcular tiempo en segundos (cada muestra es cada 0.5 segundos)
             tiempo_actual = self.muestra_actual * 0.5
-            
+
             # Agregar nuevos datos
             self.lecturas.append(lectura)
-            self.angulos.append(angulo)
+            # Almacenar ambos: ángulo original y calibrado
+            self.angulos_originales.append(angulo)
+            self.angulos.append(int(round(angulo_cal)))
             self.tiempo.append(tiempo_actual)
 
             # Implementar ventana deslizante de 25 muestras
             if len(self.lecturas) > self.MAX_MUESTRAS:
                 self.lecturas.pop(0)  # Eliminar el más antiguo
+                self.angulos_originales.pop(0)  # Eliminar el más antiguo
                 self.angulos.pop(0)   # Eliminar el más antiguo
                 self.tiempo.pop(0)    # Eliminar el más antiguo
 
@@ -428,7 +695,15 @@ class SimpleAngleLogic(QWidget):
                 self.ui.analogoDt.setText(str(lectura))
 
             if hasattr(self.ui, 'anguloDt'):
+                # mostrar ángulo original (sin calibración)
                 self.ui.anguloDt.setText(f"{angulo}°")
+                
+            # Actualizar labels de calibración si existe calibración
+            if self.calibrated:
+                if hasattr(self.ui, 'analogoDtCal'):
+                    self.ui.analogoDtCal.setText(str(lectura))
+                if hasattr(self.ui, 'anguloDtCal'):
+                    self.ui.anguloDtCal.setText(f"{angulo_cal:.1f}°")
 
             # Actualizar gráfica
             self.update_graph()
@@ -441,17 +716,27 @@ class SimpleAngleLogic(QWidget):
     def update_graph(self):
         """
         Actualiza la gráfica con los datos actuales.
-        Muestra lectura analógica y ángulo en ejes Y separados.
+        Muestra lectura analógica, ángulo original y ángulo calibrado en ejes Y separados.
         """
         try:
             if len(self.tiempo) == 0:
                 # Si no hay datos, limpiar las líneas
                 self.line1.set_data([], [])
                 self.line2.set_data([], [])
+                self.line3.set_data([], [])
             else:
                 # Actualizar datos de las líneas
                 self.line1.set_data(self.tiempo, self.lecturas)
-                self.line2.set_data(self.tiempo, self.angulos)
+                
+                # Mostrar datos originales y calibrados
+                if len(self.angulos_originales) > 0:
+                    self.line2.set_data(self.tiempo, self.angulos_originales)
+                
+                if self.calibrated and len(self.angulos) > 0:
+                    self.line3.set_data(self.tiempo, self.angulos)
+                    self.line3.set_visible(True)
+                else:
+                    self.line3.set_visible(False)
                 
                 # Ajustar rango del eje X dinámicamente
                 if len(self.tiempo) > 1:
