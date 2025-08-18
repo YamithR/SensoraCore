@@ -521,6 +521,9 @@ text-align: center;
              </property>
              <item row="0" column="1">
               <widget class="QScrollArea" name="scrollArea">
+               <property name="styleSheet">
+                <string notr="true"/>
+               </property>
                <property name="widgetResizable">
                 <bool>true</bool>
                </property>
@@ -528,7 +531,7 @@ text-align: center;
                 <property name="geometry">
                  <rect>
                   <x>0</x>
-                  <y>0</y>
+                  <y>-497</y>
                   <width>312</width>
                   <height>804</height>
                  </rect>
@@ -615,6 +618,17 @@ padding-left: 10px;</string>
                         <width>16777215</width>
                         <height>20</height>
                        </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
                       </property>
                       <property name="text">
                        <string> Potenciometro como sensor de angulo</string>
@@ -706,6 +720,17 @@ padding-left: 10px;</string>
                         <height>20</height>
                        </size>
                       </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
+                      </property>
                       <property name="text">
                        <string>Potenciometros como simulacion de Brazo</string>
                       </property>
@@ -795,6 +820,18 @@ padding-left: 10px;</string>
                         <width>16777215</width>
                         <height>20</height>
                        </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}
+</string>
                       </property>
                       <property name="text">
                        <string>Sensor de proximidad con Infrarojos</string>
@@ -886,6 +923,17 @@ padding-left: 10px;</string>
                         <height>20</height>
                        </size>
                       </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
+                      </property>
                       <property name="text">
                        <string>Sensor de proximidad con sensor Capasitivo</string>
                       </property>
@@ -975,6 +1023,17 @@ padding-left: 10px;</string>
                         <width>16777215</width>
                         <height>20</height>
                        </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
                       </property>
                       <property name="text">
                        <string>Sensor de distancia con Ultrasonidos</string>
@@ -1066,6 +1125,17 @@ padding-left: 10px;</string>
                         <height>20</height>
                        </size>
                       </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
+                      </property>
                       <property name="text">
                        <string>Control y monitoreo de Velocidad</string>
                       </property>
@@ -1155,6 +1225,17 @@ padding-left: 10px;</string>
                         <width>16777215</width>
                         <height>20</height>
                        </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
                       </property>
                       <property name="text">
                        <string>Direccion de según infrarojos</string>
@@ -1246,6 +1327,17 @@ padding-left: 10px;</string>
                         <height>20</height>
                        </size>
                       </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
+                      </property>
                       <property name="text">
                        <string>Control y monitoreo de temperatura</string>
                       </property>
@@ -1335,6 +1427,17 @@ padding-left: 10px;</string>
                         <width>16777215</width>
                         <height>20</height>
                        </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
                       </property>
                       <property name="text">
                        <string>Control de flujo de aire y densidad de gases</string>
@@ -1426,6 +1529,17 @@ padding-left: 10px;</string>
                         <height>20</height>
                        </size>
                       </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
+                      </property>
                       <property name="text">
                        <string>Sensor de brillo</string>
                       </property>
@@ -1516,6 +1630,17 @@ padding-left: 10px;</string>
                         <height>20</height>
                        </size>
                       </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
+                      </property>
                       <property name="text">
                        <string>Color según infrarojos</string>
                       </property>
@@ -1605,6 +1730,17 @@ padding-left: 10px;</string>
                         <width>16777215</width>
                         <height>20</height>
                        </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">QLabel{
+border:none;
+background-color: rgba(0, 0, 0, 0);
+
+}
+QLabel:hover{
+border:none;
+background-color: rgba(255, 255, 255, 0);
+}</string>
                       </property>
                       <property name="text">
                        <string>Color según TCS3200</string>

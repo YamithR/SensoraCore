@@ -149,9 +149,10 @@ def angulo_simple_loop(client):
             msg = f"POT:{lectura},ANG:{angulo}\n"
             try:
                 client.send(msg.encode())
+                print(f"Enviado: POT:{lectura},ANG:{angulo}")  # Debug
             except:
                 break
-            time.sleep(0.1)
+            time.sleep(0.5)  # Muestreo cada 0.5 segundos
     except Exception as e:
         print(f"Error en angulo_simple_loop: {e}")
         pass

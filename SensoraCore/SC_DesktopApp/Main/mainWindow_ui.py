@@ -297,10 +297,11 @@ class Ui_MainWindow(object):
         self.gridLayout_5.setContentsMargins(2, -1, 2, -1)
         self.scrollArea = QScrollArea(self.list)
         self.scrollArea.setObjectName(u"scrollArea")
+        self.scrollArea.setStyleSheet(u"")
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 312, 804))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, -497, 312, 804))
         self.verticalLayout_2 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.simpleAngle = QWidget(self.scrollAreaWidgetContents)
@@ -355,6 +356,15 @@ class Ui_MainWindow(object):
         self.simpleAngletext = QLabel(self.simpleAngle)
         self.simpleAngletext.setObjectName(u"simpleAngletext")
         self.simpleAngletext.setMaximumSize(QSize(16777215, 20))
+        self.simpleAngletext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_15.addWidget(self.simpleAngletext)
 
@@ -413,6 +423,15 @@ class Ui_MainWindow(object):
         self.angleArmtext = QLabel(self.angleArm)
         self.angleArmtext.setObjectName(u"angleArmtext")
         self.angleArmtext.setMaximumSize(QSize(16777215, 20))
+        self.angleArmtext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_6.addWidget(self.angleArmtext)
 
@@ -471,6 +490,16 @@ class Ui_MainWindow(object):
         self.infraredtext = QLabel(self.infrared)
         self.infraredtext.setObjectName(u"infraredtext")
         self.infraredtext.setMaximumSize(QSize(16777215, 20))
+        self.infraredtext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}\n"
+"")
 
         self.verticalLayout_7.addWidget(self.infraredtext)
 
@@ -529,6 +558,15 @@ class Ui_MainWindow(object):
         self.capasitivetext = QLabel(self.capasitive)
         self.capasitivetext.setObjectName(u"capasitivetext")
         self.capasitivetext.setMaximumSize(QSize(16777215, 20))
+        self.capasitivetext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_8.addWidget(self.capasitivetext)
 
@@ -587,6 +625,15 @@ class Ui_MainWindow(object):
         self.ultrasonictext = QLabel(self.ultrasonic)
         self.ultrasonictext.setObjectName(u"ultrasonictext")
         self.ultrasonictext.setMaximumSize(QSize(16777215, 20))
+        self.ultrasonictext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_9.addWidget(self.ultrasonictext)
 
@@ -645,6 +692,15 @@ class Ui_MainWindow(object):
         self.OpticalSpeedtext = QLabel(self.OpticalSpeed)
         self.OpticalSpeedtext.setObjectName(u"OpticalSpeedtext")
         self.OpticalSpeedtext.setMaximumSize(QSize(16777215, 20))
+        self.OpticalSpeedtext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_10.addWidget(self.OpticalSpeedtext)
 
@@ -703,6 +759,15 @@ class Ui_MainWindow(object):
         self.irSteeringtext = QLabel(self.irSteering)
         self.irSteeringtext.setObjectName(u"irSteeringtext")
         self.irSteeringtext.setMaximumSize(QSize(16777215, 20))
+        self.irSteeringtext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_5.addWidget(self.irSteeringtext)
 
@@ -761,6 +826,15 @@ class Ui_MainWindow(object):
         self.thermoregulationtext = QLabel(self.thermoregulation)
         self.thermoregulationtext.setObjectName(u"thermoregulationtext")
         self.thermoregulationtext.setMaximumSize(QSize(16777215, 20))
+        self.thermoregulationtext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_16.addWidget(self.thermoregulationtext)
 
@@ -819,6 +893,15 @@ class Ui_MainWindow(object):
         self.gasRegulationtext = QLabel(self.gasRegulation)
         self.gasRegulationtext.setObjectName(u"gasRegulationtext")
         self.gasRegulationtext.setMaximumSize(QSize(16777215, 20))
+        self.gasRegulationtext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_14.addWidget(self.gasRegulationtext)
 
@@ -877,6 +960,15 @@ class Ui_MainWindow(object):
         self.brightnesstext = QLabel(self.brightness)
         self.brightnesstext.setObjectName(u"brightnesstext")
         self.brightnesstext.setMaximumSize(QSize(16777215, 20))
+        self.brightnesstext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_13.addWidget(self.brightnesstext)
 
@@ -935,6 +1027,15 @@ class Ui_MainWindow(object):
         self.colorCNYtext = QLabel(self.colorCNY)
         self.colorCNYtext.setObjectName(u"colorCNYtext")
         self.colorCNYtext.setMaximumSize(QSize(16777215, 20))
+        self.colorCNYtext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_12.addWidget(self.colorCNYtext)
 
@@ -993,6 +1094,15 @@ class Ui_MainWindow(object):
         self.colorTCStext = QLabel(self.colorTCS)
         self.colorTCStext.setObjectName(u"colorTCStext")
         self.colorTCStext.setMaximumSize(QSize(16777215, 20))
+        self.colorTCStext.setStyleSheet(u"QLabel{\n"
+"border:none;\n"
+"background-color: rgba(0, 0, 0, 0);\n"
+"\n"
+"}\n"
+"QLabel:hover{\n"
+"border:none;\n"
+"background-color: rgba(255, 255, 255, 0);\n"
+"}")
 
         self.verticalLayout_11.addWidget(self.colorTCStext)
 

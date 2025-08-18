@@ -17,7 +17,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QGroupBox,
     QHBoxLayout, QLabel, QPushButton, QSizePolicy,
-    QWidget)
+    QVBoxLayout, QWidget)
 
 class Ui_simpleAngle(object):
     def setupUi(self, simpleAngle):
@@ -104,14 +104,33 @@ class Ui_simpleAngle(object):
 
         self.limpiar = QPushButton(self.botones)
         self.limpiar.setObjectName(u"limpiar")
-        self.limpiar.setStyleSheet(u"        font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
-"        font-weight: bold;                  /* Texto en negrita */\n"
-"        color: #856404;                     /* Color \u00e1mbar para indicar estado */\n"
-"        padding: 8px;                       /* Espacio interno menor */\n"
-"        background-color: #fff3cd;          /* Fondo \u00e1mbar claro */\n"
-"        border-radius: 4px;                 /* Esquinas redondeadas menores */\n"
-"        border: 1px solid #ffeaa7;          /* Borde \u00e1mbar */\n"
-"        margin-top: 5px;                    /* Separaci\u00f3n superior */")
+        self.limpiar.setStyleSheet(u"/* Estilo base con matices rosa y gris degradado */\n"
+"QPushButton {\n"
+"    font-size: 14px;                         /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
+"    font-weight: bold;                       /* Texto en negrita */\n"
+"    color: #5a5a5a;                          /* Gris medio para texto */\n"
+"    padding: 8px;                            /* Espacio interno menor */\n"
+"    background: linear-gradient(135deg, #f8e1ec, #d3d3d3); /* Degradado rosa a gris */\n"
+"    border-radius: 6px;                      /* Esquinas ligeramente m\u00e1s redondeadas */\n"
+"    border: 1px solid #e0b7c6;               /* Borde rosa suave */\n"
+"    margin-top: 5px;                         /* Separaci\u00f3n superior */\n"
+"}\n"
+"\n"
+"/* Efecto hover con \u00e9nfasis en el rosa */\n"
+"QPushButton:hover {\n"
+"    background: linear-gradient(135deg, #fce4ec, #c0c0c0); /* Rosa claro a gris claro */\n"
+"    color: #7a4b63;                          /* Rosa oscuro para el texto */\n"
+"    border: 1px sol"
+                        "id #d48ca3;               /* Borde m\u00e1s intenso en rosa */\n"
+"}\n"
+"/* Presionado: tono m\u00e1s oscuro y efecto hundido */\n"
+"QPushButton:pressed {\n"
+"    background-color: #e0b7c6;\n"
+"    border: 2px solid #b0b0b0;\n"
+"    padding-top: 8px; /* efecto hundido */\n"
+"    padding-left: 8px;\n"
+"}\n"
+"")
 
         self.gridLayout_3.addWidget(self.limpiar, 1, 0, 1, 1)
 
@@ -197,6 +216,7 @@ class Ui_simpleAngle(object):
 
         self.diagrama = QGroupBox(self.frame)
         self.diagrama.setObjectName(u"diagrama")
+        self.diagrama.setMinimumSize(QSize(0, 380))
         self.diagrama.setMaximumSize(QSize(300, 16777215))
         self.diagrama.setStyleSheet(u"QGroupBox {\n"
 "    color: rgb(102, 102, 102) ;\n"
@@ -217,17 +237,18 @@ class Ui_simpleAngle(object):
 "}\n"
 "\n"
 "")
-        self.gridLayout_2 = QGridLayout(self.diagrama)
-        self.gridLayout_2.setObjectName(u"gridLayout_2")
+        self.verticalLayout = QVBoxLayout(self.diagrama)
+        self.verticalLayout.setObjectName(u"verticalLayout")
         self.dibujo = QLabel(self.diagrama)
         self.dibujo.setObjectName(u"dibujo")
+        self.dibujo.setMinimumSize(QSize(0, 285))
         self.dibujo.setStyleSheet(u"")
 
-        self.gridLayout_2.addWidget(self.dibujo, 0, 0, 1, 1)
+        self.verticalLayout.addWidget(self.dibujo)
 
         self.nota = QLabel(self.diagrama)
         self.nota.setObjectName(u"nota")
-        self.nota.setMaximumSize(QSize(999, 75))
+        self.nota.setMaximumSize(QSize(999, 70))
         self.nota.setStyleSheet(u"        font-size: 13px;                    /* Tama\u00f1o menor para nota */\n"
 "        color: #856404;                     /* Color \u00e1mbar oscuro */\n"
 "        background-color: #fff3cd;          /* Fondo \u00e1mbar claro (alerta) */\n"
@@ -237,13 +258,14 @@ class Ui_simpleAngle(object):
 "        margin-top: 5px;                    /* Separaci\u00f3n superior */\n"
 "")
 
-        self.gridLayout_2.addWidget(self.nota, 1, 0, 1, 1)
+        self.verticalLayout.addWidget(self.nota)
 
 
         self.gridLayout_6.addWidget(self.diagrama, 2, 0, 1, 1)
 
         self.grafica = QGroupBox(self.frame)
         self.grafica.setObjectName(u"grafica")
+        self.grafica.setMinimumSize(QSize(0, 380))
         self.grafica.setStyleSheet(u"QGroupBox {\n"
 "    color: rgb(102, 102, 102) ;\n"
 "    background-color: #f8f9fa;        \n"
@@ -315,7 +337,7 @@ class Ui_simpleAngle(object):
                         "0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\">\u2502                                 \u2502</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\">\u2502  LED integrado: GPIO 2          \u2502</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\">\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518</span></pre><pre style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-"
                         "left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%; font-family:'Courier New','monospace'; font-size:12px; color:#495057;\"><br/></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; font-weight:700; color:#495057;\">Potenci\u00f3metro 10k\u03a9:</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\"> \u2022 Pin (+): Alimentaci\u00f3n 3.3V</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\"> \u2022 Pin (-): Tierra (GND)  </span></pre><pre style=\" margin"
                         "-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\"> \u2022 Pin (S): Se\u00f1al anal\u00f3gica \u2192 GPIO 32</span></pre></body></html>", None))
-        self.nota.setText(QCoreApplication.translate("simpleAngle", u"<html><head/><body><p align=\"justify\">\ud83d\udca1 <span style=\" font-weight:700;\">Nota:</span> Aseg\u00farate de conectar el <br/>potenci\u00f3metro correctamente antes <br/>de iniciar el monitoreo</p></body></html>", None))
+        self.nota.setText(QCoreApplication.translate("simpleAngle", u"<html><head/><body><p align=\"justify\"><span style=\" font-size:9pt;\">\ud83d\udca1 </span><span style=\" font-size:9pt; font-weight:700;\">Nota:</span><span style=\" font-size:9pt;\"> Aseg\u00farate de conectar el <br/>potenci\u00f3metro correctamente antes <br/>de iniciar el monitoreo</span></p></body></html>", None))
         self.grafica.setTitle(QCoreApplication.translate("simpleAngle", u"Gr\u00e1fica", None))
         self.descripcion.setText(QCoreApplication.translate("simpleAngle", u"<html><head/><body><p align=\"center\"><span style=\" font-size:10pt; font-style:italic;\">Monitorea en tiempo real la lectura anal\u00f3gico digital del sensor potenci\u00f3metro conectado a un pin GPIO del microcontrolador <br/>para traducirlo a \u00c1ngulo y su posterior calibraci\u00f3n por medio de Regresi\u00f3n Lineal Asistida. Incluye informaci\u00f3n did\u00e1ctica<br/> para su caracterizaci\u00f3n.</span></p></body></html>", None))
     # retranslateUi
