@@ -4,3 +4,5 @@
 /SensoraCore/Compilador/Versiones
 /.venv
 /SensoraCore/SC_DesktopApp/Main/__pycache__
+__pycache__/
+*.pyc

@@ -11,6 +11,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 #from PySide6.QtWidgets import *
 from Modules.simpleAngle.simpleAngle_logic import SimpleAngleLogic
 from Modules.angleArm.angleArm_logic import AngleArmLogic
+from Modules.infrared.infrared_logic import InfraredLogic
+from Modules.capasitive.capasitive_logic import CapasitiveLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -596,6 +598,92 @@ class ui(QMainWindow):
                         print(f"Error en fallback AngleArm: {fallback_error}")
                         return
 
+            elif sensor_id == "infrared":
+                print("Cargando lógica para el sensor infrared.")
+                try:
+                    if hasattr(self, 'current_infrared_logic') and self.current_infrared_logic:
+                        try:
+                            self.current_infrared_logic.cleanup()
+                        except:
+                            pass
+                        self.current_infrared_logic = None
+
+                    if not hasattr(self, 'infraredUi') or self.infraredUi is None:
+                        loader = QUiLoader()
+                        self.infraredUi = loader.load("SensoraCore/SC_DesktopApp/Modules/infrared/infrared.ui")
+
+                    try:
+                        _ = self.infraredUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.infraredUi = loader.load("SensoraCore/SC_DesktopApp/Modules/infrared/infrared.ui")
+
+                    if self.infraredUi is not None:
+                        self.current_infrared_logic = InfraredLogic(self.infraredUi, self)
+                        self.infraredUi.setParent(sensor_ui)
+                        layout.addWidget(self.infraredUi)
+                    else:
+                        print("Error: No se pudo crear o cargar infraredUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar InfraredLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.infraredUi = loader.load("SensoraCore/SC_DesktopApp/Modules/infrared/infrared.ui")
+                        if self.infraredUi:
+                            self.current_infrared_logic = InfraredLogic(self.infraredUi, self)
+                            self.infraredUi.setParent(sensor_ui)
+                            layout.addWidget(self.infraredUi)
+                        else:
+                            print("Fallback infrared falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback infrared: {fallback_error}")
+                        return
+
+            elif sensor_id == "capasitive":
+                print("Cargando lógica para el sensor capasitive.")
+                try:
+                    if hasattr(self, 'current_capasitive_logic') and self.current_capasitive_logic:
+                        try:
+                            self.current_capasitive_logic.cleanup()
+                        except:
+                            pass
+                        self.current_capasitive_logic = None
+
+                    if not hasattr(self, 'capasitiveUi') or self.capasitiveUi is None:
+                        loader = QUiLoader()
+                        self.capasitiveUi = loader.load("SensoraCore/SC_DesktopApp/Modules/capasitive/capasitive.ui")
+
+                    try:
+                        _ = self.capasitiveUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.capasitiveUi = loader.load("SensoraCore/SC_DesktopApp/Modules/capasitive/capasitive.ui")
+
+                    if self.capasitiveUi is not None:
+                        self.current_capasitive_logic = CapasitiveLogic(self.capasitiveUi, self)
+                        self.capasitiveUi.setParent(sensor_ui)
+                        layout.addWidget(self.capasitiveUi)
+                    else:
+                        print("Error: No se pudo crear o cargar capasitiveUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar CapasitiveLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.capasitiveUi = loader.load("SensoraCore/SC_DesktopApp/Modules/capasitive/capasitive.ui")
+                        if self.capasitiveUi:
+                            self.current_capasitive_logic = CapasitiveLogic(self.capasitiveUi, self)
+                            self.capasitiveUi.setParent(sensor_ui)
+                            layout.addWidget(self.capasitiveUi)
+                        else:
+                            print("Fallback capasitive falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback capasitive: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
@@ -655,6 +743,22 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar AngleArm: {e}")
                 self.current_angle_arm_logic = None
+            # Limpiar Infrared si está activo
+            if hasattr(self, 'current_infrared_logic') and self.current_infrared_logic:
+                try:
+                    print("Deteniendo procesos de Infrared...")
+                    self.current_infrared_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar Infrared: {e}")
+                self.current_infrared_logic = None
+            # Limpiar Capasitive si está activo
+            if hasattr(self, 'current_capasitive_logic') and self.current_capasitive_logic:
+                try:
+                    print("Deteniendo procesos de Capasitive...")
+                    self.current_capasitive_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar Capasitive: {e}")
+                self.current_capasitive_logic = None
             
             # Aquí se pueden agregar otros sensores cuando tengan lógica propia
             # Por ejemplo:
