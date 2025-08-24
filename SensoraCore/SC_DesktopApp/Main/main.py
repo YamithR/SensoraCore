@@ -10,6 +10,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 #from PySide6.QtWidgets import *
 from Modules.simpleAngle.simpleAngle_logic import SimpleAngleLogic
+from Modules.angleArm.angleArm_logic import AngleArmLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -544,11 +545,62 @@ class ui(QMainWindow):
                         print(f"Error en fallback: {fallback_error}")
                         return
 
+            elif sensor_id == "angleArm":
+                print("Cargando lógica para el sensor angleArm.")
+                try:
+                    # Limpiar instancia anterior si existe
+                    if hasattr(self, 'current_angle_arm_logic') and self.current_angle_arm_logic:
+                        try:
+                            self.current_angle_arm_logic.cleanup()
+                        except:
+                            pass
+                        self.current_angle_arm_logic = None
+
+                    # Recrear el widget UI si no está disponible o es inválido
+                    if not hasattr(self, 'angleArmUi') or self.angleArmUi is None:
+                        loader = QUiLoader()
+                        self.angleArmUi = loader.load("SensoraCore/SC_DesktopApp/Modules/angleArm/angleArm.ui")
+
+                    # Verificar que el widget UI existe y es válido
+                    try:
+                        _ = self.angleArmUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.angleArmUi = loader.load("SensoraCore/SC_DesktopApp/Modules/angleArm/angleArm.ui")
+
+                    if self.angleArmUi is not None:
+                        # Crear instancia de lógica
+                        self.current_angle_arm_logic = AngleArmLogic(self.angleArmUi, self)
+                        # Establecer parent y agregar al layout
+                        self.angleArmUi.setParent(sensor_ui)
+                        layout.addWidget(self.angleArmUi)
+                    else:
+                        print("Error: No se pudo crear o cargar angleArmUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar AngleArmLogic: {e}")
+                    # Intentar recrear el widget como fallback
+                    try:
+                        print("Intentando recrear widget AngleArm como fallback...")
+                        loader = QUiLoader()
+                        self.angleArmUi = loader.load("SensoraCore/SC_DesktopApp/Modules/angleArm/angleArm.ui")
+                        if self.angleArmUi:
+                            self.current_angle_arm_logic = AngleArmLogic(self.angleArmUi, self)
+                            self.angleArmUi.setParent(sensor_ui)
+                            layout.addWidget(self.angleArmUi)
+                            print("Fallback AngleArm exitoso.")
+                        else:
+                            print("Fallback AngleArm falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback AngleArm: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
                 sensor_widgets = {
-                    "angleArm": self.angleArmUi,
+                        # angleArm se maneja arriba con lógica
                     "infrared": self.infraredUi,
                     "capasitive": self.capasitiveUi,
                     "ultrasonic": self.ultrasonicUi,
@@ -595,6 +647,14 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar SimpleAngle: {e}")
                 self.current_simple_angle_logic = None
+            # Limpiar AngleArm si está activo
+            if hasattr(self, 'current_angle_arm_logic') and self.current_angle_arm_logic:
+                try:
+                    print("Deteniendo procesos de AngleArm...")
+                    self.current_angle_arm_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar AngleArm: {e}")
+                self.current_angle_arm_logic = None
             
             # Aquí se pueden agregar otros sensores cuando tengan lógica propia
             # Por ejemplo:
