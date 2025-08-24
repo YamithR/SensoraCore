@@ -6,16 +6,379 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>969</width>
-    <height>653</height>
+    <width>744</width>
+    <height>718</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-color: rgba(23, 69, 56, 1);</string>
+   <string notr="true">background-color: rgb(255, 255, 255);
+border: 1px solid rgb(221, 221, 221);
+border-radius: 5px;
+color: rgb(0, 0, 0);</string>
   </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QFrame" name="frame">
+     <property name="frameShape">
+      <enum>QFrame::Shape::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Shadow::Raised</enum>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_6">
+      <item row="1" column="0" colspan="3">
+       <widget class="QLabel" name="descripcion">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>60</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">        background-color: #f8f9fa;       
+        border: 2px solid #dee2e6;         
+        border-radius: 6px;              
+   </string>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:10pt; font-style:italic;&quot;&gt;Monitorea en tiempo real la señal digital del sensor capacitivo y ofrece información didáctica para su caracterización.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" colspan="3">
+       <widget class="QLabel" name="titulo">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>45</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">        background-color: #f8f9fa;       
+        border: 2px solid #dee2e6;         
+        border-radius: 6px;              
+   </string>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:22pt; font-weight:700; color:#007bff;&quot;&gt;Monitoreo de Proximidad Capacitivo&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1" rowspan="3" colspan="2">
+       <widget class="QGroupBox" name="info">
+        <property name="minimumSize">
+         <size>
+          <width>400</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QGroupBox {
+    color: rgb(102, 102, 102) ;
+    background-color: #f8f9fa;        
+    border-radius: 6px;
+    border: 1px solid rgb(177, 177, 177) ;
+    border-radius: 5px;
+    margin-top: 15px; /* espacio para el título */
+    font: bold 12px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left ;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 255);
+	padding: 2px;
+    border-radius: 5px;
+}
+
+</string>
+        </property>
+        <property name="title">
+         <string>Info</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="0" column="0">
+          <widget class="QWidget" name="SensorCapasitivo" native="true">
+           <property name="maximumSize">
+            <size>
+             <width>99999</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <item>
+             <widget class="QLabel" name="SensorCapasitivoLabel">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>60</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">font-size: 14px;                    /* Tamaño menor para información secundaria */
+font-weight: bold;                 /* Texto en negrita */
+color: #31708f;                    /* Azul medio para indicar estado */
+padding: 4px;                      /* Espacio interno menor */
+background-color: #d9edf7;         /* Fondo azul claro */
+border-radius: 4px;                /* Esquinas redondeadas menores */
+border: 1px solid #bce8f1;         /* Borde azul claro */
+margin-top: 5px;                   /* Separación superior */</string>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:11pt;&quot;&gt;CapSensor&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="EstadoDeSensorCapatitivo_ON_OFF">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>120</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>120</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">font-size: 14px;                    /* Tamaño menor para información secundaria */
+font-weight: bold;                 /* Texto en negrita */
+color: #4f4f4f;                    /* Gris oscuro para buen contraste */
+padding: 8px;                      /* Espacio interno menor */
+background-color: #f9f9f9;         /* Fondo blanco suave */
+border-radius: 4px;                /* Esquinas redondeadas menores */
+border: 1px solid #e0e0e0;         /* Borde gris claro */
+margin-top: 5px;                   /* Separación superior */</string>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:11pt;&quot;&gt;On/Off&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="datosSobreSensor">
+              <property name="maximumSize">
+               <size>
+                <width>99999</width>
+                <height>99993</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">font-size: 14px;                    /* Tamaño menor para información secundaria */
+color: #4f4f4f;                    /* Gris oscuro para buen contraste */
+padding: 8px;                      /* Espacio interno menor */
+background-color: #f9f9f9;         /* Fondo blanco suave */
+border-radius: 4px;                /* Esquinas redondeadas menores */
+border: 1px solid #e0e0e0;         /* Borde gris claro */
+margin-top: 5px;                   /* Separación superior */</string>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;justify&quot;&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;Un &lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-weight:700; font-style:italic;&quot;&gt;sensor capacitivo tubular&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt; de la marca &lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-weight:700; font-style:italic;&quot;&gt;Tecnotron&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;,&lt;br/&gt;diseñado para aplicaciones industriales donde se requiere&lt;br/&gt;detectar materiales sin contacto físico directo.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;🔧 &lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-weight:700; font-style:italic;&quot;&gt;Características técnicas destacadas&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:9pt; font-weight:700; font-style:italic;&quot;&gt;Tipo&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;: Sensor capacitivo tubular&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:9pt; font-weight:700; font-style:italic;&quot;&gt;Distancia sensora&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;: 15 mm&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:9pt; font-weight:700; font-style:italic;&quot;&gt;Capacidad de carga&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;: 10 a 500 mA&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:9pt; font-weight:700; font-style:italic;&quot;&gt;Frecuencia de conmutación&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;: 5 Hz&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:9pt; font-weight:700; font-style:italic;&quot;&gt;Salida&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;: VCA, lógica normalmente cerrada (NF)&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:9pt; font-weight:700; font-style:italic;&quot;&gt;Protección&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;: IP65 (resistente al polvo y chorros de agua)&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-size:9pt; font-style:italic;&quot;&gt;Este tipo de sensor es ideal para detectar materiales como&lt;br/&gt;papel, plástico, vidrio, líquidos o incluso polvo, gracias a su&lt;br/&gt;principio de funcionamiento capacitivo. Es muy útil en&lt;br/&gt;sistemas de automatización, control de nivel en tanques, o&lt;br/&gt;detección en líneas de producción.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QGroupBox" name="controles">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>100</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>100</height>
+         </size>
+        </property>
+        <property name="sizeIncrement">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QGroupBox {
+    color: rgb(102, 102, 102) ;
+    background-color: #f8f9fa;        
+    border-radius: 6px;
+    border: 1px solid rgb(177, 177, 177) ;
+    border-radius: 5px;
+    margin-top: 15px; /* espacio para el título */
+    font: bold 12px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left ;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 255);
+	padding: 2px;
+    border-radius: 5px;
+}
+
+</string>
+        </property>
+        <property name="title">
+         <string>Controles</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QWidget" name="botones" native="true">
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>65</height>
+            </size>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <item>
+             <widget class="QPushButton" name="iniciarBt">
+              <property name="styleSheet">
+               <string notr="true">QPushButton {
+    font-size: 14px;                    
+    font-weight: bold;              
+    color: rgb(0, 0, 0);
+    padding: 8px;                 
+    background-color: rgb(236, 236, 236);          
+    border-radius: 4px;            
+    border: 1px solid rgb(0, 0, 0);      
+    margin-top: 5px;         
+}
+
+/* Hover: verde suave */
+QPushButton:hover {
+    background-color: rgb(220, 255, 220);     /* Verde muy claro */
+    border: 1px solid rgb(0, 128, 0);          /* Verde intenso */
+    color: rgb(0, 100, 0);                     /* Verde oscuro para texto */
+}
+
+/* Pressed: verde más profundo */
+QPushButton:pressed {
+    background-color: rgb(200, 240, 200);     /* Verde más saturado */
+    border: 1px solid rgb(0, 100, 0);          /* Borde más oscuro */
+    color: rgb(0, 80, 0);                      /* Texto aún más profundo */
+}</string>
+              </property>
+              <property name="text">
+               <string>Iniciar Monitoreo</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="3" column="0" rowspan="2">
+       <widget class="QGroupBox" name="diagrama">
+        <property name="minimumSize">
+         <size>
+          <width>280</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>400</width>
+          <height>99999</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QGroupBox {
+    color: rgb(102, 102, 102) ;
+    background-color: #f8f9fa;        
+    border-radius: 6px;
+    border: 1px solid rgb(177, 177, 177) ;
+    border-radius: 5px;
+    margin-top: 15px; /* espacio para el título */
+    font: bold 12px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left ;
+    left: 20px;
+    background-color: rgba(255, 255, 255, 255);
+	padding: 2px;
+    border-radius: 5px;
+}
+
+</string>
+        </property>
+        <property name="title">
+         <string>Diagrama de Conexiones</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="QLabel" name="dibujo">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>170</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;pre style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;┌─────────────────────────────────┐&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  ESP32 DevKit V1  -&amp;gt; Sensor     │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  3V3  ○ ←── N/A	      (+)  │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  GND  ○ ←── GND Cable Azul (-)  │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  D25  ○ ←── OUT Cable Negro (D) │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;|---------------------------------|&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  Fuente de Voltaje -&amp;gt; Sensor    │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;│  5V   &lt;/span&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;○ ←── 5V Cable Marrón    &lt;/span&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt; │&lt;/span&gt;&lt;/pre&gt;&lt;pre style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;&quot;&gt;&lt;span style=&quot; font-family:'Courier New','monospace'; font-size:12px; color:#495057;&quot;&gt;└─────────────────────────────────┘&lt;/span&gt;&lt;/pre&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="nota">
+           <property name="maximumSize">
+            <size>
+             <width>999</width>
+             <height>210</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">        font-size: 13px;                    /* Tamaño menor para nota */
+        color: #856404;                     /* Color ámbar oscuro */
+        background-color: #fff3cd;          /* Fondo ámbar claro (alerta) */
+        border: 1px solid #ffeaa7;          /* Borde ámbar */
+        border-radius: 4px;                 /* Esquinas redondeadas */
+        padding: 8px;                       /* Espacio interno */
+        margin-top: 5px;                    /* Separación superior */
+</string>
+           </property>
+           <property name="text">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;justify&quot;&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt;💡 &lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-weight:700;&quot;&gt;Nota:&lt;/span&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt; Asegúrate de conectar los &lt;br/&gt;componentes correctamente antes de &lt;br/&gt;iniciar el monitoreo&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;justify&quot;&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt;🔌&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-weight:700;&quot;&gt;Voltaje: &lt;/span&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt;La entrada de alimentación&lt;br/&gt;del sensor tiene un rango de acción de &lt;br/&gt;5v a 12v, sientete libre de experimentar&lt;br/&gt;con los voltajes dentro de este limite.&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;justify&quot;&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt;🔹&lt;/span&gt;&lt;span style=&quot; font-size:9pt; font-weight:700;&quot;&gt;GND: &lt;/span&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt;Asegurate de compartir la &lt;br/&gt;tierra entre en microcontrolador, la&lt;br/&gt;fuente y el sensor.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>

@@ -23,7 +23,7 @@ class Ui_angleArm(object):
     def setupUi(self, angleArm):
         if not angleArm.objectName():
             angleArm.setObjectName(u"angleArm")
-        angleArm.resize(702, 679)
+        angleArm.resize(723, 683)
         angleArm.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
 "border: 1px solid rgb(221, 221, 221);\n"
 "border-radius: 5px;\n"
@@ -70,28 +70,151 @@ class Ui_angleArm(object):
 "}\n"
 "\n"
 "")
-        self.horizontalLayout = QHBoxLayout(self.controles)
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.gridLayout_4 = QGridLayout(self.controles)
+        self.gridLayout_4.setObjectName(u"gridLayout_4")
+        self.datos = QWidget(self.controles)
+        self.datos.setObjectName(u"datos")
+        self.datos.setMinimumSize(QSize(0, 0))
+        self.datos.setMaximumSize(QSize(9999, 16777215))
+        self.gridLayout = QGridLayout(self.datos)
+        self.gridLayout.setObjectName(u"gridLayout")
+        self.datosLabel = QLabel(self.datos)
+        self.datosLabel.setObjectName(u"datosLabel")
+
+        self.gridLayout.addWidget(self.datosLabel, 0, 0, 1, 1)
+
+        self.POT1Label = QLabel(self.datos)
+        self.POT1Label.setObjectName(u"POT1Label")
+
+        self.gridLayout.addWidget(self.POT1Label, 0, 1, 1, 1)
+
+        self.POT2Label = QLabel(self.datos)
+        self.POT2Label.setObjectName(u"POT2Label")
+
+        self.gridLayout.addWidget(self.POT2Label, 0, 2, 1, 1)
+
+        self.POT3Label = QLabel(self.datos)
+        self.POT3Label.setObjectName(u"POT3Label")
+
+        self.gridLayout.addWidget(self.POT3Label, 0, 3, 1, 1)
+
+        self.analogoLabel = QLabel(self.datos)
+        self.analogoLabel.setObjectName(u"analogoLabel")
+
+        self.gridLayout.addWidget(self.analogoLabel, 1, 0, 1, 1)
+
+        self.analogoDtPOT1 = QLabel(self.datos)
+        self.analogoDtPOT1.setObjectName(u"analogoDtPOT1")
+
+        self.gridLayout.addWidget(self.analogoDtPOT1, 1, 1, 1, 1)
+
+        self.analogoDtPOT2 = QLabel(self.datos)
+        self.analogoDtPOT2.setObjectName(u"analogoDtPOT2")
+
+        self.gridLayout.addWidget(self.analogoDtPOT2, 1, 2, 1, 1)
+
+        self.analogoDtPOT3 = QLabel(self.datos)
+        self.analogoDtPOT3.setObjectName(u"analogoDtPOT3")
+
+        self.gridLayout.addWidget(self.analogoDtPOT3, 1, 3, 1, 1)
+
+        self.anguloLabel = QLabel(self.datos)
+        self.anguloLabel.setObjectName(u"anguloLabel")
+
+        self.gridLayout.addWidget(self.anguloLabel, 2, 0, 1, 1)
+
+        self.anguloDtPOT1 = QLabel(self.datos)
+        self.anguloDtPOT1.setObjectName(u"anguloDtPOT1")
+
+        self.gridLayout.addWidget(self.anguloDtPOT1, 2, 1, 1, 1)
+
+        self.anguloDtPOT2 = QLabel(self.datos)
+        self.anguloDtPOT2.setObjectName(u"anguloDtPOT2")
+
+        self.gridLayout.addWidget(self.anguloDtPOT2, 2, 2, 1, 1)
+
+        self.anguloDtPOT3 = QLabel(self.datos)
+        self.anguloDtPOT3.setObjectName(u"anguloDtPOT3")
+
+        self.gridLayout.addWidget(self.anguloDtPOT3, 2, 3, 1, 1)
+
+        self.calBox = QWidget(self.datos)
+        self.calBox.setObjectName(u"calBox")
+        self.calBox.setStyleSheet(u"background-color: rgb(14, 255, 34);")
+        self.horizontalLayout_2 = QHBoxLayout(self.calBox)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.horizontalLayout_2.setContentsMargins(3, 3, 3, 3)
+        self.calibradoLabel = QLabel(self.calBox)
+        self.calibradoLabel.setObjectName(u"calibradoLabel")
+        self.calibradoLabel.setStyleSheet(u"background-color: rgb(255, 255, 255);")
+
+        self.horizontalLayout_2.addWidget(self.calibradoLabel)
+
+        self.analogoDtCalibradoPOT1 = QLabel(self.calBox)
+        self.analogoDtCalibradoPOT1.setObjectName(u"analogoDtCalibradoPOT1")
+        self.analogoDtCalibradoPOT1.setStyleSheet(u"background-color: rgb(255, 255, 255);")
+
+        self.horizontalLayout_2.addWidget(self.analogoDtCalibradoPOT1)
+
+        self.analogoDtCalibradoPOT2 = QLabel(self.calBox)
+        self.analogoDtCalibradoPOT2.setObjectName(u"analogoDtCalibradoPOT2")
+        self.analogoDtCalibradoPOT2.setStyleSheet(u"background-color: rgb(255, 255, 255);")
+
+        self.horizontalLayout_2.addWidget(self.analogoDtCalibradoPOT2)
+
+        self.analogoDtCalibradoPOT3 = QLabel(self.calBox)
+        self.analogoDtCalibradoPOT3.setObjectName(u"analogoDtCalibradoPOT3")
+        self.analogoDtCalibradoPOT3.setStyleSheet(u"background-color: rgb(255, 255, 255);")
+
+        self.horizontalLayout_2.addWidget(self.analogoDtCalibradoPOT3)
+
+
+        self.gridLayout.addWidget(self.calBox, 3, 0, 1, 4)
+
+
+        self.gridLayout_4.addWidget(self.datos, 0, 2, 1, 1)
+
+        self.EstadoDeSensorCapasitivo = QWidget(self.controles)
+        self.EstadoDeSensorCapasitivo.setObjectName(u"EstadoDeSensorCapasitivo")
+        self.EstadoDeSensorCapasitivo.setMaximumSize(QSize(106, 16777215))
+        self.verticalLayout_2 = QVBoxLayout(self.EstadoDeSensorCapasitivo)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.SensorCapasitivoLabel = QLabel(self.EstadoDeSensorCapasitivo)
+        self.SensorCapasitivoLabel.setObjectName(u"SensorCapasitivoLabel")
+        self.SensorCapasitivoLabel.setStyleSheet(u"font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
+"font-weight: bold;                 /* Texto en negrita */\n"
+"color: #31708f;                    /* Azul medio para indicar estado */\n"
+"padding: 4px;                      /* Espacio interno menor */\n"
+"background-color: #d9edf7;         /* Fondo azul claro */\n"
+"border-radius: 4px;                /* Esquinas redondeadas menores */\n"
+"border: 1px solid #bce8f1;         /* Borde azul claro */\n"
+"margin-top: 5px;                   /* Separaci\u00f3n superior */")
+
+        self.verticalLayout_2.addWidget(self.SensorCapasitivoLabel)
+
+        self.EstadoDeSensorCapatitivo_ON_OFF = QLabel(self.EstadoDeSensorCapasitivo)
+        self.EstadoDeSensorCapatitivo_ON_OFF.setObjectName(u"EstadoDeSensorCapatitivo_ON_OFF")
+        self.EstadoDeSensorCapatitivo_ON_OFF.setStyleSheet(u"font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
+"font-weight: bold;                 /* Texto en negrita */\n"
+"color: #4f4f4f;                    /* Gris oscuro para buen contraste */\n"
+"padding: 8px;                      /* Espacio interno menor */\n"
+"background-color: #f9f9f9;         /* Fondo blanco suave */\n"
+"border-radius: 4px;                /* Esquinas redondeadas menores */\n"
+"border: 1px solid #e0e0e0;         /* Borde gris claro */\n"
+"margin-top: 5px;                   /* Separaci\u00f3n superior */")
+
+        self.verticalLayout_2.addWidget(self.EstadoDeSensorCapatitivo_ON_OFF)
+
+
+        self.gridLayout_4.addWidget(self.EstadoDeSensorCapasitivo, 0, 1, 1, 1)
+
         self.botones = QWidget(self.controles)
         self.botones.setObjectName(u"botones")
         self.gridLayout_3 = QGridLayout(self.botones)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.iniciar = QPushButton(self.botones)
-        self.iniciar.setObjectName(u"iniciar")
-        self.iniciar.setStyleSheet(u"font-size: 14px;                   \n"
-"font-weight: bold;             \n"
-"color: rgb(0, 0, 0);\n"
-"padding: 8px;                \n"
-"background-color: rgb(236, 236, 236);         \n"
-"border-radius: 4px;           \n"
-"border: 1px solid rgb(0, 0, 0);     \n"
-"margin-top: 5px;        ")
-
-        self.gridLayout_3.addWidget(self.iniciar, 0, 0, 1, 1)
-
-        self.calibrar = QPushButton(self.botones)
-        self.calibrar.setObjectName(u"calibrar")
-        self.calibrar.setStyleSheet(u"        font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
+        self.calibrarBt = QPushButton(self.botones)
+        self.calibrarBt.setObjectName(u"calibrarBt")
+        self.calibrarBt.setStyleSheet(u"        font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
 "        font-weight: bold;                  /* Texto en negrita */\n"
 "        color: #856404;                     /* Color \u00e1mbar para indicar estado */\n"
 "        padding: 8px;                       /* Espacio interno menor */\n"
@@ -100,11 +223,11 @@ class Ui_angleArm(object):
 "        border: 1px solid #ffeaa7;          /* Borde \u00e1mbar */\n"
 "        margin-top: 5px;                    /* Separaci\u00f3n superior */")
 
-        self.gridLayout_3.addWidget(self.calibrar, 0, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.calibrarBt, 0, 1, 1, 1)
 
-        self.limpiar = QPushButton(self.botones)
-        self.limpiar.setObjectName(u"limpiar")
-        self.limpiar.setStyleSheet(u"        font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
+        self.exportarBt = QPushButton(self.botones)
+        self.exportarBt.setObjectName(u"exportarBt")
+        self.exportarBt.setStyleSheet(u"        font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
 "        font-weight: bold;                  /* Texto en negrita */\n"
 "        color: #856404;                     /* Color \u00e1mbar para indicar estado */\n"
 "        padding: 8px;                       /* Espacio interno menor */\n"
@@ -113,84 +236,71 @@ class Ui_angleArm(object):
 "        border: 1px solid #ffeaa7;          /* Borde \u00e1mbar */\n"
 "        margin-top: 5px;                    /* Separaci\u00f3n superior */")
 
-        self.gridLayout_3.addWidget(self.limpiar, 1, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.exportarBt, 2, 1, 1, 1)
 
-        self.exportar = QPushButton(self.botones)
-        self.exportar.setObjectName(u"exportar")
-        self.exportar.setStyleSheet(u"        font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
-"        font-weight: bold;                  /* Texto en negrita */\n"
-"        color: #856404;                     /* Color \u00e1mbar para indicar estado */\n"
-"        padding: 8px;                       /* Espacio interno menor */\n"
-"        background-color: #fff3cd;          /* Fondo \u00e1mbar claro */\n"
-"        border-radius: 4px;                 /* Esquinas redondeadas menores */\n"
-"        border: 1px solid #ffeaa7;          /* Borde \u00e1mbar */\n"
-"        margin-top: 5px;                    /* Separaci\u00f3n superior */")
+        self.limpiarBt = QPushButton(self.botones)
+        self.limpiarBt.setObjectName(u"limpiarBt")
+        self.limpiarBt.setStyleSheet(u"/* Estilo base con matices rosa y gris degradado */\n"
+"QPushButton {\n"
+"    font-size: 14px;                         /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
+"    font-weight: bold;                       /* Texto en negrita */\n"
+"    color: #5a5a5a;                          /* Gris medio para texto */\n"
+"    padding: 8px;                            /* Espacio interno menor */\n"
+"    background: linear-gradient(135deg, #f8e1ec, #d3d3d3); /* Degradado rosa a gris */\n"
+"    border-radius: 6px;                      /* Esquinas ligeramente m\u00e1s redondeadas */\n"
+"    border: 1px solid #e0b7c6;               /* Borde rosa suave */\n"
+"    margin-top: 5px;                         /* Separaci\u00f3n superior */\n"
+"}\n"
+"\n"
+"/* Efecto hover con \u00e9nfasis en el rosa */\n"
+"QPushButton:hover {\n"
+"    background: linear-gradient(135deg, #fce4ec, #c0c0c0); /* Rosa claro a gris claro */\n"
+"    color: #7a4b63;                          /* Rosa oscuro para el texto */\n"
+"    border: 1px sol"
+                        "id #d48ca3;               /* Borde m\u00e1s intenso en rosa */\n"
+"}\n"
+"/* Presionado: tono m\u00e1s oscuro y efecto hundido */\n"
+"QPushButton:pressed {\n"
+"    background-color: #e0b7c6;\n"
+"    border: 2px solid #b0b0b0;\n"
+"    padding-top: 8px; /* efecto hundido */\n"
+"    padding-left: 8px;\n"
+"}\n"
+"")
 
-        self.gridLayout_3.addWidget(self.exportar, 1, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.limpiarBt, 2, 0, 1, 1)
 
+        self.iniciarBt = QPushButton(self.botones)
+        self.iniciarBt.setObjectName(u"iniciarBt")
+        self.iniciarBt.setStyleSheet(u"QPushButton {\n"
+"    font-size: 14px;                    \n"
+"    font-weight: bold;              \n"
+"    color: rgb(0, 0, 0);\n"
+"    padding: 8px;                 \n"
+"    background-color: rgb(236, 236, 236);          \n"
+"    border-radius: 4px;            \n"
+"    border: 1px solid rgb(0, 0, 0);      \n"
+"    margin-top: 5px;         \n"
+"}\n"
+"\n"
+"/* Hover: verde suave */\n"
+"QPushButton:hover {\n"
+"    background-color: rgb(220, 255, 220);     /* Verde muy claro */\n"
+"    border: 1px solid rgb(0, 128, 0);          /* Verde intenso */\n"
+"    color: rgb(0, 100, 0);                     /* Verde oscuro para texto */\n"
+"}\n"
+"\n"
+"/* Pressed: verde m\u00e1s profundo */\n"
+"QPushButton:pressed {\n"
+"    background-color: rgb(200, 240, 200);     /* Verde m\u00e1s saturado */\n"
+"    border: 1px solid rgb(0, 100, 0);          /* Borde m\u00e1s oscuro */\n"
+"    color: rgb(0, 80, 0);                      /* Texto a\u00fan m\u00e1s profundo */\n"
+"}")
 
-        self.horizontalLayout.addWidget(self.botones)
-
-        self.datos = QWidget(self.controles)
-        self.datos.setObjectName(u"datos")
-        self.datos.setMaximumSize(QSize(900, 16777215))
-        self.gridLayout_4 = QGridLayout(self.datos)
-        self.gridLayout_4.setObjectName(u"gridLayout_4")
-        self.datosLabel = QLabel(self.datos)
-        self.datosLabel.setObjectName(u"datosLabel")
-
-        self.gridLayout_4.addWidget(self.datosLabel, 0, 0, 1, 1)
-
-        self.analogo = QLabel(self.datos)
-        self.analogo.setObjectName(u"analogo")
-
-        self.gridLayout_4.addWidget(self.analogo, 0, 1, 1, 1)
-
-        self.angulo = QLabel(self.datos)
-        self.angulo.setObjectName(u"angulo")
-
-        self.gridLayout_4.addWidget(self.angulo, 0, 2, 1, 1)
-
-        self.lectura = QLabel(self.datos)
-        self.lectura.setObjectName(u"lectura")
-
-        self.gridLayout_4.addWidget(self.lectura, 1, 0, 1, 1)
-
-        self.analogoDt = QLabel(self.datos)
-        self.analogoDt.setObjectName(u"analogoDt")
-
-        self.gridLayout_4.addWidget(self.analogoDt, 1, 1, 1, 1)
-
-        self.anguloDt = QLabel(self.datos)
-        self.anguloDt.setObjectName(u"anguloDt")
-
-        self.gridLayout_4.addWidget(self.anguloDt, 1, 2, 1, 1)
-
-        self.calBox = QWidget(self.datos)
-        self.calBox.setObjectName(u"calBox")
-        self.horizontalLayout_2 = QHBoxLayout(self.calBox)
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalLayout_2.setContentsMargins(3, 3, 3, 3)
-        self.calibrado = QLabel(self.calBox)
-        self.calibrado.setObjectName(u"calibrado")
-
-        self.horizontalLayout_2.addWidget(self.calibrado)
-
-        self.analogoDtCal = QLabel(self.calBox)
-        self.analogoDtCal.setObjectName(u"analogoDtCal")
-
-        self.horizontalLayout_2.addWidget(self.analogoDtCal)
-
-        self.anguloDtCal = QLabel(self.calBox)
-        self.anguloDtCal.setObjectName(u"anguloDtCal")
-
-        self.horizontalLayout_2.addWidget(self.anguloDtCal)
+        self.gridLayout_3.addWidget(self.iniciarBt, 0, 0, 1, 1)
 
 
-        self.gridLayout_4.addWidget(self.calBox, 2, 0, 1, 3)
-
-
-        self.horizontalLayout.addWidget(self.datos)
+        self.gridLayout_4.addWidget(self.botones, 0, 0, 1, 1)
 
 
         self.gridLayout_6.addWidget(self.controles, 4, 0, 1, 3)
@@ -245,6 +355,7 @@ class Ui_angleArm(object):
 
         self.grafica = QGroupBox(self.frame)
         self.grafica.setObjectName(u"grafica")
+        self.grafica.setMinimumSize(QSize(400, 0))
         self.grafica.setStyleSheet(u"QGroupBox {\n"
 "    color: rgb(102, 102, 102) ;\n"
 "    background-color: #f8f9fa;        \n"
@@ -297,19 +408,28 @@ class Ui_angleArm(object):
         angleArm.setWindowTitle(QCoreApplication.translate("angleArm", u"Form", None))
         self.titulo.setText(QCoreApplication.translate("angleArm", u"<html><head/><body><p align=\"center\"><span style=\" font-size:22pt; font-weight:700; color:#007bff;\">Monitoreo de \u00c1ngulo y Proximidad</span></p></body></html>", None))
         self.controles.setTitle(QCoreApplication.translate("angleArm", u"Controles", None))
-        self.iniciar.setText(QCoreApplication.translate("angleArm", u"Iniciar Monitoreo", None))
-        self.calibrar.setText(QCoreApplication.translate("angleArm", u"No Calibrado", None))
-        self.limpiar.setText(QCoreApplication.translate("angleArm", u"Limpiar Gr\u00e1fica", None))
-        self.exportar.setText(QCoreApplication.translate("angleArm", u"Exportal a Exel", None))
         self.datosLabel.setText(QCoreApplication.translate("angleArm", u"Datos", None))
-        self.analogo.setText(QCoreApplication.translate("angleArm", u"An\u00e1logo", None))
-        self.angulo.setText(QCoreApplication.translate("angleArm", u"\u00c1ngulo", None))
-        self.lectura.setText(QCoreApplication.translate("angleArm", u"Lectura", None))
-        self.analogoDt.setText(QCoreApplication.translate("angleArm", u"--", None))
-        self.anguloDt.setText(QCoreApplication.translate("angleArm", u"--", None))
-        self.calibrado.setText(QCoreApplication.translate("angleArm", u"Calibrado", None))
-        self.analogoDtCal.setText(QCoreApplication.translate("angleArm", u"--", None))
-        self.anguloDtCal.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.POT1Label.setText(QCoreApplication.translate("angleArm", u"POT-1", None))
+        self.POT2Label.setText(QCoreApplication.translate("angleArm", u"POT-2", None))
+        self.POT3Label.setText(QCoreApplication.translate("angleArm", u"POT-3", None))
+        self.analogoLabel.setText(QCoreApplication.translate("angleArm", u"An\u00e1logo", None))
+        self.analogoDtPOT1.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.analogoDtPOT2.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.analogoDtPOT3.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.anguloLabel.setText(QCoreApplication.translate("angleArm", u"\u00c1ngulo", None))
+        self.anguloDtPOT1.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.anguloDtPOT2.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.anguloDtPOT3.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.calibradoLabel.setText(QCoreApplication.translate("angleArm", u"Calibrado", None))
+        self.analogoDtCalibradoPOT1.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.analogoDtCalibradoPOT2.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.analogoDtCalibradoPOT3.setText(QCoreApplication.translate("angleArm", u"--", None))
+        self.SensorCapasitivoLabel.setText(QCoreApplication.translate("angleArm", u"<html><head/><body><p align=\"center\"><span style=\" font-size:11pt;\">CapSensor</span></p></body></html>", None))
+        self.EstadoDeSensorCapatitivo_ON_OFF.setText(QCoreApplication.translate("angleArm", u"<html><head/><body><p align=\"center\"><span style=\" font-size:11pt;\">On/Off</span></p></body></html>", None))
+        self.calibrarBt.setText(QCoreApplication.translate("angleArm", u"No Calibrado", None))
+        self.exportarBt.setText(QCoreApplication.translate("angleArm", u"Exportal a Exel", None))
+        self.limpiarBt.setText(QCoreApplication.translate("angleArm", u"Limpiar Gr\u00e1fica", None))
+        self.iniciarBt.setText(QCoreApplication.translate("angleArm", u"Iniciar Monitoreo", None))
         self.diagrama.setTitle(QCoreApplication.translate("angleArm", u"Diagrama de Conexiones", None))
         self.dibujo.setText(QCoreApplication.translate("angleArm", u"<html><head/><body><pre style=\" margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\">\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\">\u2502  ESP32 DevKit V1                \u2502</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\">\u2502  3V3  \u25cb \u2190\u2500\u2500 P"
                         "otenci\u00f3metros (+)  \u2502</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\">\u2502  GND  \u25cb \u2190\u2500\u2500 Potenci\u00f3metros (-)  \u2502</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\">\u2502  D32  \u25cb \u2190\u2500\u2500 Potenci\u00f3metro 1 (S) \u2502</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; line-height:140%;\"><span style=\" font-family:'Courier New','monospace'; font-size:12px; color:#495057;\">\u2502  D33  \u25cb \u2190\u2500\u2500 Potenci\u00f3metro 2 (S) \u2502</span></pre><pre style=\" margin-top:0px; margin-bottom:0px; "

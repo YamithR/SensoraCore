@@ -78,14 +78,30 @@ class Ui_simpleAngle(object):
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.iniciar = QPushButton(self.botones)
         self.iniciar.setObjectName(u"iniciar")
-        self.iniciar.setStyleSheet(u"font-size: 14px;                   \n"
-"font-weight: bold;             \n"
-"color: rgb(0, 0, 0);\n"
-"padding: 8px;                \n"
-"background-color: rgb(236, 236, 236);         \n"
-"border-radius: 4px;           \n"
-"border: 1px solid rgb(0, 0, 0);     \n"
-"margin-top: 5px;        ")
+        self.iniciar.setStyleSheet(u"QPushButton {\n"
+"    font-size: 14px;                    \n"
+"    font-weight: bold;              \n"
+"    color: rgb(0, 0, 0);\n"
+"    padding: 8px;                 \n"
+"    background-color: rgb(236, 236, 236);          \n"
+"    border-radius: 4px;            \n"
+"    border: 1px solid rgb(0, 0, 0);      \n"
+"    margin-top: 5px;         \n"
+"}\n"
+"\n"
+"/* Hover: verde suave */\n"
+"QPushButton:hover {\n"
+"    background-color: rgb(220, 255, 220);     /* Verde muy claro */\n"
+"    border: 1px solid rgb(0, 128, 0);          /* Verde intenso */\n"
+"    color: rgb(0, 100, 0);                     /* Verde oscuro para texto */\n"
+"}\n"
+"\n"
+"/* Pressed: verde m\u00e1s profundo */\n"
+"QPushButton:pressed {\n"
+"    background-color: rgb(200, 240, 200);     /* Verde m\u00e1s saturado */\n"
+"    border: 1px solid rgb(0, 100, 0);          /* Borde m\u00e1s oscuro */\n"
+"    color: rgb(0, 80, 0);                      /* Texto a\u00fan m\u00e1s profundo */\n"
+"}")
 
         self.gridLayout_3.addWidget(self.iniciar, 0, 0, 1, 1)
 
@@ -187,21 +203,25 @@ class Ui_simpleAngle(object):
 
         self.calBox = QWidget(self.datos)
         self.calBox.setObjectName(u"calBox")
+        self.calBox.setStyleSheet(u"background-color: rgb(14, 255, 34);")
         self.horizontalLayout_2 = QHBoxLayout(self.calBox)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.horizontalLayout_2.setContentsMargins(3, 3, 3, 3)
         self.calibrado = QLabel(self.calBox)
         self.calibrado.setObjectName(u"calibrado")
+        self.calibrado.setStyleSheet(u"background-color: rgb(255, 255, 255);")
 
         self.horizontalLayout_2.addWidget(self.calibrado)
 
         self.analogoDtCal = QLabel(self.calBox)
         self.analogoDtCal.setObjectName(u"analogoDtCal")
+        self.analogoDtCal.setStyleSheet(u"background-color: rgb(255, 255, 255);")
 
         self.horizontalLayout_2.addWidget(self.analogoDtCal)
 
         self.anguloDtCal = QLabel(self.calBox)
         self.anguloDtCal.setObjectName(u"anguloDtCal")
+        self.anguloDtCal.setStyleSheet(u"background-color: rgb(255, 255, 255);")
 
         self.horizontalLayout_2.addWidget(self.anguloDtCal)
 
@@ -265,7 +285,7 @@ class Ui_simpleAngle(object):
 
         self.grafica = QGroupBox(self.frame)
         self.grafica.setObjectName(u"grafica")
-        self.grafica.setMinimumSize(QSize(0, 380))
+        self.grafica.setMinimumSize(QSize(400, 380))
         self.grafica.setStyleSheet(u"QGroupBox {\n"
 "    color: rgb(102, 102, 102) ;\n"
 "    background-color: #f8f9fa;        \n"

@@ -210,7 +210,8 @@ class SimpleAngleLogic(QWidget):
             
             # Líneas de la gráfica (original y calibrada)
             self.line1, = self.ax1.plot([], [], 'b-', label='Lectura AD', linewidth=2, alpha=0.8)
-            self.line2, = self.ax2.plot([], [], 'r-', label='Ángulo Original', linewidth=1.5, alpha=0.6, linestyle='--')
+            # Ángulo original en rojo, línea discontinua (evita definir linestyle dos veces)
+            self.line2, = self.ax2.plot([], [], 'r--', label='Ángulo Original', linewidth=1.5, alpha=0.6)
             self.line3, = self.ax2.plot([], [], 'g-', label='Ángulo Calibrado', linewidth=2, alpha=0.8)
             
             # Leyenda compacta
