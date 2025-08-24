@@ -13,6 +13,7 @@ from Modules.simpleAngle.simpleAngle_logic import SimpleAngleLogic
 from Modules.angleArm.angleArm_logic import AngleArmLogic
 from Modules.infrared.infrared_logic import InfraredLogic
 from Modules.capasitive.capasitive_logic import CapasitiveLogic
+from Modules.ultrasonic.ultrasonic_logic import UltrasonicLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -684,6 +685,49 @@ class ui(QMainWindow):
                         print(f"Error en fallback capasitive: {fallback_error}")
                         return
 
+            elif sensor_id == "ultrasonic":
+                print("Cargando lógica para el sensor ultrasonic.")
+                try:
+                    if hasattr(self, 'current_ultrasonic_logic') and self.current_ultrasonic_logic:
+                        try:
+                            self.current_ultrasonic_logic.cleanup()
+                        except:
+                            pass
+                        self.current_ultrasonic_logic = None
+
+                    if not hasattr(self, 'ultrasonicUi') or self.ultrasonicUi is None:
+                        loader = QUiLoader()
+                        self.ultrasonicUi = loader.load("SensoraCore/SC_DesktopApp/Modules/ultrasonic/ultrasonic.ui")
+
+                    try:
+                        _ = self.ultrasonicUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.ultrasonicUi = loader.load("SensoraCore/SC_DesktopApp/Modules/ultrasonic/ultrasonic.ui")
+
+                    if self.ultrasonicUi is not None:
+                        self.current_ultrasonic_logic = UltrasonicLogic(self.ultrasonicUi, self)
+                        self.ultrasonicUi.setParent(sensor_ui)
+                        layout.addWidget(self.ultrasonicUi)
+                    else:
+                        print("Error: No se pudo crear o cargar ultrasonicUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar UltrasonicLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.ultrasonicUi = loader.load("SensoraCore/SC_DesktopApp/Modules/ultrasonic/ultrasonic.ui")
+                        if self.ultrasonicUi:
+                            self.current_ultrasonic_logic = UltrasonicLogic(self.ultrasonicUi, self)
+                            self.ultrasonicUi.setParent(sensor_ui)
+                            layout.addWidget(self.ultrasonicUi)
+                        else:
+                            print("Fallback ultrasonic falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback ultrasonic: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
@@ -759,6 +803,14 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar Capasitive: {e}")
                 self.current_capasitive_logic = None
+            # Limpiar Ultrasonic si está activo
+            if hasattr(self, 'current_ultrasonic_logic') and self.current_ultrasonic_logic:
+                try:
+                    print("Deteniendo procesos de Ultrasonic...")
+                    self.current_ultrasonic_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar Ultrasonic: {e}")
+                self.current_ultrasonic_logic = None
             
             # Aquí se pueden agregar otros sensores cuando tengan lógica propia
             # Por ejemplo:
