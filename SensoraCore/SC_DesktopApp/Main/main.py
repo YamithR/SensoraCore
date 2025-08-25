@@ -19,6 +19,7 @@ from Modules.irSteering.irSteering_logic import IrSteeringLogic
 from Modules.thermoregulation.thermoregulation_logic import ThermoregulationLogic
 from Modules.gasRegulation.gasRegulation_logic import GasRegulationLogic
 from Modules.brightness.brightness_logic import BrightnessLogic
+from Modules.colorCNY.colorCNY_logic import ColorCNYLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -948,6 +949,49 @@ class ui(QMainWindow):
                         print(f"Error en fallback brightness: {fallback_error}")
                         return
 
+            elif sensor_id == "colorCNY":
+                print("Cargando lógica para el sensor colorCNY.")
+                try:
+                    if hasattr(self, 'current_colorcny_logic') and self.current_colorcny_logic:
+                        try:
+                            self.current_colorcny_logic.cleanup()
+                        except:
+                            pass
+                        self.current_colorcny_logic = None
+
+                    if not hasattr(self, 'colorCNYUi') or self.colorCNYUi is None:
+                        loader = QUiLoader()
+                        self.colorCNYUi = loader.load("SensoraCore/SC_DesktopApp/Modules/colorCNY/colorCNY.ui")
+
+                    try:
+                        _ = self.colorCNYUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.colorCNYUi = loader.load("SensoraCore/SC_DesktopApp/Modules/colorCNY/colorCNY.ui")
+
+                    if self.colorCNYUi is not None:
+                        self.current_colorcny_logic = ColorCNYLogic(self.colorCNYUi, self)
+                        self.colorCNYUi.setParent(sensor_ui)
+                        layout.addWidget(self.colorCNYUi)
+                    else:
+                        print("Error: No se pudo crear o cargar colorCNYUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar ColorCNYLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.colorCNYUi = loader.load("SensoraCore/SC_DesktopApp/Modules/colorCNY/colorCNY.ui")
+                        if self.colorCNYUi:
+                            self.current_colorcny_logic = ColorCNYLogic(self.colorCNYUi, self)
+                            self.colorCNYUi.setParent(sensor_ui)
+                            layout.addWidget(self.colorCNYUi)
+                        else:
+                            print("Fallback colorCNY falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback colorCNY: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
@@ -1063,6 +1107,14 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar GasRegulation: {e}")
                 self.current_gas_regulation_logic = None
+            # Limpiar ColorCNY si está activo
+            if hasattr(self, 'current_colorcny_logic') and self.current_colorcny_logic:
+                try:
+                    print("Deteniendo procesos de ColorCNY...")
+                    self.current_colorcny_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar ColorCNY: {e}")
+                self.current_colorcny_logic = None
             # Limpiar Brightness si está activo
             if hasattr(self, 'current_brightness_logic') and self.current_brightness_logic:
                 try:

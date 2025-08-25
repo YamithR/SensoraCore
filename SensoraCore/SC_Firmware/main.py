@@ -828,6 +828,64 @@ while True:
                 current_mode = None
                 continuous_client = None
                 continue
+        elif 'MODO:COLOR_CNY' in data:
+            # --- COLOR CNY MODE ---
+            current_mode = 'COLOR_CNY'
+            continuous_client = cl
+            cl.send(b'COLOR_CNY_OK')
+
+            # ADC en GPIO35 para CNY70 (ADC1)
+            try:
+                adc_cny = ADC(Pin(35))
+                adc_cny.atten(ADC.ATTN_11DB)
+                adc_cny.width(ADC.WIDTH_12BIT)
+            except Exception:
+                adc_cny = None
+
+            period_ms = 200
+            last_read = 0
+            try:
+                cl.settimeout(0.01)
+                while current_mode == 'COLOR_CNY' and continuous_client == cl:
+                    # comandos
+                    try:
+                        cmd = cl.recv(64)
+                        if cmd:
+                            txt = cmd.decode().strip()
+                            if txt.startswith('CNY_START:'):
+                                try:
+                                    p = int(float(txt.split(':',1)[1]))
+                                    period_ms = max(50, p)
+                                    cl.send(b'OK')
+                                except Exception:
+                                    cl.send(b'ERR')
+                            elif 'CNY_STOP' in txt or 'STOP' in txt:
+                                cl.send(b'OK')
+                                break
+                    except Exception:
+                        pass
+
+                    now = time.ticks_ms()
+                    if time.ticks_diff(now, last_read) >= period_ms:
+                        last_read = now
+                        try:
+                            val = adc_cny.read() if adc_cny else 0
+                        except Exception:
+                            val = 0
+                        volt = (val / 4095.0) * 3.3
+                        msg = f"SENSOR:CNY70,ADC:{val},VOLT:{volt:.3f}\n"
+                        try:
+                            cl.send(msg.encode())
+                        except Exception:
+                            break
+                    time.sleep_ms(5)
+            except Exception as e:
+                print(f"Error en COLOR_CNY: {e}")
+            finally:
+                cl.close()
+                current_mode = None
+                continuous_client = None
+                continue
         elif 'MODO:GAS_REGULATION' in data:
             # --- GAS REGULATION MODE ---
             current_mode = 'GAS_REGULATION'
