@@ -3,7 +3,7 @@
 # Sensores: Potenciómetro, IR Digital, Capacitivo Digital, Ultrasónico Analógico
 import network # type: ignore
 import socket
-from machine import Pin, ADC, reset, PWM # type: ignore
+from machine import Pin, ADC, reset, PWM, SoftSPI # type: ignore
 import time
 
 # Esperar a que el ESP32 se inicialice completamente
@@ -633,6 +633,143 @@ while True:
             current_mode = None
             continuous_client = None
             continue
+        elif 'MODO:THERMOREGULATION' in data:
+            # --- THERMOREGULATION MODE ---
+            current_mode = 'THERMOREGULATION'
+            continuous_client = cl
+            cl.send(b'THERMOREGULATION_OK')
+
+            # Config sensores
+            # LM35 en ADC GPIO36 (VP)
+            try:
+                lm35_adc = ADC(Pin(36))
+                lm35_adc.atten(ADC.ATTN_11DB)
+                lm35_adc.width(ADC.WIDTH_12BIT)
+            except Exception:
+                lm35_adc = None
+
+            # DS18B20 en GPIO27 (OneWire) - evitar conflicto con CS=33 del MAX6675
+            onewire = None
+            ds_sensor = None
+            try:
+                import onewire, ds18x20  # type: ignore
+                ow_pin = Pin(27)
+                onewire = onewire.OneWire(ow_pin)
+                ds_sensor = ds18x20.DS18X20(onewire)
+                roms = ds_sensor.scan()
+                if not roms:
+                    ds_sensor = None
+                else:
+                    ds_rom = roms[0]
+            except Exception:
+                ds_sensor = None
+                ds_rom = None
+
+            # MAX6675 via SoftSPI: SCK=32, MISO=35, CS=33, MOSI dummy=25
+            spi = None
+            cs = None
+            try:
+                spi = SoftSPI(baudrate=5000000, polarity=0, phase=0, sck=Pin(32), mosi=Pin(25), miso=Pin(35))
+                cs = Pin(33, Pin.OUT)
+                cs.value(1)
+            except Exception:
+                spi = None
+                cs = None
+
+            sel = 'LM35'
+            period_ms = 500
+            last_read = 0
+
+            def read_lm35_c():
+                if lm35_adc is None:
+                    return 0.0, None
+                # ADC 12-bit 0..4095, ATTN_11DB => ~3.3V full scale
+                raw = lm35_adc.read()
+                v = (raw / 4095.0) * 3.3
+                temp_c = (v * 100.0)  # 10mV/°C
+                return temp_c, raw
+
+            def read_ds18b20_c():
+                if ds_sensor is None:
+                    return 0.0
+                try:
+                    ds_sensor.convert_temp()
+                    time.sleep_ms(800)  # resolución típica
+                    return ds_sensor.read_temp(ds_rom)
+                except Exception:
+                    return 0.0
+
+            def read_max6675_c():
+                if spi is None or cs is None:
+                    return 0.0, None
+                try:
+                    cs.value(0)
+                    data = spi.read(2)
+                    cs.value(1)
+                    if not data or len(data) < 2:
+                        return 0.0, None
+                    val = (data[0] << 8) | data[1]
+                    # bit D2 (0x04) = 1 => no thermocouple connected
+                    if val & 0x04:
+                        return 0.0, val
+                    # bits 15..3 => temp * 0.25°C
+                    temp = (val >> 3) * 0.25
+                    return float(temp), val
+                except Exception:
+                    return 0.0, None
+
+            # Loop principal Thermo
+            try:
+                cl.settimeout(0.01)
+                while current_mode == 'THERMOREGULATION' and continuous_client == cl:
+                    # comandos no bloqueantes
+                    try:
+                        cmd = cl.recv(64)
+                        if cmd:
+                            txt = cmd.decode().strip()
+                            if txt.startswith('TH_SET:'):
+                                sel = txt.split(':',1)[1].strip().upper()
+                                if sel not in ('LM35','DS18B20','TYPEK'):
+                                    sel = 'LM35'
+                            elif txt.startswith('TH_START:'):
+                                try:
+                                    p = int(txt.split(':',1)[1])
+                                    if sel == 'DS18B20':
+                                        period_ms = max(800, p)
+                                    else:
+                                        period_ms = max(200, p)
+                                except Exception:
+                                    pass
+                            elif 'TH_STOP' in txt or 'STOP' in txt:
+                                break
+                    except Exception:
+                        pass
+
+                    now = time.ticks_ms()
+                    if time.ticks_diff(now, last_read) >= period_ms:
+                        last_read = now
+                        if sel == 'LM35':
+                            temp, raw = read_lm35_c()
+                            msg = f"SENSOR:LM35,TEMP_C:{temp:.2f},RAW:{raw}\n"
+                        elif sel == 'DS18B20':
+                            temp = read_ds18b20_c()
+                            msg = f"SENSOR:DS18B20,TEMP_C:{temp:.2f}\n"
+                        else:  # TYPEK
+                            temp, raw = read_max6675_c()
+                            msg = f"SENSOR:TYPEK,TEMP_C:{temp:.2f},RAW:{raw}\n"
+                        try:
+                            cl.send(msg.encode())
+                        except Exception:
+                            break
+                    time.sleep_ms(5)
+            except Exception as e:
+                print(f"Error en THERMOREGULATION: {e}")
+            finally:
+                # fin de modo
+                cl.close()
+                current_mode = None
+                continuous_client = None
+                continue
         elif 'STOP' in data:
             current_mode = None
             cl.send(b'STOP_OK')

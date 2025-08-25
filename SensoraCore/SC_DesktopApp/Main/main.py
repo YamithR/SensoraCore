@@ -16,6 +16,7 @@ from Modules.capasitive.capasitive_logic import CapasitiveLogic
 from Modules.ultrasonic.ultrasonic_logic import UltrasonicLogic
 from Modules.opticalSpeed.opticalSpeed_logic import OpticalSpeedLogic
 from Modules.irSteering.irSteering_logic import IrSteeringLogic
+from Modules.thermoregulation.thermoregulation_logic import ThermoregulationLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -816,6 +817,49 @@ class ui(QMainWindow):
                         print(f"Error en fallback irSteering: {fallback_error}")
                         return
 
+            elif sensor_id == "thermoregulation":
+                print("Cargando lógica para el sensor thermoregulation.")
+                try:
+                    if hasattr(self, 'current_thermoregulation_logic') and self.current_thermoregulation_logic:
+                        try:
+                            self.current_thermoregulation_logic.cleanup()
+                        except:
+                            pass
+                        self.current_thermoregulation_logic = None
+
+                    if not hasattr(self, 'thermoregulationUi') or self.thermoregulationUi is None:
+                        loader = QUiLoader()
+                        self.thermoregulationUi = loader.load("SensoraCore/SC_DesktopApp/Modules/thermoregulation/thermoregulation.ui")
+
+                    try:
+                        _ = self.thermoregulationUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.thermoregulationUi = loader.load("SensoraCore/SC_DesktopApp/Modules/thermoregulation/thermoregulation.ui")
+
+                    if self.thermoregulationUi is not None:
+                        self.current_thermoregulation_logic = ThermoregulationLogic(self.thermoregulationUi, self)
+                        self.thermoregulationUi.setParent(sensor_ui)
+                        layout.addWidget(self.thermoregulationUi)
+                    else:
+                        print("Error: No se pudo crear o cargar thermoregulationUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar ThermoregulationLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.thermoregulationUi = loader.load("SensoraCore/SC_DesktopApp/Modules/thermoregulation/thermoregulation.ui")
+                        if self.thermoregulationUi:
+                            self.current_thermoregulation_logic = ThermoregulationLogic(self.thermoregulationUi, self)
+                            self.thermoregulationUi.setParent(sensor_ui)
+                            layout.addWidget(self.thermoregulationUi)
+                        else:
+                            print("Fallback thermoregulation falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback thermoregulation: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
@@ -915,6 +959,14 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar IrSteering: {e}")
                 self.current_ir_steering_logic = None
+            # Limpiar Thermoregulation si está activo
+            if hasattr(self, 'current_thermoregulation_logic') and self.current_thermoregulation_logic:
+                try:
+                    print("Deteniendo procesos de Thermoregulation...")
+                    self.current_thermoregulation_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar Thermoregulation: {e}")
+                self.current_thermoregulation_logic = None
             
             # Aquí se pueden agregar otros sensores cuando tengan lógica propia
             # Por ejemplo:
