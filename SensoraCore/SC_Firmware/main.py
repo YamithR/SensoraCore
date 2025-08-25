@@ -3,7 +3,7 @@
 # Sensores: Potenciómetro, IR Digital, Capacitivo Digital, Ultrasónico Analógico
 import network # type: ignore
 import socket
-from machine import Pin, ADC, reset # type: ignore
+from machine import Pin, ADC, reset, PWM # type: ignore
 import time
 
 # Esperar a que el ESP32 se inicialice completamente
@@ -266,6 +266,188 @@ def distancia_ultrasonico_loop(client):
         print(f"Error en distancia_ultrasonico_loop: {e}")
         pass
 
+# ------ OPTICAL SPEED (encoders + control de velocidad) ------
+# Nota: GPIO36 es solo entrada; evitamos usarlo como salida aunque aparezca en el diagrama.
+# Encoders (entrada):
+enc_l = Pin(39, Pin.IN)  # Izquierdo
+enc_r = Pin(34, Pin.IN)  # Derecho
+
+"""
+Configuración L298N:
+- Para cada motor, necesitamos 2 pines de entrada (INx, INy). Para invertir correctamente,
+  aplicamos PWM al pin correspondiente a la dirección seleccionada y el otro lo dejamos en 0.
+- Derecho: IN3=GPIO32, IN4=GPIO33 (ambos PWM-capaces).
+- Izquierdo: IN1=GPIO25 (PWM-capaz), IN2=GPIO36 (solo entrada en ESP32) → reversa izquierda puede no ser posible con este mapeo.
+"""
+# PWM/IO objetos
+in1_pwm = PWM(Pin(25))   # Izquierdo A
+in3_pwm = PWM(Pin(32))   # Derecho A
+in2_pin = None
+in4_pin = Pin(33, Pin.OUT)
+in4_pwm = None
+try:
+    in2_pin = Pin(36, Pin.OUT)
+except Exception:
+    in2_pin = None
+try:
+    in4_pwm = PWM(Pin(33))
+except Exception:
+    in4_pwm = None
+
+in1_pwm.freq(1000)
+in3_pwm.freq(1000)
+if in4_pwm:
+    in4_pwm.freq(1000)
+
+def _pwm_set(pwm_obj, percent):
+    try:
+        # MicroPython duty_u16 en 0..65535
+        pwm_obj.duty_u16(int(max(0, min(100, percent)) * 65535 / 100))
+    except Exception:
+        # Fallback a duty 0..1023
+        pwm_obj.duty(int(max(0, min(100, percent)) * 1023 / 100))
+
+_speed_percent = 0  # -100..100
+_ppr = 20  # Pulsos por revolución (ajustable si se desea)
+_cnt_l = 0
+_cnt_r = 0
+
+def _irq_l(pin):
+    global _cnt_l
+    _cnt_l += 1
+
+def _irq_r(pin):
+    global _cnt_r
+    _cnt_r += 1
+
+enc_l.irq(trigger=Pin.IRQ_RISING, handler=_irq_l)
+enc_r.irq(trigger=Pin.IRQ_RISING, handler=_irq_r)
+
+def _apply_speed(percent):
+    global _speed_percent
+    # Clamp -100..100
+    val = int(percent)
+    if val > 100:
+        val = 100
+    if val < -100:
+        val = -100
+    _speed_percent = val
+
+    spd = abs(val)
+    # Motor izquierdo (IN1/IN2)
+    if val >= 0:
+        # Adelante: PWM en IN1, IN2=0
+        _pwm_set(in1_pwm, spd)
+        if in2_pin:
+            try:
+                in2_pin.value(0)
+            except Exception:
+                pass
+    else:
+        # Reversa: ideal sería PWM en IN2 y IN1=0
+        # Si IN2 no soporta salida/PWM, forzamos IN1=0 y (si existe) IN2=1 (podría no invertir con este mapeo)
+        try:
+            _pwm_set(in1_pwm, 0)
+        except Exception:
+            pass
+        if in2_pin:
+            try:
+                # Intentar PWM en IN2 si fuera posible
+                try:
+                    in2_pwm = PWM(in2_pin)  # Esto fallará en GPIO36
+                    in2_pwm.freq(1000)
+                    _pwm_set(in2_pwm, spd)
+                except Exception:
+                    # Fallback: IN2=1 (no garantiza reversa si IN1 no está en 0 lógico total)
+                    in2_pin.value(1)
+            except Exception:
+                pass
+
+    # Motor derecho (IN3/IN4)
+    if val >= 0:
+        # Adelante: PWM en IN3, IN4=0
+        _pwm_set(in3_pwm, spd)
+        try:
+            in4_pin.value(0)
+        except Exception:
+            pass
+        if in4_pwm:
+            # Asegurar sin duty si existía PWM previo en in4
+            _pwm_set(in4_pwm, 0)
+    else:
+        # Reversa: IN3=0, PWM en IN4
+        try:
+            _pwm_set(in3_pwm, 0)
+        except Exception:
+            pass
+        if in4_pwm:
+            _pwm_set(in4_pwm, spd)
+        else:
+            # Fallback solo digital (sin control fino)
+            try:
+                in4_pin.value(1)
+            except Exception:
+                pass
+
+def optical_speed_loop(client):
+    global current_mode, continuous_client, _cnt_l, _cnt_r
+    _apply_speed(_speed_percent)
+    last_l = _cnt_l
+    last_r = _cnt_r
+    last_t = time.ticks_ms()
+    try:
+        while current_mode == 'OPTICAL_SPEED' and continuous_client == client:
+            # Procesar comandos no bloqueantes si llegan
+            client.settimeout(0.01)
+            try:
+                cmd = client.recv(64)
+                if cmd:
+                    txt = cmd.decode().strip()
+                    if txt.startswith('SET_SPEED:'):
+                        try:
+                            val = int(txt.split(':',1)[1])
+                            _apply_speed(val)
+                        except Exception:
+                            pass
+                    elif txt.startswith('SET_PPR:'):
+                        try:
+                            val = int(txt.split(':',1)[1])
+                            if val > 0:
+                                global _ppr
+                                _ppr = val
+                        except Exception:
+                            pass
+                    elif 'STOP' in txt:
+                        break
+            except Exception:
+                pass
+
+            # Ventana de cálculo ~200ms
+            now = time.ticks_ms()
+            if time.ticks_diff(now, last_t) >= 200:
+                dl = _cnt_l - last_l
+                dr = _cnt_r - last_r
+                dt = time.ticks_diff(now, last_t) / 1000.0
+                last_l = _cnt_l
+                last_r = _cnt_r
+                last_t = now
+                try:
+                    rpm_l = (dl / dt) * (60.0 / _ppr) if dt > 0 and _ppr > 0 else 0.0
+                    rpm_r = (dr / dt) * (60.0 / _ppr) if dt > 0 and _ppr > 0 else 0.0
+                except Exception:
+                    rpm_l = 0.0
+                    rpm_r = 0.0
+                msg = f"RPM_L:{rpm_l:.1f},RPM_R:{rpm_r:.1f},SPEED:{_speed_percent}\n"
+                try:
+                    client.send(msg.encode())
+                except Exception:
+                    break
+            time.sleep(0.01)
+    except Exception as e:
+        print(f"Error en optical_speed_loop: {e}")
+    finally:
+        _apply_speed(0)
+
 # Bucle principal del servidor
 print("Servidor iniciado, esperando conexiones...")
 while True:
@@ -329,6 +511,15 @@ while True:
             continuous_client = cl
             cl.send(b'DISTANCIA_ULTRA_OK')
             distancia_ultrasonico_loop(cl)
+            cl.close()
+            current_mode = None
+            continuous_client = None
+            continue
+        elif 'MODO:OPTICAL_SPEED' in data:
+            current_mode = 'OPTICAL_SPEED'
+            continuous_client = cl
+            cl.send(b'OPTICAL_SPEED_OK')
+            optical_speed_loop(cl)
             cl.close()
             current_mode = None
             continuous_client = None

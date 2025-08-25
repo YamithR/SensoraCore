@@ -14,6 +14,7 @@ from Modules.angleArm.angleArm_logic import AngleArmLogic
 from Modules.infrared.infrared_logic import InfraredLogic
 from Modules.capasitive.capasitive_logic import CapasitiveLogic
 from Modules.ultrasonic.ultrasonic_logic import UltrasonicLogic
+from Modules.opticalSpeed.opticalSpeed_logic import OpticalSpeedLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -728,6 +729,49 @@ class ui(QMainWindow):
                         print(f"Error en fallback ultrasonic: {fallback_error}")
                         return
 
+            elif sensor_id == "opticalSpeed":
+                print("Cargando lógica para el sensor opticalSpeed.")
+                try:
+                    if hasattr(self, 'current_optical_speed_logic') and self.current_optical_speed_logic:
+                        try:
+                            self.current_optical_speed_logic.cleanup()
+                        except:
+                            pass
+                        self.current_optical_speed_logic = None
+
+                    if not hasattr(self, 'opticalSpeedUi') or self.opticalSpeedUi is None:
+                        loader = QUiLoader()
+                        self.opticalSpeedUi = loader.load("SensoraCore/SC_DesktopApp/Modules/opticalSpeed/opticalSpeed.ui")
+
+                    try:
+                        _ = self.opticalSpeedUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.opticalSpeedUi = loader.load("SensoraCore/SC_DesktopApp/Modules/opticalSpeed/opticalSpeed.ui")
+
+                    if self.opticalSpeedUi is not None:
+                        self.current_optical_speed_logic = OpticalSpeedLogic(self.opticalSpeedUi, self)
+                        self.opticalSpeedUi.setParent(sensor_ui)
+                        layout.addWidget(self.opticalSpeedUi)
+                    else:
+                        print("Error: No se pudo crear o cargar opticalSpeedUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar OpticalSpeedLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.opticalSpeedUi = loader.load("SensoraCore/SC_DesktopApp/Modules/opticalSpeed/opticalSpeed.ui")
+                        if self.opticalSpeedUi:
+                            self.current_optical_speed_logic = OpticalSpeedLogic(self.opticalSpeedUi, self)
+                            self.opticalSpeedUi.setParent(sensor_ui)
+                            layout.addWidget(self.opticalSpeedUi)
+                        else:
+                            print("Fallback opticalSpeed falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback opticalSpeed: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
@@ -811,6 +855,14 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar Ultrasonic: {e}")
                 self.current_ultrasonic_logic = None
+            # Limpiar OpticalSpeed si está activo
+            if hasattr(self, 'current_optical_speed_logic') and self.current_optical_speed_logic:
+                try:
+                    print("Deteniendo procesos de OpticalSpeed...")
+                    self.current_optical_speed_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar OpticalSpeed: {e}")
+                self.current_optical_speed_logic = None
             
             # Aquí se pueden agregar otros sensores cuando tengan lógica propia
             # Por ejemplo:
