@@ -273,31 +273,26 @@ enc_l = Pin(39, Pin.IN)  # Izquierdo
 enc_r = Pin(34, Pin.IN)  # Derecho
 
 """
-Configuración L298N:
-- Para cada motor, necesitamos 2 pines de entrada (INx, INy). Para invertir correctamente,
-  aplicamos PWM al pin correspondiente a la dirección seleccionada y el otro lo dejamos en 0.
-- Derecho: IN3=GPIO32, IN4=GPIO33 (ambos PWM-capaces).
-- Izquierdo: IN1=GPIO25 (PWM-capaz), IN2=GPIO36 (solo entrada en ESP32) → reversa izquierda puede no ser posible con este mapeo.
+Configuración L298N (aclaración):
+- IN1..IN4 son pines de ENTRADA del driver; del lado del ESP32 todos son SALIDAS.
+- Usamos 4 GPIOs PWM-capaces para controlar ambos motores en ambos sentidos.
+- Mapeo (ESP32 → L298N):
+    IN1 ← GPIO25 (motor izquierdo, forward)
+    IN2 ← GPIO26 (motor izquierdo, reverse)
+    IN3 ← GPIO32 (motor derecho, forward)
+    IN4 ← GPIO33 (motor derecho, reverse)
 """
-# PWM/IO objetos
-in1_pwm = PWM(Pin(25))   # Izquierdo A
-in3_pwm = PWM(Pin(32))   # Derecho A
-in2_pin = None
-in4_pin = Pin(33, Pin.OUT)
-in4_pwm = None
-try:
-    in2_pin = Pin(36, Pin.OUT)
-except Exception:
-    in2_pin = None
-try:
-    in4_pwm = PWM(Pin(33))
-except Exception:
-    in4_pwm = None
+# PWM en los 4 canales del L298N
+in1_pwm = PWM(Pin(25))   # IN1 (L fwd)
+in2_pwm = PWM(Pin(26))   # IN2 (L rev)
+in3_pwm = PWM(Pin(32))   # IN3 (R fwd)
+in4_pwm = PWM(Pin(33))   # IN4 (R rev)
 
-in1_pwm.freq(1000)
-in3_pwm.freq(1000)
-if in4_pwm:
-    in4_pwm.freq(1000)
+for p in (in1_pwm, in2_pwm, in3_pwm, in4_pwm):
+        try:
+                p.freq(1000)
+        except Exception:
+                pass
 
 def _pwm_set(pwm_obj, percent):
     try:
@@ -336,58 +331,19 @@ def _apply_speed(percent):
     spd = abs(val)
     # Motor izquierdo (IN1/IN2)
     if val >= 0:
-        # Adelante: PWM en IN1, IN2=0
         _pwm_set(in1_pwm, spd)
-        if in2_pin:
-            try:
-                in2_pin.value(0)
-            except Exception:
-                pass
+        _pwm_set(in2_pwm, 0)
     else:
-        # Reversa: ideal sería PWM en IN2 y IN1=0
-        # Si IN2 no soporta salida/PWM, forzamos IN1=0 y (si existe) IN2=1 (podría no invertir con este mapeo)
-        try:
-            _pwm_set(in1_pwm, 0)
-        except Exception:
-            pass
-        if in2_pin:
-            try:
-                # Intentar PWM en IN2 si fuera posible
-                try:
-                    in2_pwm = PWM(in2_pin)  # Esto fallará en GPIO36
-                    in2_pwm.freq(1000)
-                    _pwm_set(in2_pwm, spd)
-                except Exception:
-                    # Fallback: IN2=1 (no garantiza reversa si IN1 no está en 0 lógico total)
-                    in2_pin.value(1)
-            except Exception:
-                pass
+        _pwm_set(in1_pwm, 0)
+        _pwm_set(in2_pwm, spd)
 
     # Motor derecho (IN3/IN4)
     if val >= 0:
-        # Adelante: PWM en IN3, IN4=0
         _pwm_set(in3_pwm, spd)
-        try:
-            in4_pin.value(0)
-        except Exception:
-            pass
-        if in4_pwm:
-            # Asegurar sin duty si existía PWM previo en in4
-            _pwm_set(in4_pwm, 0)
+        _pwm_set(in4_pwm, 0)
     else:
-        # Reversa: IN3=0, PWM en IN4
-        try:
-            _pwm_set(in3_pwm, 0)
-        except Exception:
-            pass
-        if in4_pwm:
-            _pwm_set(in4_pwm, spd)
-        else:
-            # Fallback solo digital (sin control fino)
-            try:
-                in4_pin.value(1)
-            except Exception:
-                pass
+        _pwm_set(in3_pwm, 0)
+        _pwm_set(in4_pwm, spd)
 
 def optical_speed_loop(client):
     global current_mode, continuous_client, _cnt_l, _cnt_r
@@ -447,6 +403,150 @@ def optical_speed_loop(client):
         print(f"Error en optical_speed_loop: {e}")
     finally:
         _apply_speed(0)
+
+# ------ IR STEERING (5 sensores IR + PID + control de 2 motores) ------
+# Pines de los 5 sensores IR (ajustar según hardware si es necesario)
+# Elegidos para evitar conflicto con PWM (25/26/32/33) y ultrasónico (26/27)
+ir_pins = [Pin(4, Pin.IN, Pin.PULL_UP),   # más a la izquierda
+           Pin(16, Pin.IN, Pin.PULL_UP),
+           Pin(17, Pin.IN, Pin.PULL_UP),
+           Pin(18, Pin.IN, Pin.PULL_UP),
+           Pin(19, Pin.IN, Pin.PULL_UP)]  # más a la derecha
+
+# Parámetros PID y velocidad base
+_kp, _ki, _kd = 1.0, 0.0, 0.5
+_base_speed = 40  # -100..100, signo define sentido
+_err_int = 0.0
+_last_err = 0.0
+
+def _read_ir_bits():
+    # Lectura con pull-ups: línea negra usualmente baja el pin (0)
+    # Normalizamos a 1 = detecta línea, 0 = blanco
+    bits = ''
+    for p in ir_pins:
+        v = 1 if (not p.value()) else 0
+        bits += '1' if v else '0'
+    return bits  # 5 caracteres de izquierda a derecha
+
+def _error_from_bits(bits: str) -> float:
+    # Mapear posiciones a errores: L2=-2, L1=-1, C=0, R1=+1, R2=+2 (promedio ponderado)
+    weights = [-2, -1, 0, 1, 2]
+    num = 0.0
+    den = 0.0
+    for i, ch in enumerate(bits[:5]):
+        if ch == '1':
+            num += weights[i]
+            den += 1.0
+    if den == 0:
+        return 0.0  # línea perdida → error 0 (se puede mejorar con última dirección)
+    return num / den
+
+def _motor_mix_from_err(base: int, err: float, dt: float):
+    global _err_int, _last_err
+    # PID
+    _err_int += err * dt
+    der = (err - _last_err) / dt if dt > 0 else 0.0
+    _last_err = err
+    corr = _kp * err + _ki * _err_int + _kd * der
+    # Mezcla diferencial: motor izquierdo disminuye con corr positiva y viceversa
+    left = max(-100, min(100, int(base - corr * 30)))
+    right = max(-100, min(100, int(base + corr * 30)))
+    return left, right
+
+def _apply_dual(left: int, right: int):
+    # Usa los mismos 4 PWMs (in1..in4, in3..in4) para cada lado por separado
+    # Izquierdo
+    if left >= 0:
+        _pwm_set(in1_pwm, abs(left))
+        _pwm_set(in2_pwm, 0)
+    else:
+        _pwm_set(in1_pwm, 0)
+        _pwm_set(in2_pwm, abs(left))
+    # Derecho
+    if right >= 0:
+        _pwm_set(in3_pwm, abs(right))
+        _pwm_set(in4_pwm, 0)
+    else:
+        _pwm_set(in3_pwm, 0)
+        _pwm_set(in4_pwm, abs(right))
+
+def ir_steering_loop(client):
+    global current_mode, continuous_client, _base_speed, _cnt_l, _cnt_r
+    last_t = time.ticks_ms()
+    last_l = _cnt_l
+    last_r = _cnt_r
+    rpm_l = 0.0
+    rpm_r = 0.0
+    try:
+        while current_mode == 'IR_STEERING' and continuous_client == client:
+            # Recibir comandos no bloqueantes
+            client.settimeout(0.005)
+            try:
+                cmd = client.recv(64)
+                if cmd:
+                    txt = cmd.decode().strip()
+                    if txt.startswith('SET_BASE:'):
+                        try:
+                            _base_speed = int(txt.split(':',1)[1])
+                            if _base_speed > 100:
+                                _base_speed = 100
+                            if _base_speed < -100:
+                                _base_speed = -100
+                        except Exception:
+                            pass
+                    elif txt.startswith('SET_PID:'):
+                        try:
+                            vals = txt.split(':',1)[1]
+                            parts = vals.split(',')
+                            d = {}
+                            for p in parts:
+                                if '=' in p:
+                                    k,v = p.split('=',1)
+                                    d[k.strip().lower()] = float(v)
+                            global _kp, _ki, _kd
+                            _kp = float(d.get('kp', _kp))
+                            _ki = float(d.get('ki', _ki))
+                            _kd = float(d.get('kd', _kd))
+                        except Exception:
+                            pass
+                    elif 'STOP' in txt:
+                        break
+            except Exception:
+                pass
+
+            now = time.ticks_ms()
+            dt = time.ticks_diff(now, last_t) / 1000.0
+            if dt <= 0:
+                dt = 0.01
+            last_t = now
+
+            bits = _read_ir_bits()
+            err = _error_from_bits(bits)
+            l, r = _motor_mix_from_err(_base_speed, err, dt)
+            _apply_dual(l, r)
+            # Estado
+            # Calcular RPMs del mismo contador de encoders (ventana ~200ms)
+            now2 = time.ticks_ms()
+            if time.ticks_diff(now2, last_t) >= 200:
+                dl = _cnt_l - last_l
+                dr = _cnt_r - last_r
+                dt2 = time.ticks_diff(now2, last_t) / 1000.0
+                last_l = _cnt_l
+                last_r = _cnt_r
+                if dt2 > 0 and _ppr > 0:
+                    rpm_l = (dl / dt2) * (60.0 / _ppr)
+                    rpm_r = (dr / dt2) * (60.0 / _ppr)
+                last_t = now2
+            msg = f"SENS:{bits},ERR:{err:.2f},OUT_L:{l},OUT_R:{r},SPEED:{_base_speed},RPM_L:{rpm_l:.1f},RPM_R:{rpm_r:.1f}\n"
+            try:
+                client.send(msg.encode())
+            except Exception:
+                break
+            time.sleep(0.02)
+    except Exception as e:
+        print(f"Error en ir_steering_loop: {e}")
+    finally:
+        _apply_dual(0, 0)
 
 # Bucle principal del servidor
 print("Servidor iniciado, esperando conexiones...")
@@ -520,6 +620,15 @@ while True:
             continuous_client = cl
             cl.send(b'OPTICAL_SPEED_OK')
             optical_speed_loop(cl)
+            cl.close()
+            current_mode = None
+            continuous_client = None
+            continue
+        elif 'MODO:IR_STEERING' in data:
+            current_mode = 'IR_STEERING'
+            continuous_client = cl
+            cl.send(b'IR_STEERING_OK')
+            ir_steering_loop(cl)
             cl.close()
             current_mode = None
             continuous_client = None

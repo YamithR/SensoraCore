@@ -15,6 +15,7 @@ from Modules.infrared.infrared_logic import InfraredLogic
 from Modules.capasitive.capasitive_logic import CapasitiveLogic
 from Modules.ultrasonic.ultrasonic_logic import UltrasonicLogic
 from Modules.opticalSpeed.opticalSpeed_logic import OpticalSpeedLogic
+from Modules.irSteering.irSteering_logic import IrSteeringLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -772,6 +773,49 @@ class ui(QMainWindow):
                         print(f"Error en fallback opticalSpeed: {fallback_error}")
                         return
 
+            elif sensor_id == "irSteering":
+                print("Cargando lógica para el sensor irSteering.")
+                try:
+                    if hasattr(self, 'current_ir_steering_logic') and self.current_ir_steering_logic:
+                        try:
+                            self.current_ir_steering_logic.cleanup()
+                        except:
+                            pass
+                        self.current_ir_steering_logic = None
+
+                    if not hasattr(self, 'irSteeringUi') or self.irSteeringUi is None:
+                        loader = QUiLoader()
+                        self.irSteeringUi = loader.load("SensoraCore/SC_DesktopApp/Modules/irSteering/irSteering.ui")
+
+                    try:
+                        _ = self.irSteeringUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.irSteeringUi = loader.load("SensoraCore/SC_DesktopApp/Modules/irSteering/irSteering.ui")
+
+                    if self.irSteeringUi is not None:
+                        self.current_ir_steering_logic = IrSteeringLogic(self.irSteeringUi, self)
+                        self.irSteeringUi.setParent(sensor_ui)
+                        layout.addWidget(self.irSteeringUi)
+                    else:
+                        print("Error: No se pudo crear o cargar irSteeringUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar IrSteeringLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.irSteeringUi = loader.load("SensoraCore/SC_DesktopApp/Modules/irSteering/irSteering.ui")
+                        if self.irSteeringUi:
+                            self.current_ir_steering_logic = IrSteeringLogic(self.irSteeringUi, self)
+                            self.irSteeringUi.setParent(sensor_ui)
+                            layout.addWidget(self.irSteeringUi)
+                        else:
+                            print("Fallback irSteering falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback irSteering: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
@@ -863,6 +907,14 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar OpticalSpeed: {e}")
                 self.current_optical_speed_logic = None
+            # Limpiar IrSteering si está activo
+            if hasattr(self, 'current_ir_steering_logic') and self.current_ir_steering_logic:
+                try:
+                    print("Deteniendo procesos de IrSteering...")
+                    self.current_ir_steering_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar IrSteering: {e}")
+                self.current_ir_steering_logic = None
             
             # Aquí se pueden agregar otros sensores cuando tengan lógica propia
             # Por ejemplo:
