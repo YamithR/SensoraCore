@@ -770,6 +770,102 @@ while True:
                 current_mode = None
                 continuous_client = None
                 continue
+        elif 'MODO:GAS_REGULATION' in data:
+            # --- GAS REGULATION MODE ---
+            current_mode = 'GAS_REGULATION'
+            continuous_client = cl
+            cl.send(b'GAS_REGULATION_OK')
+
+            # Preparar ADCs: MQ2 en GPIO36 (VP), MQ3 en GPIO39
+            mq2_adc = None
+            mq3_adc = None
+            enc39_irq_disabled = False
+            try:
+                try:
+                    mq2_adc = ADC(Pin(36))
+                    mq2_adc.atten(ADC.ATTN_11DB)
+                    mq2_adc.width(ADC.WIDTH_12BIT)
+                except Exception:
+                    mq2_adc = None
+                # Desactivar IRQ del encoder en 39 durante este modo para evitar conflictos
+                try:
+                    enc_l.irq(handler=None)
+                    enc39_irq_disabled = True
+                except Exception:
+                    pass
+                try:
+                    mq3_adc = ADC(Pin(39))
+                    mq3_adc.atten(ADC.ATTN_11DB)
+                    mq3_adc.width(ADC.WIDTH_12BIT)
+                except Exception:
+                    mq3_adc = None
+            except Exception:
+                pass
+
+            sel = 'MQ2'
+            period_ms = 500
+            last_read = 0
+
+            def read_adc_v(adc_obj):
+                if adc_obj is None:
+                    return 0, 0.0
+                try:
+                    val = adc_obj.read()
+                    volt = (val / 4095.0) * 3.3
+                    return val, volt
+                except Exception:
+                    return 0, 0.0
+
+            try:
+                cl.settimeout(0.01)
+                while current_mode == 'GAS_REGULATION' and continuous_client == cl:
+                    # comandos no bloqueantes
+                    try:
+                        cmd = cl.recv(64)
+                        if cmd:
+                            txt = cmd.decode().strip()
+                            if txt.startswith('GR_SET:'):
+                                sensor_cmd = txt.split(':',1)[1].strip().upper()
+                                if sensor_cmd in ('MQ2','MQ3'):
+                                    sel = sensor_cmd
+                            elif txt.startswith('GR_START:'):
+                                try:
+                                    p = int(txt.split(':',1)[1])
+                                    period_ms = max(100, p)
+                                except Exception:
+                                    pass
+                            elif 'GR_STOP' in txt or 'STOP' in txt:
+                                break
+                    except Exception:
+                        pass
+
+                    now = time.ticks_ms()
+                    if time.ticks_diff(now, last_read) >= period_ms:
+                        last_read = now
+                        if sel == 'MQ2':
+                            adc, volt = read_adc_v(mq2_adc)
+                            msg = f"SENSOR:MQ2,ADC:{adc},VOLT:{volt:.3f}\n"
+                        else:
+                            adc, volt = read_adc_v(mq3_adc)
+                            msg = f"SENSOR:MQ3,ADC:{adc},VOLT:{volt:.3f}\n"
+                        try:
+                            cl.send(msg.encode())
+                        except Exception:
+                            break
+                    time.sleep_ms(5)
+            except Exception as e:
+                print(f"Error en GAS_REGULATION: {e}")
+            finally:
+                # Restaurar IRQ del encoder en 39 si se desactivó
+                try:
+                    if enc39_irq_disabled:
+                        enc_l.irq(trigger=Pin.IRQ_RISING, handler=_irq_l)
+                except Exception:
+                    pass
+                cl.close()
+                current_mode = None
+                continuous_client = None
+                continue
         elif 'STOP' in data:
             current_mode = None
             cl.send(b'STOP_OK')

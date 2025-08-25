@@ -17,6 +17,7 @@ from Modules.ultrasonic.ultrasonic_logic import UltrasonicLogic
 from Modules.opticalSpeed.opticalSpeed_logic import OpticalSpeedLogic
 from Modules.irSteering.irSteering_logic import IrSteeringLogic
 from Modules.thermoregulation.thermoregulation_logic import ThermoregulationLogic
+from Modules.gasRegulation.gasRegulation_logic import GasRegulationLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -860,6 +861,49 @@ class ui(QMainWindow):
                         print(f"Error en fallback thermoregulation: {fallback_error}")
                         return
 
+            elif sensor_id == "gasRegulation":
+                print("Cargando lógica para el sensor gasRegulation.")
+                try:
+                    if hasattr(self, 'current_gas_regulation_logic') and self.current_gas_regulation_logic:
+                        try:
+                            self.current_gas_regulation_logic.cleanup()
+                        except:
+                            pass
+                        self.current_gas_regulation_logic = None
+
+                    if not hasattr(self, 'gasRegulationUi') or self.gasRegulationUi is None:
+                        loader = QUiLoader()
+                        self.gasRegulationUi = loader.load("SensoraCore/SC_DesktopApp/Modules/gasRegulation/gasRegulation.ui")
+
+                    try:
+                        _ = self.gasRegulationUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.gasRegulationUi = loader.load("SensoraCore/SC_DesktopApp/Modules/gasRegulation/gasRegulation.ui")
+
+                    if self.gasRegulationUi is not None:
+                        self.current_gas_regulation_logic = GasRegulationLogic(self.gasRegulationUi, self)
+                        self.gasRegulationUi.setParent(sensor_ui)
+                        layout.addWidget(self.gasRegulationUi)
+                    else:
+                        print("Error: No se pudo crear o cargar gasRegulationUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar GasRegulationLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.gasRegulationUi = loader.load("SensoraCore/SC_DesktopApp/Modules/gasRegulation/gasRegulation.ui")
+                        if self.gasRegulationUi:
+                            self.current_gas_regulation_logic = GasRegulationLogic(self.gasRegulationUi, self)
+                            self.gasRegulationUi.setParent(sensor_ui)
+                            layout.addWidget(self.gasRegulationUi)
+                        else:
+                            print("Fallback gasRegulation falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback gasRegulation: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
@@ -967,6 +1011,14 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar Thermoregulation: {e}")
                 self.current_thermoregulation_logic = None
+            # Limpiar GasRegulation si está activo
+            if hasattr(self, 'current_gas_regulation_logic') and self.current_gas_regulation_logic:
+                try:
+                    print("Deteniendo procesos de GasRegulation...")
+                    self.current_gas_regulation_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar GasRegulation: {e}")
+                self.current_gas_regulation_logic = None
             
             # Aquí se pueden agregar otros sensores cuando tengan lógica propia
             # Por ejemplo:

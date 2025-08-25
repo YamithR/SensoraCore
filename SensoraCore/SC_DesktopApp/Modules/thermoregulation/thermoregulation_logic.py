@@ -180,13 +180,18 @@ class ThermoregulationLogic(QWidget):
 			self.ui.calibrarBt.clicked.connect(self._calibrate_dialog)
 
 		if hasattr(self.ui, 'LM35'):
+			self.ui.LM35.setCheckable(True)
 			self.ui.LM35.clicked.connect(lambda: self._select_sensor('LM35'))
 		if hasattr(self.ui, 'DS18B20'):
+			self.ui.DS18B20.setCheckable(True)
 			self.ui.DS18B20.clicked.connect(lambda: self._select_sensor('DS18B20'))
 		if hasattr(self.ui, 'TermoparTipoK'):
+			self.ui.TermoparTipoK.setCheckable(True)
 			self.ui.TermoparTipoK.clicked.connect(lambda: self._select_sensor('TYPEK'))
 
 		self._refresh_cal_status()
+		# Inicializar estado checked según el sensor por defecto
+		self._update_sensor_checks()
 
 	# ----- Plot -----
 	def _setup_plot(self):
@@ -278,8 +283,21 @@ class ThermoregulationLogic(QWidget):
 
 	def _select_sensor(self, name: str):
 		self.current_sensor = name
+		self._update_sensor_checks()
 		if self.thread and self.thread.isRunning():
 			self.thread.switch_sensor(name)
+
+	def _update_sensor_checks(self):
+		"""Refresca el estado 'checked' de los botones de sensor."""
+		try:
+			if hasattr(self.ui, 'LM35'):
+				self.ui.LM35.setChecked(self.current_sensor.upper() == 'LM35')
+			if hasattr(self.ui, 'TermoparTipoK'):
+				self.ui.TermoparTipoK.setChecked(self.current_sensor.upper() == 'TYPEK')
+			if hasattr(self.ui, 'DS18B20'):
+				self.ui.DS18B20.setChecked(self.current_sensor.upper() == 'DS18B20')
+		except Exception:
+			pass
 
 	# ----- Datos entrantes -----
 	def _on_data(self, name: str, temp_c: float, raw: Optional[int]):
