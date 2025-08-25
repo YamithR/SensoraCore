@@ -20,6 +20,7 @@ from Modules.thermoregulation.thermoregulation_logic import ThermoregulationLogi
 from Modules.gasRegulation.gasRegulation_logic import GasRegulationLogic
 from Modules.brightness.brightness_logic import BrightnessLogic
 from Modules.colorCNY.colorCNY_logic import ColorCNYLogic
+from Modules.colorTCS.colorTCS_logic import ColorTCSLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -992,6 +993,49 @@ class ui(QMainWindow):
                         print(f"Error en fallback colorCNY: {fallback_error}")
                         return
 
+            elif sensor_id == "colorTCS":
+                print("Cargando lógica para el sensor colorTCS.")
+                try:
+                    if hasattr(self, 'current_colortcs_logic') and self.current_colortcs_logic:
+                        try:
+                            self.current_colortcs_logic.cleanup()
+                        except:
+                            pass
+                        self.current_colortcs_logic = None
+
+                    if not hasattr(self, 'colorTCSUi') or self.colorTCSUi is None:
+                        loader = QUiLoader()
+                        self.colorTCSUi = loader.load("SensoraCore/SC_DesktopApp/Modules/colorTCS/colorTCS.ui")
+
+                    try:
+                        _ = self.colorTCSUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.colorTCSUi = loader.load("SensoraCore/SC_DesktopApp/Modules/colorTCS/colorTCS.ui")
+
+                    if self.colorTCSUi is not None:
+                        self.current_colortcs_logic = ColorTCSLogic(self.colorTCSUi, self)
+                        self.colorTCSUi.setParent(sensor_ui)
+                        layout.addWidget(self.colorTCSUi)
+                    else:
+                        print("Error: No se pudo crear o cargar colorTCSUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar ColorTCSLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.colorTCSUi = loader.load("SensoraCore/SC_DesktopApp/Modules/colorTCS/colorTCS.ui")
+                        if self.colorTCSUi:
+                            self.current_colortcs_logic = ColorTCSLogic(self.colorTCSUi, self)
+                            self.colorTCSUi.setParent(sensor_ui)
+                            layout.addWidget(self.colorTCSUi)
+                        else:
+                            print("Fallback colorTCS falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback colorTCS: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
@@ -1123,6 +1167,14 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar Brightness: {e}")
                 self.current_brightness_logic = None
+            # Limpiar ColorTCS si está activo
+            if hasattr(self, 'current_colortcs_logic') and self.current_colortcs_logic:
+                try:
+                    print("Deteniendo procesos de ColorTCS...")
+                    self.current_colortcs_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar ColorTCS: {e}")
+                self.current_colortcs_logic = None
             
             # Aquí se pueden agregar otros sensores cuando tengan lógica propia
             # Por ejemplo:

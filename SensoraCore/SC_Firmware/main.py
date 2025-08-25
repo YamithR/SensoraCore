@@ -982,6 +982,118 @@ while True:
                 current_mode = None
                 continuous_client = None
                 continue
+        elif 'MODO:COLOR_TCS' in data:
+            # --- COLOR TCS (TCS3200) MODE ---
+            current_mode = 'COLOR_TCS'
+            continuous_client = cl
+            cl.send(b'COLOR_TCS_OK')
+
+            # Pines del TCS3200 según diagrama de la UI:
+            # S0 -> GPIO36, S1 -> GPIO39, S2 -> GPIO34, S3 -> GPIO35, OUT -> GPIO32
+            # Nota: en ESP32, 36/39 son solo entrada analógica; como digitales pueden limitarse.
+            # Para robustez usamos S2=34, S3=35 como salidas; y OUT=32 como entrada para contar pulsos.
+            # Si su módulo cablea S0/S1, puede omitirse o fijarse a división por hardware (ej. 20%).
+            try:
+                s2 = Pin(34, Pin.OUT)
+                s3 = Pin(35, Pin.OUT)
+            except Exception:
+                s2 = None
+                s3 = None
+            try:
+                out_pin = Pin(32, Pin.IN)
+            except Exception:
+                out_pin = None
+
+            # Contador simple por interrupciones (mutable para cierre)
+            _pulse_cnt = [0]
+            def _irq_out(pin):
+                try:
+                    _pulse_cnt[0] += 1
+                except Exception:
+                    pass
+            try:
+                if out_pin:
+                    out_pin.irq(trigger=Pin.IRQ_RISING, handler=_irq_out)
+            except Exception:
+                pass
+
+            # Helper para seleccionar filtro
+            def _sel_filter(name):
+                # Filtro codificación típica: (S2,S3)
+                # Red=(1,0) Green=(1,1) Blue=(0,1) Clear=(0,0)
+                try:
+                    if s2 is None or s3 is None:
+                        return
+                    if name == 'RED':
+                        s2.value(1); s3.value(0)
+                    elif name == 'GREEN':
+                        s2.value(1); s3.value(1)
+                    elif name == 'BLUE':
+                        s2.value(0); s3.value(1)
+                    else:  # CLEAR
+                        s2.value(0); s3.value(0)
+                except Exception:
+                    pass
+
+            period_ms = 300
+            last_read = 0
+            # Medición de frecuencia por filtro durante dt_ms
+            def measure(filter_name, dt_ms=80):
+                try:
+                    _sel_filter(filter_name)
+                    _pulse_cnt[0] = 0
+                    t0 = time.ticks_ms()
+                    while time.ticks_diff(time.ticks_ms(), t0) < dt_ms:
+                        time.sleep_ms(1)
+                    return (_pulse_cnt[0] * 1000.0) / dt_ms
+                except Exception:
+                    return 0.0
+            try:
+                cl.settimeout(0.01)
+                while current_mode == 'COLOR_TCS' and continuous_client == cl:
+                    # comandos
+                    try:
+                        cmd = cl.recv(64)
+                        if cmd:
+                            txt = cmd.decode().strip()
+                            if txt.startswith('TCS_START:'):
+                                try:
+                                    p = int(float(txt.split(':',1)[1]))
+                                    period_ms = max(100, p)
+                                    cl.send(b'OK')
+                                except Exception:
+                                    cl.send(b'ERR')
+                            elif 'TCS_STOP' in txt or 'STOP' in txt:
+                                cl.send(b'OK')
+                                break
+                    except Exception:
+                        pass
+
+                    now = time.ticks_ms()
+                    if time.ticks_diff(now, last_read) >= period_ms:
+                        last_read = now
+                        # Medir R,G,B secuencialmente dentro del mismo periodo (subventanas cortas)
+                        r = measure('RED', 80)
+                        g = measure('GREEN', 80)
+                        b = measure('BLUE', 80)
+                        msg = f"SENSOR:TCS3200,R:{r:.0f},G:{g:.0f},B:{b:.0f}\n"
+                        try:
+                            cl.send(msg.encode())
+                        except Exception:
+                            break
+                    time.sleep_ms(5)
+            except Exception as e:
+                print(f"Error en COLOR_TCS: {e}")
+            finally:
+                try:
+                    if out_pin:
+                        out_pin.irq(handler=None)
+                except Exception:
+                    pass
+                cl.close()
+                current_mode = None
+                continuous_client = None
+                continue
         elif 'STOP' in data:
             current_mode = None
             cl.send(b'STOP_OK')
