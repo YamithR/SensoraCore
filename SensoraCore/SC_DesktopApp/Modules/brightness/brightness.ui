@@ -163,13 +163,13 @@ QGroupBox::title {
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>150</height>
+             <height>100</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
              <width>16777215</width>
-             <height>150</height>
+             <height>100</height>
             </size>
            </property>
            <property name="sizeIncrement">
@@ -205,59 +205,13 @@ QGroupBox::title {
            <layout class="QGridLayout" name="gridLayout_4">
             <item row="1" column="0">
              <widget class="QWidget" name="botones" native="true">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>70</height>
+               </size>
+              </property>
               <layout class="QGridLayout" name="gridLayout_3">
-               <item row="2" column="1">
-                <widget class="QPushButton" name="exportarBt">
-                 <property name="styleSheet">
-                  <string notr="true">        font-size: 14px;                    /* Tamaño menor para información secundaria */
-        font-weight: bold;                  /* Texto en negrita */
-        color: #856404;                     /* Color ámbar para indicar estado */
-        padding: 8px;                       /* Espacio interno menor */
-        background-color: #fff3cd;          /* Fondo ámbar claro */
-        border-radius: 4px;                 /* Esquinas redondeadas menores */
-        border: 1px solid #ffeaa7;          /* Borde ámbar */
-        margin-top: 5px;                    /* Separación superior */</string>
-                 </property>
-                 <property name="text">
-                  <string>Exportal a Exel</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="0">
-                <widget class="QPushButton" name="limpiarBt">
-                 <property name="styleSheet">
-                  <string notr="true">/* Estilo base con matices rosa y gris degradado */
-QPushButton {
-    font-size: 14px;                         /* Tamaño menor para información secundaria */
-    font-weight: bold;                       /* Texto en negrita */
-    color: #5a5a5a;                          /* Gris medio para texto */
-    padding: 8px;                            /* Espacio interno menor */
-    background: linear-gradient(135deg, #f8e1ec, #d3d3d3); /* Degradado rosa a gris */
-    border-radius: 6px;                      /* Esquinas ligeramente más redondeadas */
-    border: 1px solid #e0b7c6;               /* Borde rosa suave */
-    margin-top: 5px;                         /* Separación superior */
-}
-
-/* Efecto hover con énfasis en el rosa */
-QPushButton:hover {
-    background: linear-gradient(135deg, #fce4ec, #c0c0c0); /* Rosa claro a gris claro */
-    color: #7a4b63;                          /* Rosa oscuro para el texto */
-    border: 1px solid #d48ca3;               /* Borde más intenso en rosa */
-}
-/* Presionado: tono más oscuro y efecto hundido */
-QPushButton:pressed {
-    background-color: #e0b7c6;
-    border: 2px solid #b0b0b0;
-    padding-top: 8px; /* efecto hundido */
-    padding-left: 8px;
-}
-</string>
-                 </property>
-                 <property name="text">
-                  <string>Limpiar Gráfica</string>
-                 </property>
-                </widget>
-               </item>
                <item row="0" column="0" colspan="2">
                 <widget class="QPushButton" name="iniciarBt">
                  <property name="styleSheet">

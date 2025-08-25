@@ -18,6 +18,7 @@ from Modules.opticalSpeed.opticalSpeed_logic import OpticalSpeedLogic
 from Modules.irSteering.irSteering_logic import IrSteeringLogic
 from Modules.thermoregulation.thermoregulation_logic import ThermoregulationLogic
 from Modules.gasRegulation.gasRegulation_logic import GasRegulationLogic
+from Modules.brightness.brightness_logic import BrightnessLogic
 from IMPORTACIONES import *  # Importar todo lo necesario desde el módulo de importaciones
 #El modulo sys responsable de procesar los argumentos en las lineas de comandos
 
@@ -904,6 +905,49 @@ class ui(QMainWindow):
                         print(f"Error en fallback gasRegulation: {fallback_error}")
                         return
 
+            elif sensor_id == "brightness":
+                print("Cargando lógica para el sensor brightness.")
+                try:
+                    if hasattr(self, 'current_brightness_logic') and self.current_brightness_logic:
+                        try:
+                            self.current_brightness_logic.cleanup()
+                        except:
+                            pass
+                        self.current_brightness_logic = None
+
+                    if not hasattr(self, 'brightnessUi') or self.brightnessUi is None:
+                        loader = QUiLoader()
+                        self.brightnessUi = loader.load("SensoraCore/SC_DesktopApp/Modules/brightness/brightness.ui")
+
+                    try:
+                        _ = self.brightnessUi.objectName()
+                    except RuntimeError:
+                        loader = QUiLoader()
+                        self.brightnessUi = loader.load("SensoraCore/SC_DesktopApp/Modules/brightness/brightness.ui")
+
+                    if self.brightnessUi is not None:
+                        self.current_brightness_logic = BrightnessLogic(self.brightnessUi, self)
+                        self.brightnessUi.setParent(sensor_ui)
+                        layout.addWidget(self.brightnessUi)
+                    else:
+                        print("Error: No se pudo crear o cargar brightnessUi.")
+                        return
+                except Exception as e:
+                    print(f"Error al cargar BrightnessLogic: {e}")
+                    try:
+                        loader = QUiLoader()
+                        self.brightnessUi = loader.load("SensoraCore/SC_DesktopApp/Modules/brightness/brightness.ui")
+                        if self.brightnessUi:
+                            self.current_brightness_logic = BrightnessLogic(self.brightnessUi, self)
+                            self.brightnessUi.setParent(sensor_ui)
+                            layout.addWidget(self.brightnessUi)
+                        else:
+                            print("Fallback brightness falló.")
+                            return
+                    except Exception as fallback_error:
+                        print(f"Error en fallback brightness: {fallback_error}")
+                        return
+
             else:
                 # Para otros sensores, usar el método existente
                 # Diccionario de widgets de sensores
@@ -1019,6 +1063,14 @@ class ui(QMainWindow):
                 except Exception as e:
                     print(f"Error al limpiar GasRegulation: {e}")
                 self.current_gas_regulation_logic = None
+            # Limpiar Brightness si está activo
+            if hasattr(self, 'current_brightness_logic') and self.current_brightness_logic:
+                try:
+                    print("Deteniendo procesos de Brightness...")
+                    self.current_brightness_logic.cleanup()
+                except Exception as e:
+                    print(f"Error al limpiar Brightness: {e}")
+                self.current_brightness_logic = None
             
             # Aquí se pueden agregar otros sensores cuando tengan lógica propia
             # Por ejemplo:

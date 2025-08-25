@@ -770,6 +770,64 @@ while True:
                 current_mode = None
                 continuous_client = None
                 continue
+        elif 'MODO:BRIGHTNESS' in data:
+            # --- BRIGHTNESS MODE ---
+            current_mode = 'BRIGHTNESS'
+            continuous_client = cl
+            cl.send(b'BRIGHTNESS_OK')
+
+            # ADC en GPIO34 para LDR
+            try:
+                adc_ldr = ADC(Pin(34))
+                adc_ldr.atten(ADC.ATTN_11DB)
+                adc_ldr.width(ADC.WIDTH_12BIT)
+            except Exception:
+                adc_ldr = None
+
+            period_ms = 200
+            last_read = 0
+            try:
+                cl.settimeout(0.01)
+                while current_mode == 'BRIGHTNESS' and continuous_client == cl:
+                    # comandos
+                    try:
+                        cmd = cl.recv(64)
+                        if cmd:
+                            txt = cmd.decode().strip()
+                            if txt.startswith('BR_START:'):
+                                try:
+                                    p = int(float(txt.split(':',1)[1]))
+                                    period_ms = max(50, p)
+                                    cl.send(b'OK')
+                                except Exception:
+                                    cl.send(b'ERR')
+                            elif 'BR_STOP' in txt or 'STOP' in txt:
+                                cl.send(b'OK')
+                                break
+                    except Exception:
+                        pass
+
+                    now = time.ticks_ms()
+                    if time.ticks_diff(now, last_read) >= period_ms:
+                        last_read = now
+                        try:
+                            val = adc_ldr.read() if adc_ldr else 0
+                        except Exception:
+                            val = 0
+                        volt = (val / 4095.0) * 3.3
+                        msg = f"SENSOR:LDR,ADC:{val},VOLT:{volt:.3f}\n"
+                        try:
+                            cl.send(msg.encode())
+                        except Exception:
+                            break
+                    time.sleep_ms(5)
+            except Exception as e:
+                print(f"Error en BRIGHTNESS: {e}")
+            finally:
+                cl.close()
+                current_mode = None
+                continuous_client = None
+                continue
         elif 'MODO:GAS_REGULATION' in data:
             # --- GAS REGULATION MODE ---
             current_mode = 'GAS_REGULATION'

@@ -128,8 +128,8 @@ class Ui_brightness(object):
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.controles = QGroupBox(self.Info)
         self.controles.setObjectName(u"controles")
-        self.controles.setMinimumSize(QSize(0, 150))
-        self.controles.setMaximumSize(QSize(16777215, 150))
+        self.controles.setMinimumSize(QSize(0, 100))
+        self.controles.setMaximumSize(QSize(16777215, 100))
         self.controles.setSizeIncrement(QSize(0, 0))
         self.controles.setStyleSheet(u"QGroupBox {\n"
 "    color: rgb(102, 102, 102) ;\n"
@@ -154,53 +154,9 @@ class Ui_brightness(object):
         self.gridLayout_4.setObjectName(u"gridLayout_4")
         self.botones = QWidget(self.controles)
         self.botones.setObjectName(u"botones")
+        self.botones.setMaximumSize(QSize(16777215, 70))
         self.gridLayout_3 = QGridLayout(self.botones)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.exportarBt = QPushButton(self.botones)
-        self.exportarBt.setObjectName(u"exportarBt")
-        self.exportarBt.setStyleSheet(u"        font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
-"        font-weight: bold;                  /* Texto en negrita */\n"
-"        color: #856404;                     /* Color \u00e1mbar para indicar estado */\n"
-"        padding: 8px;                       /* Espacio interno menor */\n"
-"        background-color: #fff3cd;          /* Fondo \u00e1mbar claro */\n"
-"        border-radius: 4px;                 /* Esquinas redondeadas menores */\n"
-"        border: 1px solid #ffeaa7;          /* Borde \u00e1mbar */\n"
-"        margin-top: 5px;                    /* Separaci\u00f3n superior */")
-
-        self.gridLayout_3.addWidget(self.exportarBt, 2, 1, 1, 1)
-
-        self.limpiarBt = QPushButton(self.botones)
-        self.limpiarBt.setObjectName(u"limpiarBt")
-        self.limpiarBt.setStyleSheet(u"/* Estilo base con matices rosa y gris degradado */\n"
-"QPushButton {\n"
-"    font-size: 14px;                         /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
-"    font-weight: bold;                       /* Texto en negrita */\n"
-"    color: #5a5a5a;                          /* Gris medio para texto */\n"
-"    padding: 8px;                            /* Espacio interno menor */\n"
-"    background: linear-gradient(135deg, #f8e1ec, #d3d3d3); /* Degradado rosa a gris */\n"
-"    border-radius: 6px;                      /* Esquinas ligeramente m\u00e1s redondeadas */\n"
-"    border: 1px solid #e0b7c6;               /* Borde rosa suave */\n"
-"    margin-top: 5px;                         /* Separaci\u00f3n superior */\n"
-"}\n"
-"\n"
-"/* Efecto hover con \u00e9nfasis en el rosa */\n"
-"QPushButton:hover {\n"
-"    background: linear-gradient(135deg, #fce4ec, #c0c0c0); /* Rosa claro a gris claro */\n"
-"    color: #7a4b63;                          /* Rosa oscuro para el texto */\n"
-"    border: 1px sol"
-                        "id #d48ca3;               /* Borde m\u00e1s intenso en rosa */\n"
-"}\n"
-"/* Presionado: tono m\u00e1s oscuro y efecto hundido */\n"
-"QPushButton:pressed {\n"
-"    background-color: #e0b7c6;\n"
-"    border: 2px solid #b0b0b0;\n"
-"    padding-top: 8px; /* efecto hundido */\n"
-"    padding-left: 8px;\n"
-"}\n"
-"")
-
-        self.gridLayout_3.addWidget(self.limpiarBt, 2, 0, 1, 1)
-
         self.iniciarBt = QPushButton(self.botones)
         self.iniciarBt.setObjectName(u"iniciarBt")
         self.iniciarBt.setStyleSheet(u"QPushButton {\n"
@@ -300,8 +256,6 @@ class Ui_brightness(object):
         self.descripcion.setText(QCoreApplication.translate("brightness", u"<html><head/><body><p align=\"center\"><span style=\" font-size:10pt; font-style:italic;\">Monitorea lectura anal\u00f3gica del sensor de fotorresistencia para su caracterizaci\u00f3n.</span></p></body></html>", None))
         self.Info.setTitle(QCoreApplication.translate("brightness", u"Info", None))
         self.controles.setTitle(QCoreApplication.translate("brightness", u"Controles", None))
-        self.exportarBt.setText(QCoreApplication.translate("brightness", u"Exportal a Exel", None))
-        self.limpiarBt.setText(QCoreApplication.translate("brightness", u"Limpiar Gr\u00e1fica", None))
         self.iniciarBt.setText(QCoreApplication.translate("brightness", u"Iniciar Monitoreo", None))
         self.nota.setText(QCoreApplication.translate("brightness", u"<html><head/><body><p align=\"justify\"><span style=\" font-size:9pt;\">\ud83d\udca1 </span><span style=\" font-size:9pt; font-weight:700;\">Nota:</span><span style=\" font-size:9pt;\"> Aseg\u00farate de conectar los <br/>componentes correctamente antes de <br/>iniciar el monitoreo.</span></p><p align=\"justify\"><span style=\" font-size:9pt;\">Selecciona uno de los tipo de <br/>sensor de Gases y luego<br/>siga con la experiencia de <br/>monitoreo convencional.</span></p></body></html>", None))
         self.LecturaLDRDt.setText(QCoreApplication.translate("brightness", u"--", None))
