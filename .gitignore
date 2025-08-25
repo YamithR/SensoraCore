@@ -1,8 +1,11 @@
 .gitignore
 /ResidualRWV1
 /TempFiles
-/SensoraCore/Compilador/Versiones
 /.venv
 /SensoraCore/SC_DesktopApp/Main/__pycache__
 __pycache__/
 *.pyc
+/SensoraCore/Compilador/.venv
+/SensoraCore/Compilador/build
+/SensoraCore/Compilador/Versiones
+/SensoraCore/Compilador/spec
