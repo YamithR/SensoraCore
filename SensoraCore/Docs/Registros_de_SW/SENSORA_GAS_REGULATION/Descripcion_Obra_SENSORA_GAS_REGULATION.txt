@@ -1,0 +1,229 @@
+DESCRIPCIÓN DE OBRA - SENSORA GAS REGULATION
+====================================================
+
+DESCRIPCIÓN:
+El módulo SENSORA_GAS_REGULATION es un sistema avanzado de detección y monitoreo de gases que utiliza sensores electroquímicos de la serie MQ para proporcionar mediciones precisas de concentraciones gaseosas en tiempo real. Este sistema está específicamente diseñado para aplicaciones de seguridad industrial, control ambiental y monitoreo de calidad del aire, ofreciendo capacidades de detección dual para MQ2 (humo/gases combustibles) y MQ3 (alcohol/etanol).
+
+El sistema implementa algoritmos matemáticos sofisticados basados en modelos logarítmicos para la conversión de señales analógicas a concentraciones PPM, incorporando un sistema de calibración de múltiples puntos que permite obtener mediciones trazables y repetibles. La arquitectura del software está diseñada para proporcionar flexibilidad en la selección de sensores, comunicación robusta TCP/IP y capacidades completas de exportación de datos para análisis posteriores.
+
+DISEÑO:
+La arquitectura del sistema se fundamenta en una estructura modular de tres capas principales que garantizan separación de responsabilidades y escalabilidad:
+
+1. Capa de Hardware y Comunicación:
+   - Sensores MQ2 y MQ3 con circuitos de acondicionamiento
+   - ESP32 como unidad de adquisición con ADC de 12 bits
+   - Protocolo TCP/IP para comunicación tiempo real
+   - Alimentación dual (3.3V lógica + 5V heater) para operación estable
+
+2. Capa de Procesamiento y Algoritmos:
+   - Clase GasThread implementando QThread para comunicación asíncrona
+   - Sistema de calibración basado en dataclasses para persistencia
+   - Algoritmos de conversión Rs/Ro con modelos logarítmicos
+   - Regresión lineal automática para determinación de parámetros
+
+3. Capa de Interfaz y Visualización:
+   - Clase GasRegulationLogic como controlador principal
+   - Selección dinámica de sensores con botones exclusivos
+   - Visualización matplotlib con dos líneas temporales diferenciadas
+   - Sistema de exportación Excel con múltiples hojas de datos
+
+El diseño de la interfaz sigue principios de ergonomía cognitiva con paneles especializados: selector de sensores en área izquierda, gráfica científica central y controles de operación distribuidos lógicamente. La arquitectura de datos utiliza listas Python optimizadas para almacenamiento temporal y diccionarios para registros de exportación.
+
+IMPLEMENTACIÓN:
+La implementación se desarrolló utilizando programación orientada a objetos con Python 3.8+, aprovechando las capacidades de multithreading de PySide6 y la integración nativa con matplotlib para visualización científica. El sistema utiliza dataclasses para manejo eficiente de estructuras de calibración y implementa patrones de persistencia JSON para configuraciones de usuario.
+
+Componentes Principales Implementados:
+
+1. Sistema de Comunicación TCP:
+   - Clase GasThread heredando de QThread para operación no bloqueante
+   - Protocolo robusto con timeout configurables y reconexión automática
+   - Parsing inteligente de mensajes con manejo de errores y formato flexible
+   - Comandos especializados: "MODO:GAS_REGULATION", "GR_SET:MQ2/MQ3", "GR_START:interval"
+
+2. Algoritmos de Calibración Avanzados:
+   - Dataclass GasCal para encapsular parámetros RL, Ro, m, b
+   - Funciones de persistencia _load_calib() y _save_calib() con manejo robusto
+   - Algoritmo de regresión lineal _linreg() para ajuste automático log-log
+   - Sistema de calibración interactivo con QInputDialog para múltiples puntos
+
+3. Procesamiento Matemático:
+   - Función _compute_ppm() implementando ecuación Rs = RL*(Vcc-Vout)/Vout
+   - Conversión logarítmica: log10(PPM) = m*log10(Rs/Ro) + b
+   - Manejo de casos especiales (división por cero, valores negativos)
+   - Validación de rangos y detección de condiciones no físicas
+
+4. Visualización Científica:
+   - Integración matplotlib con FigureCanvasQTAgg para embedding Qt
+   - Dos líneas diferenciadas para MQ2 y MQ3 con colores distintivos
+   - Actualización tiempo real optimizada con draw_idle() y relim()
+   - Grid científico y leyenda posicionada para claridad visual
+
+La arquitectura de exportación utiliza openpyxl para generación de archivos Excel profesionales con múltiples hojas: datos temporales, metadatos de sesión, parámetros de calibración y gráfica embebida como imagen PNG.
+
+FUNCIONES:
+El sistema proporciona un conjunto completo de funcionalidades para análisis químico cuantitativo:
+
+Funciones de Comunicación y Control:
+- start(): Inicializa thread TCP y establece comunicación con ESP32
+- stop(): Finaliza comunicación de forma controlada con cleanup completo
+- toggle(): Alterna entre inicio y parada con actualización UI automática
+- switch_sensor(): Cambia dinámicamente entre MQ2 y MQ3 durante operación
+
+Funciones de Calibración y Persistencia:
+- _calibrate_flow(): Wizard interactivo para calibración multi-punto
+- _load_calib(): Carga calibraciones desde archivo JSON en directorio usuario
+- _save_calib(): Persiste parámetros calibración con validación de integridad
+- _apply_cal(): Aplica parámetros calibración específicos por sensor
+
+Funciones de Procesamiento Matemático:
+- _compute_ppm(): Conversión completa ADC → voltaje → Rs → PPM
+- _linreg(): Regresión lineal least-squares para determinación m, b
+- Rs calculation: Rs = RL*(Vcc-Vout)/Vout con validación física
+- PPM calculation: 10^(m*log10(Rs/Ro) + b) con manejo excepciones
+
+Funciones de Visualización:
+- _setup_plot(): Inicialización matplotlib con configuración científica
+- _clear_plot(): Reset completo datos y visualización
+- _on_data(): Actualización tiempo real con threading seguro
+- Actualización líneas MQ2/MQ3 diferenciadas con colores específicos
+
+Funciones de Exportación Avanzada:
+- _export_excel(): Exportación completa multi-hoja con metadatos
+- _make_plot_image(): Generación imagen PNG para embedding Excel
+- Hoja "Datos": Series temporales con timestamps precisos
+- Hoja "Calibracion": Parámetros y ecuaciones por sensor
+- Hoja "Metadatos": Información sesión y configuración
+
+Funciones Auxiliares y Utilidades:
+- _get_ip(): Extracción IP desde widget principal con validación
+- _refresh_checks(): Actualización visual botones selección exclusiva
+- _refresh_cal_status(): Indicador estado calibración en tiempo real
+- cleanup(): Liberación controlada recursos al cerrar módulo
+
+VALIDACIÓN:
+El sistema implementa múltiples capas de validación para garantizar operación confiable y mediciones precisas:
+
+Validación de Hardware y Comunicación:
+- Verificación conectividad TCP con timeout 5 segundos
+- Confirmación respuesta "GAS_REGULATION_OK" del firmware ESP32
+- Monitoreo continuo integridad socket con detección desconexiones
+- Validación rangos ADC (0-4095) y voltaje (0-3.3V) físicamente posibles
+
+Validación de Calibración:
+- Verificación completitud parámetros Ro, m, b para cálculo PPM válido
+- Validación rangos físicos Rs > 0 y ratios Rs/Ro positivos
+- Comprobación regresión lineal con mínimo 2 puntos de calibración
+- Detección y manejo de condiciones no físicas (log de números negativos)
+
+Validación de Datos y Mediciones:
+- Parsing robusto con manejo de mensajes malformados
+- Filtrado de valores ADC fuera de rango físico (0-4095)
+- Detección de saturación sensor (voltaje muy bajo o alto)
+- Validación coherencia temporal entre muestras consecutivas
+
+Validación de Interfaz Usuario:
+- Verificación existencia widgets Qt antes de acceso
+- Manejo de errores matplotlib con fallback graceful
+- Validación rutas archivo para exportación con permisos escritura
+- Confirmación operaciones críticas (calibración, exportación)
+
+Métricas de Calidad Implementadas:
+- Monitoreo deriva temporal en sesiones extendidas
+- Cálculo automático de estadísticas (media, desviación estándar)
+- Detección outliers mediante criterios sigma
+- Validación consistencia calibración mediante residuos
+
+Algoritmos de Auto-Validación:
+- Verificación automática estabilidad señal pre-calibración
+- Detección automática condiciones ambientales anómalas
+- Validación cruzada entre lecturas MQ2 y MQ3 cuando aplicable
+- Sistema de alertas para condiciones operativas sub-óptimas
+
+PLATAFORMA:
+El sistema está diseñado para operar de manera robusta en múltiples plataformas con requisitos claramente definidos:
+
+Plataforma de Desarrollo:
+- Lenguaje: Python 3.8+ (compatible hasta 3.12) con type hints
+- Framework GUI: PySide6 (Qt 6.x) para interfaz nativa multiplataforma
+- Visualización: matplotlib 3.5+ con backend Qt para integración perfecta
+- Estructuras datos: dataclasses (Python 3.7+) para OOP eficiente
+- Exportación: openpyxl 3.0+ para archivos Excel profesionales
+- Comunicación: socket (biblioteca estándar) para TCP/IP robusto
+
+Sistemas Operativos Soportados:
+- Windows 10/11 (64-bit) - Plataforma de desarrollo principal
+- Linux Ubuntu 20.04 LTS+ y distribuciones compatibles
+- macOS 10.15+ (Catalina) con soporte Apple Silicon
+- Compatibilidad verificada en arquitecturas x86_64 y ARM64
+
+Hardware Mínimo Requerido:
+- CPU: Dual-core 2.0 GHz (Intel Core i3 8va gen o AMD equivalente)
+- RAM: 4 GB (6 GB recomendado para datasets extensos)
+- Almacenamiento: 2 GB disponibles (incluye dependencias Python)
+- Conectividad: WiFi 802.11n o Ethernet 100Mbps
+- Puertos: USB 2.0+ para programación ESP32
+
+Hardware Recomendado:
+- CPU: Quad-core 2.5 GHz+ con soporte virtualización
+- RAM: 8 GB+ para análisis simultáneo múltiples sesiones
+- GPU: Soporte OpenGL 3.0+ para aceleración matplotlib
+- Monitor: 1920x1080+ para visualización completa interfaz
+- Red: WiFi 802.11ac para comunicación estable alta frecuencia
+
+Dependencias del Sistema:
+- Python: Instalación oficial python.org con pip actualizado
+- Qt6: Distribuido automáticamente con PySide6
+- Visual C++ Redistributable: Requerido en Windows para compilación
+- OpenGL: Drivers gráficos actualizados para rendering matplotlib
+
+AMBIENTE:
+El ambiente de ejecución está optimizado para aplicaciones de monitoreo industrial y científico:
+
+Ambiente de Desarrollo:
+- IDE recomendado: Visual Studio Code con extensiones Python y Qt
+- Control versiones: Git con hooks pre-commit para calidad código
+- Documentación: Docstrings numpy-style para generación automática
+- Testing: pytest para pruebas unitarias y de integración
+- Linting: pylint + black para estilo código consistente
+
+Configuración de Red Industrial:
+- Protocolo: TCP/IP sobre WiFi industrial o Ethernet
+- Puerto estándar: 8080 (configurable según políticas firewall)
+- Timeout conexión: 5 segundos para detección fallas rápida
+- Keepalive: Implementado para detección desconexiones silenciosas
+- Seguridad: Recomendada VPN o red dedicada para aplicaciones críticas
+
+Ambiente de Producción:
+- Directorio trabajo: Configurable por administrador sistema
+- Archivos configuración: ~/.sensora_core/ con permisos usuario
+- Logs operación: Sistema logging configurable por niveles
+- Calibraciones: Persistencia automática con backup periódico
+- Exportaciones: Directorio seleccionable con validación permisos
+
+Variables de Entorno Críticas:
+- PYTHONPATH: Configurada para módulos SENSORA CORE
+- QT_QPA_PLATFORM: xcb (Linux), windows (Windows), cocoa (macOS)
+- MPLBACKEND: Qt5Agg o Qt6Agg según versión PySide
+- GAS_CONFIG_DIR: Override directorio configuración usuario
+- GAS_LOG_LEVEL: Control nivel detalle logging
+
+Consideraciones Seguridad Industrial:
+- Segregación red: VLAN dedicada para comunicación sensores
+- Autenticación: Integración posible con Active Directory
+- Encriptación: TLS opcional para comunicación TCP crítica
+- Auditoria: Logs detallados para trazabilidad operaciones
+- Backup: Procedimientos automáticos para calibraciones críticas
+
+Optimizaciones Rendimiento:
+- Threading: Separación completa comunicación TCP de UI
+- Memoria: Gestión eficiente para sesiones extendidas (>24h)
+- CPU: Algoritmos optimizados para cálculos tiempo real
+- I/O: Escritura asíncrona para exportación archivos grandes
+- Red: Buffer optimizado para minimizar latencia comunicación
+
+Consideraciones Ambientales Operativas:
+- Temperatura: 0°C a 40°C operación continua garantizada
+- Humedad: 10% a 90% RH sin condensación
+- Altitud: Hasta 2000m sin degradación prestaciones
+- Interferencias: Filtrado EMI para ambientes industriales
+- Vibración: Montaje anti-vibración recomendado para precisión

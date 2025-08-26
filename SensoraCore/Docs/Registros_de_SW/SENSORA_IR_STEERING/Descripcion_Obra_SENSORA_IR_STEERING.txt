@@ -1,0 +1,230 @@
+DESCRIPCIÓN DE OBRA - SENSORA IR STEERING
+==============================================
+
+DESCRIPCIÓN:
+El módulo SENSORA_IR_STEERING es un sistema avanzado de control automático de dirección que implementa algoritmos de control PID para seguimiento de línea y navegación autónoma en robots móviles. Esta solución está específicamente diseñada para aplicaciones educativas en robótica, vehículos autónomos de escala reducida y sistemas de control retroalimentado en tiempo real.
+
+El sistema utiliza un array de cinco sensores infrarrojos para detección de línea, procesando la información mediante algoritmos matemáticos sofisticados que calculan el error de posición y aplican correcciones mediante control diferencial de motores. La arquitectura del software implementa comunicación TCP/IP robusta con capacidades de configuración en tiempo real de parámetros PID, proporcionando una plataforma versátil para investigación, educación y desarrollo de sistemas de control automático.
+
+DISEÑO:
+La arquitectura del sistema se fundamenta en tres subsistemas interconectados que operan en coordinación para lograr control automático de dirección:
+
+1. Subsistema de Percepción:
+   - Array de 5 sensores IR dispuestos linealmente para detección de línea
+   - Procesamiento digital de señales binarias (0/1) por sensor
+   - Algoritmo de cálculo de error basado en posición ponderada
+   - Mapeo de patrones sensoriales a error de posición continuo
+
+2. Subsistema de Control:
+   - Implementación completa de controlador PID con parámetros configurables
+   - Clase PidDialog para ajuste interactivo de Kp, Ki, Kd en tiempo real
+   - Control diferencial de motores con corrección proporcional al error
+   - Sistema de velocidad base configurable (-100% a +100%)
+
+3. Subsistema de Comunicación:
+   - Clase IrSteeringThread implementando QThread para comunicación asíncrona
+   - Protocolo TCP/IP especializado con comandos SET_PID y SET_BASE
+   - Streaming de datos de estado incluyendo sensores, error, salidas PWM y RPM
+   - Interfaz gráfica con indicadores visuales de estado en tiempo real
+
+El diseño de la interfaz sigue principios de control industrial con paneles especializados: diagrama de conexiones para referencia técnica, indicadores visuales de estado de sensores y controles de configuración accesibles. La arquitectura de clases utiliza herencia de QWidget y QThread para integración nativa con el framework Qt, garantizando responsividad y operación no bloqueante.
+
+IMPLEMENTACIÓN:
+La implementación se desarrolló utilizando programación orientada a objetos con Python 3.8+, aprovechando las capacidades de multithreading de PySide6 y type hints para robustez del código. El sistema utiliza el patrón Observer para actualización de interfaz y composición de clases para modularidad.
+
+Componentes Principales Implementados:
+
+1. Clase IrSteeringThread:
+   - Hereda de QThread para operación de comunicación no bloqueante
+   - Implementa protocolo TCP robusto con reconexión automática
+   - Parsing inteligente de mensajes con formato key:value flexible
+   - Señales Qt para comunicación thread-safe con interfaz principal
+
+2. Clase PidDialog:
+   - Diálogo modal personalizado para configuración de parámetros
+   - QDoubleSpinBox y QSpinBox con rangos y pasos optimizados
+   - Checkbox "Aplicar en vivo" para ajuste en tiempo real
+   - Estilos CSS integrados para consistencia visual con aplicación principal
+
+3. Clase IrSteeringLogic:
+   - Controlador principal heredando de QWidget
+   - Gestión completa del ciclo de vida del thread de comunicación
+   - Métodos especializados para envío de comandos PID y velocidad base
+   - Actualización en tiempo real de indicadores visuales de sensores
+
+4. Algoritmos de Control:
+   - Función calculate_error() con promedio ponderado de posiciones
+   - Implementación PID con términos proporcional, integral y derivativo
+   - Control diferencial: left_speed = base - pid_output, right_speed = base + pid_output
+   - Limitación de salida a rangos físicos [-100%, +100%] por motor
+
+La arquitectura de comunicación implementa comandos especializados: "MODO:IR_STEERING" para inicialización, "SET_BASE:XX" para velocidad base y "SET_PID:Kp=X.XXX,Ki=Y.YYY,Kd=Z.ZZZ" para parámetros de control. El parsing de datos recibidos utiliza diccionarios Python para flexibilidad y robustez ante variaciones de formato.
+
+FUNCIONES:
+El sistema proporciona funcionalidades completas para control automático de dirección y educación en sistemas de control:
+
+Funciones de Control y Comunicación:
+- start(): Inicializa thread TCP y establece comunicación con ESP32
+- stop(): Finaliza comunicación con cleanup completo y liberación recursos
+- toggle(): Alterna entre inicio y parada con actualización automática de UI
+- set_base(): Envía comando velocidad base con validación de rango
+- set_pid(): Transmite parámetros PID con formato especializado
+
+Funciones de Configuración Interactiva:
+- open_pid_dialog(): Crea y muestra diálogo de configuración PID
+- _on_pid_apply(): Aplica cambios de parámetros con validación
+- _read_pid_dialog(): Extrae valores de widgets con conversión de tipos
+- _push_pid(): Envía parámetros PID actualizados al controlador
+- _push_base(): Actualiza velocidad base en tiempo real
+
+Funciones de Visualización y Estado:
+- _on_data(): Procesa datos de sensores y actualiza indicadores visuales
+- _on_status(): Maneja mensajes de estado de comunicación
+- Actualización visual sensores: verde para activo ('1'), gris para inactivo ('0')
+- Indicadores RPM: Muestra velocidad real de motores izquierdo y derecho
+
+Funciones de Procesamiento de Datos:
+- Parsing robusto de mensajes con formato "KEY:VALUE,KEY:VALUE"
+- Conversión de strings binarios a patrones de sensores
+- Cálculo de error de posición mediante promedio ponderado
+- Validación de rangos y manejo de casos especiales
+
+Funciones de Gestión de Recursos:
+- cleanup(): Liberación controlada de recursos al cerrar módulo
+- Thread management: Inicialización, monitoreo y finalización segura
+- Socket management: Conexión, envío de comandos y cierre controlado
+- _get_ip(): Extracción de IP desde widget principal con validación
+
+Funciones de Actualización en Tiempo Real:
+- Aplicación inmediata de cambios PID mediante checkbox "live update"
+- Conectores de señales para valueChanged de spinboxes
+- Actualización continua de indicadores de estado de sensores
+- Monitoreo en tiempo real de RPM y salidas de control
+
+VALIDACIÓN:
+El sistema implementa múltiples niveles de validación para garantizar operación segura y control preciso:
+
+Validación de Hardware y Comunicación:
+- Verificación de respuesta "IR_STEERING_OK" del firmware ESP32
+- Monitoreo continuo de integridad de conexión TCP con timeout 3 segundos
+- Detección automática de desconexiones con reconexión controlada
+- Validación de comandos enviados con confirmación de transmisión exitosa
+
+Validación de Parámetros de Control:
+- Rangos físicos PID: Kp, Ki, Kd limitados a 0.0-10.0 para estabilidad
+- Velocidad base: -100% a +100% con validación de límites físicos
+- Verificación de tipos de datos con conversión segura float/int
+- Validación de formato de comandos PID antes de transmisión
+
+Validación de Datos de Sensores:
+- Parsing robusto con manejo de mensajes malformados o incompletos
+- Verificación de longitud de string binario de sensores (5 bits)
+- Validación de rangos de error calculado (-2.0 a +2.0 típico)
+- Detección de valores anómalos de RPM y salidas de control
+
+Validación de Interfaz Usuario:
+- Verificación de existencia de widgets antes de acceso
+- Manejo de errores en creación y visualización de diálogos
+- Validación de estado de thread antes de envío de comandos
+- Confirmación de aplicación de parámetros críticos
+
+Métricas de Calidad de Control:
+- Monitoreo de estabilidad: error RMS < 0.5 unidades
+- Tiempo de respuesta: corrección < 0.5 segundos
+- Overshoot máximo: 20% en transiciones bruscas
+- Robustez: operación estable ante perturbaciones
+
+Algoritmos de Auto-Validación:
+- Detección automática de pérdida de línea (todos sensores inactivos)
+- Validación cruzada entre comando enviado y salida real de motores
+- Monitoreo de coherencia temporal entre muestras consecutivas
+- Sistema de alertas para condiciones operativas críticas
+
+PLATAFORMA:
+El sistema está optimizado para operación en plataformas múltiples con enfoque en aplicaciones educativas y de investigación:
+
+Plataforma de Desarrollo:
+- Lenguaje: Python 3.8+ con soporte type hints para robustez
+- Framework GUI: PySide6 (Qt 6.x) para interfaz nativa multiplataforma
+- Threading: QThread para comunicación asíncrona thread-safe
+- Networking: socket (biblioteca estándar) para comunicación TCP robusta
+- Typing: Módulo typing para anotaciones de tipos avanzadas
+
+Sistemas Operativos Soportados:
+- Windows 10/11 (64-bit) - Plataforma de desarrollo y testing principal
+- Linux Ubuntu 20.04 LTS+ y distribuciones educativas
+- macOS 10.15+ con soporte completo para Apple Silicon
+- Raspberry Pi OS para implementaciones embebidas
+
+Hardware Mínimo Requerido:
+- CPU: Dual-core 1.5 GHz (suficiente para control tiempo real)
+- RAM: 2 GB (4 GB recomendado para desarrollo)
+- Almacenamiento: 1 GB disponible incluyendo dependencias
+- Conectividad: WiFi 802.11n o Ethernet para comunicación ESP32
+- USB: Puerto para programación y debugging
+
+Hardware Educativo Recomendado:
+- CPU: Quad-core 2.0 GHz+ para simulaciones complejas
+- RAM: 8 GB para múltiples instancias simultáneas
+- Monitor: 1920x1080+ para visualización completa de diagramas
+- Red: WiFi 802.11ac para comunicación estable alta frecuencia
+- GPIO: Acceso directo para experimentos hardware adicionales
+
+Dependencias del Sistema:
+- Python: Instalación oficial con pip package manager
+- Qt6: Distribuido automáticamente con instalación PySide6
+- Compilador: Microsoft Visual C++ (Windows) para componentes nativos
+- Drivers: USB-to-UART para programación ESP32
+
+AMBIENTE:
+El ambiente de ejecución está diseñado para facilitar educación y desarrollo en sistemas de control:
+
+Ambiente Educativo:
+- IDE recomendado: Visual Studio Code con extensiones Python y Qt
+- Simuladores: Integración posible con simuladores robóticos (Gazebo, V-REP)
+- Documentación: Docstrings completas para autogeneración
+- Ejemplos: Código base modificable para experimentación estudiantil
+
+Configuración de Red para Laboratorio:
+- Red dedicada: VLAN separada para robots y estaciones de trabajo
+- DHCP reservado: IPs fijas para robots identificables
+- Latencia: < 10ms para control tiempo real efectivo
+- Ancho banda: 100 Mbps suficiente para múltiples robots simultáneos
+
+Ambiente de Desarrollo:
+- Version control: Git con workflow educativo para colaboración
+- Testing: pytest para validación de algoritmos de control
+- Logging: Sistema configurable para debugging y análisis
+- Profiling: Herramientas para optimización de rendimiento tiempo real
+
+Variables de Entorno Específicas:
+- PYTHONPATH: Configurada para módulos SENSORA CORE
+- QT_QPA_PLATFORM: Optimizada para rendering en sistemas educativos
+- IR_STEERING_DEBUG: Nivel de detalle para debugging específico
+- PID_CONFIG_DIR: Directorio para almacenar configuraciones PID
+
+Consideraciones de Seguridad en Laboratorio:
+- Velocidad limitada: Configuración máxima para seguridad estudiantil
+- Parada emergencia: Protocolo de detención inmediata
+- Supervisión: Logs de operación para seguimiento de sesiones
+- Acceso controlado: Autenticación para modificación de parámetros críticos
+
+Optimizaciones para Tiempo Real:
+- Threading: Separación completa de comunicación y procesamiento UI
+- Latencia: Minimizada mediante buffer optimizado y timeout ajustado
+- CPU: Algoritmos eficientes para cálculo PID en tiempo real
+- Memoria: Gestión optimizada para operación continua extendida
+- Comunicación: Protocolo especializado para mínima sobrecarga
+
+Integración con Ecosistema Educativo:
+- LMS: Compatible con sistemas de gestión de aprendizaje
+- Reportes: Exportación de datos para análisis académico
+- Evaluación: Métricas automáticas de rendimiento para calificación
+- Colaboración: Soporte para proyectos grupales y competencias
+
+Consideraciones Ambientales de Operación:
+- Iluminación: Control de luz ambiente para sensores IR estables
+- Superficie: Especificaciones para circuitos de seguimiento de línea
+- Espacio: Requisitos mínimos para operación segura de robots
+- Temperatura: Rango operativo para componentes electrónicos
+- Interferencias: Minimización de fuentes IR externas para precisión

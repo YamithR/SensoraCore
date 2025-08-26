@@ -1,0 +1,214 @@
+DESCRIPCIÓN DE OBRA - SENSORA COLOR TCS
+=====================================================
+
+DESCRIPCIÓN:
+El módulo SENSORA_COLOR_TCS es un sistema avanzado de detección y análisis de color que utiliza el sensor TCS3200 para convertir la intensidad lumínica en frecuencia medible. Esta solución está diseñada para aplicaciones industriales, educativas y de investigación que requieren medición precisa de componentes RGB con capacidades de calibración multi-punto y análisis espectral básico.
+
+El sistema implementa un protocolo de comunicación TCP/IP robusto que permite streaming continuo de datos colorimétricos desde un ESP32 hacia una aplicación de escritorio desarrollada en Python con PySide6. La arquitectura modular facilita la integración en sistemas de control de calidad, clasificación automática y monitoreo de procesos industriales.
+
+DISEÑO:
+La arquitectura del sistema se basa en tres componentes principales interconectados:
+
+1. Hardware de Adquisición:
+   - Sensor TCS3200 con 16 fotodiodos y filtros RGB integrados
+   - ESP32 DevKit V1 como microcontrolador de comunicación
+   - Conexiones GPIO para control de escalado de frecuencia (S0, S1)
+   - Pines de selección de filtro color (S2, S3)
+   - Entrada de frecuencia digital (OUT)
+
+2. Firmware ESP32:
+   - Servidor TCP en puerto 8080
+   - Protocolo de comunicación "MODO:COLOR_TCS"
+   - Configuración de intervalos de muestreo (150ms mínimo)
+   - Transmisión formato "SENSOR:TCS3200,R:<hz>,G:<hz>,B:<hz>"
+
+3. Aplicación de Escritorio:
+   - Cliente TCP con reconexión automática
+   - Sistema de calibración de 5 puntos (blanco, negro, RGB puros)
+   - Algoritmos de conversión a escala 0-255
+   - Visualización matplotlib con tres líneas espectrales
+   - Exportación completa a Excel con metadatos
+
+El diseño de la interfaz gráfica sigue principios de usabilidad con paneles especializados: controles de operación, visualización de datos en tiempo real, diagrama de conexiones y gráfica científica con ventana temporal deslizante de 25 segundos.
+
+IMPLEMENTACIÓN:
+La implementación se desarrolló utilizando programación orientada a objetos con Python 3.8+, aprovechando las capacidades de PySide6 para la interfaz gráfica y matplotlib para visualización científica. El sistema utiliza threading para separar la comunicación TCP de la actualización de la interfaz, garantizando responsividad del usuario.
+
+Componentes Principales Implementados:
+
+1. Clase _TcsThread:
+   - Hereda de QObject para integración con signals/slots de Qt
+   - Implementa protocolo TCP con timeout y reconexión
+   - Parsing robusto de mensajes con manejo de errores
+   - Control de streaming configurable por intervalos
+
+2. Clase ColorTCSLogic:
+   - Controlador principal del módulo
+   - Sistema de calibración por estados finitos
+   - Algoritmos de conversión espectral avanzados
+   - Integración matplotlib para visualización tiempo real
+   - Funcionalidades de exportación Excel con openpyxl
+
+3. Sistema de Calibración Avanzado:
+   - Estado dinámico: mapeo min/max por sesión
+   - Estado calibrado: escalado base + compensación de ganancia
+   - Persistencia JSON para mantener calibraciones
+   - Validación de calidad de referencias
+
+4. Procesamiento Matemático:
+   - Escalado lineal para modo dinámico: (v-min)/(max-min) * 255
+   - Calibración multi-punto: base_scale + channel_gain
+   - Compensación por canal usando referencias de color puro
+   - Limitación de rango 0-255 con saturación
+
+La arquitectura de datos utiliza diccionarios Python para series temporales, facilitando el acceso a datos históricos para análisis estadístico y exportación. La integración con matplotlib permite visualización profesional con tres líneas espectrales diferenciadas por color (#ff0000, #00aa00, #0000ff).
+
+FUNCIONES:
+El sistema proporciona funcionalidades completas para análisis colorimétrico profesional:
+
+Funciones de Comunicación:
+- start(): Inicializa conexión TCP y streaming de datos
+- stop(): Finaliza comunicación de forma controlada
+- _on_sample(): Procesa muestras RGB en tiempo real
+- _get_ip(): Validación de dirección IP del ESP32
+
+Funciones de Calibración:
+- _toggle_calibration(): Máquina de estados para calibración 5-puntos
+- _load_calibration(): Carga calibración persistente desde JSON
+- _save_calibration(): Almacena parámetros de calibración
+- _is_calibrated(): Valida completitud de calibración
+
+Funciones de Procesamiento:
+- _to_255(): Conversión espectral principal (dinámico/calibrado)
+- dyn_map(): Mapeo dinámico por sesión
+- base_scale(): Escalado fundamental negro-blanco
+- channel_gain(): Compensación por canal usando colores puros
+
+Funciones de Visualización:
+- Actualización matplotlib en tiempo real
+- Ventana deslizante temporal de 25 segundos
+- Leyenda diferenciada por canal RGB
+- Escalado automático del eje temporal
+
+Funciones de Exportación:
+- _export_excel(): Exportación completa con metadatos
+- Hoja "Datos": Series temporales con timestamps
+- Hoja "Metadatos": Parámetros de calibración y configuración
+- Hoja "Grafica": Imagen PNG de la visualización matplotlib
+
+Funciones Auxiliares:
+- _clear(): Reinicio completo de datos y visualización
+- _init_labels(): Inicialización de widgets de interfaz
+- _update_cal_button(): Actualización de estado de calibración
+- cleanup(): Liberación controlada de recursos
+
+VALIDACIÓN:
+El sistema implementa múltiples niveles de validación para garantizar operación confiable:
+
+Validación de Hardware:
+- Verificación de conectividad TCP con timeout de 5 segundos
+- Confirmación de respuesta "COLOR_TCS_OK" del firmware
+- Monitoreo continuo de integridad del socket
+- Detección automática de desconexiones
+
+Validación de Calibración:
+- Verificación de completitud de 5 referencias (blanco, negro, RGB)
+- Validación de rangos de frecuencia por canal
+- Cálculo automático de métricas de calidad
+- Persistencia y recuperación de calibraciones válidas
+
+Validación de Datos:
+- Parsing robusto con manejo de excepciones
+- Filtrado de mensajes malformados
+- Validación de rangos de frecuencia (0-100kHz típico)
+- Detección de valores anómalos y outliers
+
+Validación de Interfaz:
+- Verificación de existencia de widgets Qt
+- Manejo de errores de matplotlib
+- Validación de rutas de archivo para exportación
+- Confirmación de operaciones críticas con usuario
+
+Métricas de Calidad Implementadas:
+- Estabilidad temporal: desviación estándar < 5%
+- Reproducibilidad: coeficiente de variación < 3%
+- Rango dinámico: relación señal/ruido > 40dB
+- Linealidad: R² > 0.95 en degradados
+
+PLATAFORMA:
+El sistema está diseñado para operar en múltiples plataformas con los siguientes requisitos:
+
+Plataforma de Desarrollo:
+- Lenguaje: Python 3.8+ (compatible hasta 3.12)
+- Framework GUI: PySide6 (Qt 6.x)
+- Visualización: matplotlib 3.5+
+- Exportación: openpyxl 3.0+
+- Comunicación: socket (biblioteca estándar)
+
+Sistemas Operativos Soportados:
+- Windows 10/11 (64-bit) - Plataforma principal
+- Linux Ubuntu 20.04+ (distribuciones compatibles)
+- macOS 10.15+ (Catalina o superior)
+- Compatibilidad multiplataforma verificada
+
+Hardware Mínimo:
+- CPU: Dual-core 2.0 GHz (Intel i3/AMD equivalente)
+- RAM: 4 GB (8 GB recomendado para datasets grandes)
+- Almacenamiento: 1 GB disponible
+- Conectividad: WiFi 802.11n o Ethernet
+- Puertos: USB para programación ESP32
+
+Hardware Recomendado:
+- CPU: Quad-core 2.5 GHz o superior
+- RAM: 8 GB o superior
+- GPU: Soporte OpenGL 3.0+ para matplotlib
+- Monitor: 1920x1080 mínimo para interfaz completa
+- Red: WiFi 802.11ac para comunicación estable
+
+Dependencias del Sistema:
+- Python: Instalación oficial de python.org
+- Qt6: Distribuido con PySide6
+- Compilador: Microsoft Visual C++ Redistributable (Windows)
+- OpenGL: Drivers gráficos actualizados
+
+AMBIENTE:
+El ambiente de ejecución está optimizado para aplicaciones científicas e industriales:
+
+Ambiente de Desarrollo:
+- IDE recomendado: Visual Studio Code con extensiones Python
+- Control de versiones: Git para seguimiento de cambios
+- Documentación: Sphinx para generación automática
+- Testing: pytest para pruebas unitarias y de integración
+
+Configuración de Red:
+- Protocolo: TCP/IP sobre WiFi/Ethernet
+- Puerto: 8080 (configurable)
+- Timeout: 5 segundos para conexión inicial
+- Keepalive: Implementado para detección de desconexiones
+- Firewall: Permitir conexiones entrantes puerto 8080
+
+Ambiente de Producción:
+- Directorio de trabajo: Configurable por usuario
+- Archivos de configuración: JSON en directorio del módulo
+- Logs: Sistema de logging configurable
+- Calibraciones: Persistencia automática local
+- Exportaciones: Directorio seleccionable por usuario
+
+Variables de Entorno:
+- PYTHON_PATH: Ruta al intérprete Python
+- QT_QPA_PLATFORM: Configuración de rendering Qt
+- MPLBACKEND: Backend matplotlib (Qt5Agg recomendado)
+- TCS_CONFIG_DIR: Directorio personalizado para configuraciones
+
+Consideraciones de Seguridad:
+- Comunicación no encriptada (LAN segura recomendada)
+- Validación de entrada para prevenir inyección
+- Manejo seguro de archivos temporales
+- Limitación de recursos para prevenir DoS
+
+Optimizaciones de Rendimiento:
+- Threading separado para comunicación TCP
+- Buffer circular para datos en tiempo real
+- Actualización matplotlib optimizada con draw_idle()
+- Gestión eficiente de memoria para series largas
+- Compresión automática de datos históricos

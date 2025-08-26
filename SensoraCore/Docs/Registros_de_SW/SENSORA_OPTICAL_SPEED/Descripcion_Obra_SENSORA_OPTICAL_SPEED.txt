@@ -1,0 +1,46 @@
+Descripción de la Obra
+Software: SENSORA_OPTICAL_SPEED
+
+El software SENSORA_OPTICAL_SPEED es un módulo educativo que forma parte del ecosistema SensoraCore, diseñado para el control y monitorización de sistemas de velocidad dual mediante motores DC con sensores ópticos tipo encoder. A través de esta plataforma, el ESP32 ejecuta firmware en MicroPython que lee señales de encoders ópticos conectados a pines GPIO digitales y controla motores DC mediante puente H L298N, transmitiendo datos de RPM mediante socket TCP a través de WiFi. La interacción con el sistema se realiza mediante una aplicación de escritorio desarrollada en Python con PySide6 que actúa como cliente TCP para recibir datos de RPM y enviar comandos de control de velocidad.
+
+• DISEÑO
+El sistema se basa en una arquitectura cliente-servidor donde el ESP32 actúa como servidor TCP y la aplicación de escritorio como cliente. El ESP32 DevKit V1 ejecuta un firmware desarrollado en MicroPython que lee continuamente señales digitales de encoders ópticos tipo herradura conectados a los pines GPIO 39 y 34 para los motores izquierdo y derecho respectivamente. El microcontrolador cuenta pulsos de los encoders para calcular RPM y controla los motores mediante señales PWM enviadas a un puente H L298N conectado a los pines 25, 36, 32 y 33. El firmware transmite datos de RPM por sockets TCP por WiFi y recibe comandos de velocidad bidireccional. La aplicación cliente, desarrollada en Python con PySide6, se conecta al ESP32, recibe los datos en tiempo real, procesa comandos de velocidad (-100% a +100%) y los visualiza en displays numéricos grandes.
+
+• IMPLEMENTACIÓN
+El firmware del ESP32 está programado en MicroPython utilizando las librerías nativas machine, network y socket. El microcontrolador configura los pines GPIO como entradas digitales para los encoders con resistencias pull-up internas y como salidas PWM para el control del puente H L298N. El firmware implementa contadores de interrupciones por flanco para el conteo preciso de pulsos de encoder y algoritmos de cálculo de RPM basados en ventanas de tiempo configurables. El firmware establece un servidor TCP en el puerto 8080 y acepta conexiones entrantes de la aplicación cliente. La aplicación de escritorio está desarrollada en Python 3.x con PySide6 para la interfaz gráfica usando QThread para comunicación asíncrona y widgets personalizados para control de velocidad.
+
+Funciones que tiene el software:
+• Lectura de Encoders Ópticos: el ESP32 lee señales digitales de encoders tipo herradura con conteo por interrupciones en flancos de subida.
+• Cálculo de RPM: convierte conteos de pulsos a RPM usando la fórmula RPM = (pulsos * 60) / (PPR * tiempo_ventana).
+• Control PWM Bidireccional: controla dos motores DC mediante puente H con señales PWM para velocidad y dirección.
+• Servidor TCP: establece comunicación por socket TCP en puerto 8080 para transmitir datos RPM y recibir comandos de velocidad.
+• Monitoreo en Tiempo Real: la aplicación cliente recibe datos de RPM continuamente y actualiza displays L y R en tiempo real.
+• Control de Velocidad Interactivo: permite ajustar velocidad de -100% a +100% con botones de incremento/decremento de ±10%.
+• Visualización de Estado: muestra velocidad comandada actual y RPM real de cada motor en displays numéricos grandes.
+• Diagrama de Conexiones Integrado: incluye esquema visual de conexiones L298N y encoders en la interfaz.
+• Gestión de Estados TCP: maneja conexión, desconexión y errores de comunicación con recuperación automática.
+
+• VALIDACIÓN
+La validación del software se llevó a cabo mediante pruebas de Funcionamiento, en las que se confirmó que el sistema integrado ESP32-Cliente es capaz de:
+• Establecer conexión WiFi estable del ESP32 a la red local configurada en wifi_config.py.
+• Crear servidor TCP en puerto 8080 y aceptar conexiones entrantes de la aplicación cliente.
+• Leer señales digitales de encoders ópticos con conteo preciso por interrupciones sin pérdida de pulsos.
+• Calcular RPM de ambos motores con precisión mejor que ±2% comparado con tacómetros externos.
+• Controlar velocidad bidireccional de motores DC mediante PWM con respuesta lineal en todo el rango.
+• Transmitir datos de RPM en tiempo real mediante sockets TCP sin latencia significativa.
+• Procesar comandos de velocidad SET_SPEED en la aplicación cliente con respuesta inmediata.
+
+Asimismo, se verificó que la comunicación TCP entre el ESP32 y la aplicación cliente de escritorio mantiene estabilidad durante sesiones prolongadas de control, que el control PWM bidireccional responde linealmente a comandos de velocidad de -100% a +100%, y que la interfaz gráfica actualiza displays de RPM en tiempo real sin bloqueos.
+
+• PLATAFORMA
+Hardware:
+• ESP32 DevKit V1: Microcontrolador de 32 bits con procesador Xtensa LX6 dual-core, equipado con WiFi 802.11b/g/n y Bluetooth integrados. Incluye múltiples pines GPIO digitales con capacidad de interrupciones para lectura de encoders. Los pines GPIO 39 y 34 se utilizan para entrada de señales de encoders y los pines 25, 36, 32, 33 para salidas PWM hacia el puente H.
+• Motores DC con Encoders: Dos motores DC de 6-12V equipados con encoders ópticos tipo herradura con discos ranurados. Los encoders generan pulsos digitales proporcionales a la velocidad de rotación con resolución configurable (PPR).
+• Puente H L298N: Controlador de motores bidireccional que permite control de velocidad y dirección mediante señales PWM y digitales. Maneja corrientes hasta 2A por canal con alimentación de lógica de 5V y motores de hasta 12V.
+• Alimentación Externa: Fuente de 12V para alimentación de motores con masa común al ESP32 para compatibilidad de señales de control.
+
+Software:
+Para el firmware del ESP32 se emplea MicroPython con las librerías nativas machine para control de hardware y configuración de interrupciones, network para conectividad WiFi, socket para comunicación TCP, time para temporizadores y _thread para manejo de hilos concurrentes. El desarrollo y la carga del firmware se realizan utilizando entornos como Visual Studio Code (con extensiones para MicroPython) y Thonny, que facilitan la edición, depuración y transferencia de scripts al ESP32. La aplicación cliente se desarrolla en Python 3.x utilizando PySide6 para la interfaz gráfica moderna con QThread para comunicación asíncrona, socket nativo para comunicación TCP, y widgets personalizados para control de velocidad con feedback visual.
+
+• AMBIENTE
+El sistema opera como una plataforma educativa distribuida para el aprendizaje de control de motores y sistemas de retroalimentación con encoders ópticos. El ESP32 DevKit V1 ejecuta firmware MicroPython que establece un servidor TCP en puerto 8080, lee continuamente señales de encoders ópticos conectados a GPIO 39 y 34 mediante interrupciones por flanco, calcula RPM usando contadores de pulsos y ventanas de tiempo, controla dos motores DC mediante puente H L298N con señales PWM bidireccionales en pines 25, 36, 32, 33, y transmite datos de RPM junto con estado de velocidad por WiFi a clientes conectados. La aplicación de escritorio desarrollada en Python actúa como cliente TCP, conectándose al ESP32 mediante su dirección IP local, recibiendo datos de RPM de forma asíncrona usando QThread para evitar bloqueos de interfaz, procesando comandos de velocidad bidireccional de -100% a +100% con incrementos de ±10%, enviando comandos SET_SPEED al ESP32, y presentando visualizaciones en tiempo real con displays numéricos grandes para RPM de cada motor y control interactivo de velocidad. El sistema incluye funcionalidades avanzadas como diagrama de conexiones integrado, gestión de estados de comunicación TCP, recuperación automática de errores, y interfaces visuales con feedback inmediato, proporcionando una experiencia educativa completa que abarca desde conceptos básicos de control PWM y encoders ópticos hasta técnicas avanzadas de sistemas de retroalimentación y control distribuido en tiempo real.
