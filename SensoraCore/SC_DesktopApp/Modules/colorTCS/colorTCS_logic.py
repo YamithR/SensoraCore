@@ -80,19 +80,34 @@ class _TcsThread(QObject):
                         line = line.strip()
                         if not line:
                             continue
-                        # SENSOR:TCS3200,R:<hz>,G:<hz>,B:<hz>
+                        # TCS_RED:<rgb>,TCS_GREEN:<rgb>,TCS_BLUE:<rgb>,FREQ_R:<hz>,FREQ_G:<hz>,FREQ_B:<hz>
                         try:
                             kv: Dict[str, str] = {}
                             for part in line.replace(";", ",").split(","):
                                 if ":" in part:
                                     k, v = part.split(":", 1)
                                     kv[k.strip().upper()] = v.strip()
-                            if kv.get("SENSOR", "").upper() not in ("TCS3200", "TCS"):
-                                continue
-                            r = float(kv.get("R", "0"))
-                            g = float(kv.get("G", "0"))
-                            b = float(kv.get("B", "0"))
-                            self.sig_sample.emit(r, g, b, time.time())
+                            # Priorizar valores RGB calibrados del firmware
+                            if "TCS_RED" in kv:
+                                # Nuevo formato con RGB ya calibrado
+                                r_rgb = float(kv.get("TCS_RED", "0"))
+                                g_rgb = float(kv.get("TCS_GREEN", "0"))
+                                b_rgb = float(kv.get("TCS_BLUE", "0"))
+                                # Obtener frecuencias si existen (para referencia)
+                                r_hz = float(kv.get("FREQ_R", "0"))
+                                g_hz = float(kv.get("FREQ_G", "0"))
+                                b_hz = float(kv.get("FREQ_B", "0"))
+                                # Emitir frecuencias para mantener compatibilidad con gráficas
+                                self.sig_sample.emit(r_hz if r_hz > 0 else r_rgb, 
+                                                   g_hz if g_hz > 0 else g_rgb, 
+                                                   b_hz if b_hz > 0 else b_rgb, 
+                                                   time.time())
+                            else:
+                                # Formato antiguo con solo frecuencias
+                                r = float(kv.get("R", "0"))
+                                g = float(kv.get("G", "0"))
+                                b = float(kv.get("B", "0"))
+                                self.sig_sample.emit(r, g, b, time.time())
                         except Exception:
                             pass
                 except socket.timeout:

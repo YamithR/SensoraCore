@@ -554,7 +554,7 @@ QPushButton:pressed {
                <string notr="true">background-color: rgb(255, 255, 255);</string>
               </property>
               <property name="text">
-               <string>TempCalibrada</string>
+               <string>PPMCal</string>
               </property>
              </widget>
             </item>

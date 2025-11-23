@@ -41,7 +41,7 @@ def _save_calib(data: dict) -> None:
 
 # ---------- Hilo de comunicación ----------
 class ThermoThread(QThread):
-	# name: LM35|DS18B20|TYPEK, temp_c: float, raw: Optional[int]
+	# name: LM35|DS18B20|TYPEK, temp_c: float (calibrada), temp_raw: Optional[float]
 	data = Signal(str, float, object)
 	status = Signal(str)
 
@@ -67,10 +67,11 @@ class ThermoThread(QThread):
 			if "THERMOREGULATION_OK" not in resp:
 				self.status.emit("ESP32 no acepto modo THERMOREGULATION")
 				return
-			# Set sensor y periodo
-			self._send_cmd(f"TH_SET:{self.sensor}")
-			self._send_cmd(f"TH_START:{self.period_ms}")
-			self.status.emit("Monitoreo de temperatura iniciado")
+			# Enviar comando de sensor al firmware
+			# Mapear TYPEK -> MAX6675 para coincidir con firmware
+			sensor_cmd = "MAX6675" if self.sensor == "TYPEK" else self.sensor
+			self._send_cmd(f"SENSOR:{sensor_cmd}")
+			self.status.emit(f"Monitoreo iniciado: sensor {sensor_cmd}")
 			self.sock.settimeout(3)
 			buffer = ""
 			while self._running:
@@ -139,7 +140,9 @@ class ThermoThread(QThread):
 
 	def switch_sensor(self, name: str):
 		self.sensor = name
-		self._send_cmd(f"TH_SET:{self.sensor}")
+		# Mapear TYPEK -> MAX6675
+		sensor_cmd = "MAX6675" if name == "TYPEK" else name
+		self._send_cmd(f"SENSOR:{sensor_cmd}")
 
 	def _send_cmd(self, txt: str):
 		try:
@@ -163,8 +166,9 @@ class ThermoregulationLogic(QWidget):
 		self.period_ms = 500
 		self._calib = _load_calib()  # {'LM35': {'a':..,'b':..}, 'DS18B20': {'a':..,'b':..}, 'TYPEK': {'a':..,'b':..,'c':..}}
 		self._data_rows: List[dict] = []
-		# última temperatura medida por sensor
-		self._last_temp = {}
+		# última temperatura medida por sensor (RAW y calibrada firmware)
+		self._last_temp = {}  # Temperatura RAW sin calibrar
+		self._last_temp_cal = {}  # Temperatura calibrada por firmware
 
 		# Plot embedding (matplotlib)
 		self._setup_plot()
@@ -300,45 +304,51 @@ class ThermoregulationLogic(QWidget):
 			pass
 
 	# ----- Datos entrantes -----
-	def _on_data(self, name: str, temp_c: float, raw: Optional[int]):
+	def _on_data(self, name: str, temp_c: float, temp_raw: Optional[float]):
 		t = time.time() - getattr(self, '_t0', time.time())
 		self._times.append(t)
-		# Aplicar calibración si existe
+		# Mapear MAX6675 -> TYPEK para mostrar en UI
+		if name.upper() == 'MAX6675':
+			name = 'TYPEK'
+		# temp_c ya viene calibrada del firmware
+		# temp_raw es la lectura sin calibrar
+		# Aplicar calibración local adicional si existe
 		cal_temp = self._apply_calibration(name, temp_c)
-		# Guardar última temperatura medida por sensor
-		self._last_temp[name.upper()] = float(temp_c)
+		# Guardar última temperatura RAW medida por sensor (para calibración)
+		self._last_temp[name.upper()] = float(temp_raw if temp_raw is not None else temp_c)
+		self._last_temp_cal[name.upper()] = float(temp_c)
 
 		if name.upper() == 'LM35':
 			if hasattr(self.ui, 'LecturaLm35Dt'):
-				self.ui.LecturaLm35Dt.setText(f"{raw if raw is not None else '-'}")
+				self.ui.LecturaLm35Dt.setText(f"{temp_raw:.2f}°C" if temp_raw is not None else '-')
 			if hasattr(self.ui, 'TemperaturaLm35Dt'):
-				self.ui.TemperaturaLm35Dt.setText(f"{temp_c:.2f}")
+				self.ui.TemperaturaLm35Dt.setText(f"{temp_c:.2f}°C")
 			if hasattr(self.ui, 'Lm35DtCalibrado'):
-				self.ui.Lm35DtCalibrado.setText(f"{cal_temp:.2f}")
+				self.ui.Lm35DtCalibrado.setText(f"{cal_temp:.2f}°C")
 			self._lm35_y.append(cal_temp)
 		elif name.upper() == 'TYPEK':
 			if hasattr(self.ui, 'LecturaTypeKDt'):
-				self.ui.LecturaTypeKDt.setText(f"{raw if raw is not None else '-'}")
+				self.ui.LecturaTypeKDt.setText(f"{temp_raw:.2f}°C" if temp_raw is not None else '-')
 			if hasattr(self.ui, 'TemperaturaTypeKDt'):
-				self.ui.TemperaturaTypeKDt.setText(f"{temp_c:.2f}")
+				self.ui.TemperaturaTypeKDt.setText(f"{temp_c:.2f}°C")
 			if hasattr(self.ui, 'TypeKDtCalibrado'):
-				self.ui.TypeKDtCalibrado.setText(f"{cal_temp:.2f}")
+				self.ui.TypeKDtCalibrado.setText(f"{cal_temp:.2f}°C")
 			self._typek_y.append(cal_temp)
 		elif name.upper() == 'DS18B20':
 			if hasattr(self.ui, 'LecturaDS18B20Dt'):
-				self.ui.LecturaDS18B20Dt.setText(f"-")
+				self.ui.LecturaDS18B20Dt.setText(f"{temp_raw:.2f}°C" if temp_raw is not None else '-')
 			if hasattr(self.ui, 'TemperaturaDS18B20Dt'):
-				self.ui.TemperaturaDS18B20Dt.setText(f"{temp_c:.2f}")
+				self.ui.TemperaturaDS18B20Dt.setText(f"{temp_c:.2f}°C")
 			if hasattr(self.ui, 'DS18B20DtCalibrado'):
-				self.ui.DS18B20DtCalibrado.setText(f"{cal_temp:.2f}")
+				self.ui.DS18B20DtCalibrado.setText(f"{cal_temp:.2f}°C")
 			self._ds18_y.append(cal_temp)
 
 		# Registrar fila de exportación
 		self._data_rows.append({
 			't_s': t,
 			'sensor': name,
-			'raw': raw,
-			'temp_c': temp_c,
+			'temp_raw': temp_raw if temp_raw is not None else temp_c,
+			'temp_firmware': temp_c,
 			'temp_cal': cal_temp,
 		})
 
@@ -370,9 +380,13 @@ class ThermoregulationLogic(QWidget):
 			return temp
 
 	def _calibrate_dialog(self):
-		# Flujo interactivo tipo SimpleAngle: capturar N puntos (medido vs referencia)
-		# LM35/DS18B20 => ajuste lineal Tcal = a*T + b
-		# TYPEK => ajuste cuadrático Tcal = a*T^2 + b*T + c (min 3 puntos; con 2 puntos cae a lineal)
+		"""
+		Asistente de calibración mejorado para sensores de temperatura
+		- Soporte para calibración rápida (offset) y avanzada (multi-punto)
+		- Instrucciones paso a paso con baño térmico
+		- Validación de estabilidad de lectura
+		- Envío de parámetros al firmware
+		"""
 		try:
 			if not self.monitoring:
 				QMessageBox.information(self, "Calibración", "Primero inicie el monitoreo y espere a ver datos.")
@@ -383,100 +397,305 @@ class ThermoregulationLogic(QWidget):
 				QMessageBox.information(self, "Calibración", f"Aún no hay lectura para {sensor}. Espere unos segundos y vuelva a intentar.")
 				return
 
-			# Número de puntos (usar argumentos posicionales para compatibilidad)
-			min_pts = 3 if sensor == 'TYPEK' else 2
-			n, ok = QInputDialog.getInt(self, "Calibración", f"¿Cuántos puntos desea? (mín {min_pts}, máx 10)", min_pts, min_pts, 10, 1)
+			# Paso 1: Tipo de calibración
+			calib_type, ok = QInputDialog.getItem(
+				self,
+				"Calibración - Paso 1/4",
+				f"Tipo de calibración para {sensor}:",
+				[
+					"Rápida (1 punto - solo offset)",
+					"Estándar (2 puntos - offset y escala)",
+					"Avanzada (3+ puntos - curva completa)"
+				],
+				1, False
+			)
 			if not ok:
 				return
-
-			pares: List[Tuple[float, float]] = []  # (medido, referencia)
-			sugeridos = [0.0, 25.0, 50.0, 75.0, 100.0, 150.0, 200.0, 250.0, 300.0, 400.0]
-			for i in range(n):
-				# Usar el último medido actual
-				med = self._last_temp.get(sensor)
-				if med is None:
-					QMessageBox.warning(self, "Calibración", "No se detecta lectura actual. Intente nuevamente.")
-					return
-				# Pedir referencia
-				default = sugeridos[i] if i < len(sugeridos) else med
-				ref, ok2 = QInputDialog.getDouble(self, f"Punto {i+1}/{n}", f"Lectura medida: {med:.2f} °C\nIngrese temperatura de referencia (°C)", float(default), -1000.0, 1000.0, 2)
-				if not ok2:
-					QMessageBox.information(self, "Calibración", "Calibración cancelada.")
-					return
-				pares.append((float(med), float(ref)))
-
-			# Ajuste
-			def fit_linear(p: List[Tuple[float,float]]):
-				xs = [x for x,_ in p]
-				ys = [y for _,y in p]
-				n = len(xs)
-				mx = sum(xs)/n
-				my = sum(ys)/n
-				num = sum((xs[i]-mx)*(ys[i]-my) for i in range(n))
-				den = sum((xs[i]-mx)**2 for i in range(n))
-				if den == 0:
-					return 1.0, 0.0
-				a = num/den
-				b = my - a*mx
-				return a, b
-
-			def fit_quadratic(p: List[Tuple[float,float]]):
-				# mínimos cuadrados con sumatorias
-				xs = [x for x,_ in p]
-				ys = [y for _,y in p]
-				n = len(xs)
-				if n < 3:
-					a1, b1 = fit_linear(p)
-					return 0.0, a1, b1  # a*T^2 + b*T + c => a=0, b=a1, c=b1
-				s1 = sum(xs)
-				s2 = sum(x*x for x in xs)
-				s3 = sum((x**3) for x in xs)
-				s4 = sum((x**4) for x in xs)
-				sy = sum(ys)
-				sxy = sum(xs[i]*ys[i] for i in range(n))
-				sx2y = sum((xs[i]**2)*ys[i] for i in range(n))
-				# Resolver sistema 3x3 para a,b,c
-				# | s4 s3 s2 | |a| = |sx2y|
-				# | s3 s2 s1 | |b|   | sxy |
-				# | s2 s1 n  | |c|   | sy  |
-				def det3(m):
-					return (m[0][0]*((m[1][1]*m[2][2])-(m[1][2]*m[2][1]))
-						   -m[0][1]*((m[1][0]*m[2][2])-(m[1][2]*m[2][0]))
-						   +m[0][2]*((m[1][0]*m[2][1])-(m[1][1]*m[2][0])))
-				M = [[s4,s3,s2],[s3,s2,s1],[s2,s1,n]]
-				D = det3(M)
-				if abs(D) < 1e-12:
-					a1,b1 = fit_linear(p)
-					return 0.0, a1, b1
-				Ma = [[sx2y,s3,s2],[sxy,s2,s1],[sy,s1,n]]
-				Mb = [[s4,sx2y,s2],[s3,sxy,s1],[s2,sy,n]]
-				Mc = [[s4,s3,sx2y],[s3,s2,sxy],[s2,s1,sy]]
-				Da = det3(Ma); Db = det3(Mb); Dc = det3(Mc)
-				a = Da/D; b = Db/D; c = Dc/D
-				return a, b, c
-
-			if sensor == 'TYPEK':
-				a, b, c = fit_quadratic(pares)
-				self._calib['TYPEK'] = {'a': a, 'b': b, 'c': c}
-				eq = f"Tcal = {a:.6f}*T^2 + {b:.6f}*T + {c:.6f}"
+			
+			if "Rápida" in calib_type:
+				self._calibrate_quick(sensor)
+			elif "Estándar" in calib_type:
+				self._calibrate_standard(sensor)
 			else:
-				a, b = fit_linear(pares)
-				self._calib[sensor] = {'a': a, 'b': b}
-				eq = f"Tcal = {a:.6f}*T + {b:.6f}"
-
-			_save_calib(self._calib)
-			self._refresh_cal_status()
-			QMessageBox.information(self, "Calibración", f"Calibración guardada para {sensor}.\n{eq}")
-			# Mostrar resultado en una ventana con gráfica
-			try:
-				if sensor == 'TYPEK':
-					self._show_calibration_result(sensor, pares, ('quad', a, b, c))
-				else:
-					self._show_calibration_result(sensor, pares, ('lin', a, b))
-			except Exception:
-				pass
+				self._calibrate_advanced(sensor)
+		
 		except Exception as e:
 			QMessageBox.critical(self, "Calibración", f"Error al calibrar: {e}")
+	
+	def _calibrate_quick(self, sensor: str):
+		"""Calibración rápida de 1 punto (solo offset)"""
+		# Instrucciones
+		msg = (
+			f"CALIBRACIÓN RÁPIDA - {sensor}\\n\\n"
+			"Pasos:\\n"
+			"1. Prepare un baño térmico estable\\n"
+			"   (ej: hielo derritiendo = 0°C)\\n"
+			"2. Sumerja el sensor en el baño\\n"
+			"3. Espere 2-3 minutos de estabilización\\n"
+			"4. Ingrese la temperatura real\\n\\n"
+			"Esta calibración solo corrige el OFFSET.\\n"
+			"¿Continuar?"
+		)
+		reply = QMessageBox.question(self, "Calibración Rápida", msg, QMessageBox.Yes | QMessageBox.No)
+		if reply != QMessageBox.Yes:
+			return
+		
+		# Esperar estabilización
+		QMessageBox.information(
+			self, 
+			"Estabilización",
+			f"Coloque {sensor} en el baño térmico\\n"
+			"y presione OK cuando esté estable (2-3 min)."
+		)
+		
+		# Capturar lectura actual
+		temp_medida = self._last_temp.get(sensor.upper())
+		if temp_medida is None:
+			QMessageBox.warning(self, "Error", "No se pudo leer la temperatura actual.")
+			return
+		
+		# Solicitar temperatura de referencia
+		temp_ref, ok = QInputDialog.getDouble(
+			self,
+			"Temperatura de Referencia",
+			f"Lectura actual: {temp_medida:.2f}°C\\n\\n"
+			"Ingrese la temperatura REAL del baño térmico (°C):",
+			0.0, -200.0, 1000.0, 2
+		)
+		if not ok:
+			return
+		
+		# Calcular offset
+		offset = temp_ref - temp_medida
+		
+		# Guardar calibración
+		self._calib[sensor] = {'a': 1.0, 'b': offset}
+		_save_calib(self._calib)
+		
+		# Enviar al firmware
+		if self.thread and self.thread.sock:
+			try:
+				cmd = f"CALIB_OFFSET:{sensor}:{offset}\\n"
+				self.thread.sock.sendall(cmd.encode())
+			except Exception:
+				pass
+		
+		self._refresh_cal_status()
+		QMessageBox.information(
+			self,
+			"Calibración Completada",
+			f"{sensor} calibrado correctamente\\n\\n"
+			f"Offset: {offset:+.2f}°C\\n\\n"
+			f"Temp_calibrada = Temp_medida + ({offset:+.2f})"
+		)
+	
+	def _calibrate_standard(self, sensor: str):
+		"""Calibración estándar de 2 puntos (offset y escala)"""
+		# Instrucciones
+		msg = (
+			f"CALIBRACIÓN ESTÁNDAR - {sensor}\\n\\n"
+			"Necesitará 2 baños térmicos estables:\\n"
+			"- Punto bajo (ej: 0°C hielo)\\n"
+			"- Punto alto (ej: 100°C agua hirviendo)\\n\\n"
+			"Esta calibración corrige OFFSET y ESCALA.\\n"
+			"¿Continuar?"
+		)
+		reply = QMessageBox.question(self, "Calibración Estándar", msg, QMessageBox.Yes | QMessageBox.No)
+		if reply != QMessageBox.Yes:
+			return
+		
+		pares: List[Tuple[float, float]] = []
+		
+		for i, punto_sugerido in enumerate([(0.0, "hielo"), (100.0, "agua hirviendo")]):
+			temp_sugerida, nombre = punto_sugerido
+			
+			QMessageBox.information(
+				self,
+				f"Punto {i+1}/2 - {nombre}",
+				f"Coloque {sensor} en baño de {nombre}\\n"
+				f"(~{temp_sugerida}°C)\\n\\n"
+				"Espere 2-3 minutos de estabilización\\n"
+				"y presione OK."
+			)
+			
+			temp_medida = self._last_temp.get(sensor.upper())
+			if temp_medida is None:
+				QMessageBox.warning(self, "Error", f"No se pudo leer temperatura en punto {i+1}.")
+				return
+			
+			temp_ref, ok = QInputDialog.getDouble(
+				self,
+				f"Punto {i+1}/2 - Referencia",
+				f"Lectura actual: {temp_medida:.2f}°C\\n\\n"
+				"Ingrese temperatura REAL del baño (°C):",
+				temp_sugerida, -200.0, 1000.0, 2
+			)
+			if not ok:
+				return
+			
+			pares.append((temp_medida, temp_ref))
+		
+		# Ajuste lineal: Tcal = a*T + b
+		a, b = self._fit_linear(pares)
+		
+		# Guardar
+		self._calib[sensor] = {'a': a, 'b': b}
+		_save_calib(self._calib)
+		
+		# Enviar al firmware (offset y escala)
+		if self.thread and self.thread.sock:
+			try:
+				cmd_offset = f"CALIB_OFFSET:{sensor}:{b}\\n"
+				cmd_scale = f"CALIB_SCALE:{sensor}:{a}\\n"
+				self.thread.sock.sendall(cmd_offset.encode())
+				self.thread.sock.sendall(cmd_scale.encode())
+			except Exception:
+				pass
+		
+		self._refresh_cal_status()
+		QMessageBox.information(
+			self,
+			"Calibración Completada",
+			f"{sensor} calibrado correctamente\\n\\n"
+			f"Ecuación: Tcal = {a:.6f}*T + {b:.6f}\\n\\n"
+			f"Error típico: ±{self._calculate_calibration_error(pares, a, b):.2f}°C"
+		)
+	
+	def _calibrate_advanced(self, sensor: str):
+		"""Calibración avanzada con múltiples puntos"""
+		# Número de puntos
+		min_pts = 3 if sensor == 'TYPEK' else 2
+		n, ok = QInputDialog.getInt(
+			self, 
+			"Calibración Avanzada", 
+			f"¿Cuántos puntos desea? (mín {min_pts}, máx 10)",
+			min_pts, min_pts, 10, 1
+		)
+		if not ok:
+			return
+
+		pares: List[Tuple[float, float]] = []  # (medido, referencia)
+		sugeridos = [0.0, 25.0, 50.0, 75.0, 100.0, 150.0, 200.0, 250.0, 300.0, 400.0]
+		for i in range(n):
+			# Instrucciones
+			QMessageBox.information(
+				self,
+				f"Punto {i+1}/{n}",
+				f"Coloque {sensor} en baño térmico {i+1}\\n"
+				f"Temperatura sugerida: {sugeridos[i] if i < len(sugeridos) else 'cualquiera'}°C\\n\\n"
+				"Espere 2-3 minutos de estabilización\\n"
+				"y presione OK."
+			)
+			
+			# Usar el último medido actual
+			med = self._last_temp.get(sensor)
+			if med is None:
+				QMessageBox.warning(self, "Calibración", "No se detecta lectura actual. Intente nuevamente.")
+				return
+			# Pedir referencia
+			default = sugeridos[i] if i < len(sugeridos) else med
+			ref, ok2 = QInputDialog.getDouble(
+				self, 
+				f"Punto {i+1}/{n}", 
+				f"Lectura medida: {med:.2f}°C\\nIngrese temperatura REAL del baño (°C):", 
+				float(default), -1000.0, 1000.0, 2
+			)
+			if not ok2:
+				QMessageBox.information(self, "Calibración", "Calibración cancelada.")
+				return
+			pares.append((float(med), float(ref)))
+
+		# Ajuste según tipo de sensor
+		if sensor == 'TYPEK':
+			a, b, c = self._fit_quadratic(pares)
+			self._calib['TYPEK'] = {'a': a, 'b': b, 'c': c}
+			eq = f"Tcal = {a:.6f}*T^2 + {b:.6f}*T + {c:.6f}"
+		else:
+			a, b = self._fit_linear(pares)
+			self._calib[sensor] = {'a': a, 'b': b}
+			eq = f"Tcal = {a:.6f}*T + {b:.6f}"
+
+		_save_calib(self._calib)
+		self._refresh_cal_status()
+		QMessageBox.information(
+			self, 
+			"Calibración", 
+			f"Calibración guardada para {sensor}.\\n{eq}"
+		)
+		
+		# Mostrar resultado con gráfica
+		try:
+			if sensor == 'TYPEK':
+				self._show_calibration_result(sensor, pares, ('quad', a, b, c))
+			else:
+				self._show_calibration_result(sensor, pares, ('lin', a, b))
+		except Exception:
+			pass
+	
+	def _fit_linear(self, p: List[Tuple[float,float]]) -> Tuple[float, float]:
+		"""Ajuste lineal: y = a*x + b"""
+		xs = [x for x,_ in p]
+		ys = [y for _,y in p]
+		n = len(xs)
+		mx = sum(xs)/n
+		my = sum(ys)/n
+		num = sum((xs[i]-mx)*(ys[i]-my) for i in range(n))
+		den = sum((xs[i]-mx)**2 for i in range(n))
+		if den == 0:
+			return 1.0, 0.0
+		a = num/den
+		b = my - a*mx
+		return a, b
+	
+	def _calculate_calibration_error(self, pares: List[Tuple[float,float]], a: float, b: float) -> float:
+		"""Calcula el error RMS de la calibración lineal"""
+		errors = []
+		for x_med, y_ref in pares:
+			y_cal = a * x_med + b
+			errors.append((y_cal - y_ref) ** 2)
+		if not errors:
+			return 0.0
+		import math
+		return math.sqrt(sum(errors) / len(errors))
+	
+	def _fit_quadratic(self, p: List[Tuple[float,float]]) -> Tuple[float, float, float]:
+		"""Ajuste cuadrático: y = a*x^2 + b*x + c"""
+		xs = [x for x,_ in p]
+		ys = [y for _,y in p]
+		n = len(xs)
+		if n < 3:
+			a1, b1 = self._fit_linear(p)
+			return 0.0, a1, b1  # a*T^2 + b*T + c => a=0, b=a1, c=b1
+		s1 = sum(xs)
+		s2 = sum(x*x for x in xs)
+		s3 = sum((x**3) for x in xs)
+		s4 = sum((x**4) for x in xs)
+		sy = sum(ys)
+		sxy = sum(xs[i]*ys[i] for i in range(n))
+		sx2y = sum((xs[i]**2)*ys[i] for i in range(n))
+		# Resolver sistema 3x3 para a,b,c
+		# | s4 s3 s2 | |a| = |sx2y|
+		# | s3 s2 s1 | |b|   | sxy |
+		# | s2 s1 n  | |c|   | sy  |
+		def det3(m):
+			return (m[0][0]*((m[1][1]*m[2][2])-(m[1][2]*m[2][1]))
+				   -m[0][1]*((m[1][0]*m[2][2])-(m[1][2]*m[2][0]))
+				   +m[0][2]*((m[1][0]*m[2][1])-(m[1][1]*m[2][0])))
+		M = [[s4,s3,s2],[s3,s2,s1],[s2,s1,n]]
+		D = det3(M)
+		if abs(D) < 1e-12:
+			a1, b1 = self._fit_linear(p)
+			return 0.0, a1, b1
+		Ma = [[sx2y,s3,s2],[sxy,s2,s1],[sy,s1,n]]
+		Mb = [[s4,sx2y,s2],[s3,sxy,s1],[s2,sy,n]]
+		Mc = [[s4,s3,sx2y],[s3,s2,sxy],[s2,s1,sy]]
+		Da = det3(Ma)
+		Db = det3(Mb)
+		Dc = det3(Mc)
+		a = Da/D
+		b = Db/D
+		c = Dc/D
+		return a, b, c
 
 	def _show_calibration_result(self, sensor: str, pares: List[Tuple[float,float]], fit_info: Tuple):
 		from matplotlib.figure import Figure

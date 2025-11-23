@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'gasRegulation.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.1
+## Created by: Qt User Interface Compiler version 6.10.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -437,7 +437,7 @@ class Ui_gasRegulation(object):
         self.exportarBt.setText(QCoreApplication.translate("gasRegulation", u"Exportal a Exel", None))
         self.limpiarBt.setText(QCoreApplication.translate("gasRegulation", u"Limpiar Gr\u00e1fica", None))
         self.iniciarBt.setText(QCoreApplication.translate("gasRegulation", u"Iniciar Monitoreo", None))
-        self.nota.setText(QCoreApplication.translate("gasRegulation", u"<html><head/><body><p align=\"justify\"><span style=\" font-size:9pt;\">\ud83d\udca1 </span><span style=\" font-size:9pt; font-weight:700;\">Nota:</span><span style=\" font-size:9pt;\"> Aseg\u00farate de conectar los <br/>componentes correctamente antes de <br/>iniciar el monitoreo.</span></p><p align=\"justify\"><span style=\" font-size:9pt;\">Selecciona uno de los tipo de <br/>sensor de Gases y luego<br/>siga con la experiencia de <br/>monitoreo convencional.</span></p></body></html>", None))
+        self.nota.setText(QCoreApplication.translate("gasRegulation", u"<html><head/><body><p align=\"justify\"><span style=\" font-size:9pt;\">\U0001f4a1 </span><span style=\" font-size:9pt; font-weight:700;\">Nota:</span><span style=\" font-size:9pt;\"> Aseg\U000000farate de conectar los <br/>componentes correctamente antes de <br/>iniciar el monitoreo.</span></p><p align=\"justify\"><span style=\" font-size:9pt;\">Selecciona uno de los tipo de <br/>sensor de Gases y luego<br/>siga con la experiencia de <br/>monitoreo convencional.</span></p></body></html>", None))
         self.LecturaMQ2Dt.setText(QCoreApplication.translate("gasRegulation", u"--", None))
         self.datosLabel.setText(QCoreApplication.translate("gasRegulation", u"Datos", None))
         self.MQ2Label.setText(QCoreApplication.translate("gasRegulation", u"MQ2", None))
@@ -447,7 +447,7 @@ class Ui_gasRegulation(object):
         self.LecturaMQ3Dt.setText(QCoreApplication.translate("gasRegulation", u"--", None))
         self.ppmMQ3Dt.setText(QCoreApplication.translate("gasRegulation", u"--", None))
         self.TemperaturaLabel.setText(QCoreApplication.translate("gasRegulation", u"Particulas x Mill\u00f3n", None))
-        self.calibradoLabel.setText(QCoreApplication.translate("gasRegulation", u"TempCalibrada", None))
+        self.calibradoLabel.setText(QCoreApplication.translate("gasRegulation", u"PPMCal", None))
         self.ppmMQ2DtCalibrado.setText(QCoreApplication.translate("gasRegulation", u"--", None))
         self.ppmMQ3DtCalibrado.setText(QCoreApplication.translate("gasRegulation", u"--", None))
     # retranslateUi

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'brightness.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.9.1
+## Created by: Qt User Interface Compiler version 6.10.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -16,8 +16,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QFrame, QGridLayout, QGroupBox,
-    QLCDNumber, QLabel, QProgressBar, QPushButton,
-    QSizePolicy, QVBoxLayout, QWidget)
+    QHBoxLayout, QLCDNumber, QLabel, QProgressBar,
+    QPushButton, QSizePolicy, QVBoxLayout, QWidget)
 
 class Ui_brightness(object):
     def setupUi(self, brightness):
@@ -155,8 +155,21 @@ class Ui_brightness(object):
         self.botones = QWidget(self.controles)
         self.botones.setObjectName(u"botones")
         self.botones.setMaximumSize(QSize(16777215, 70))
-        self.gridLayout_3 = QGridLayout(self.botones)
-        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.horizontalLayout = QHBoxLayout(self.botones)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.calibrarBt = QPushButton(self.botones)
+        self.calibrarBt.setObjectName(u"calibrarBt")
+        self.calibrarBt.setStyleSheet(u"        font-size: 14px;                    /* Tama\u00f1o menor para informaci\u00f3n secundaria */\n"
+"        font-weight: bold;                  /* Texto en negrita */\n"
+"        color: #856404;                     /* Color \u00e1mbar para indicar estado */\n"
+"        padding: 8px;                       /* Espacio interno menor */\n"
+"        background-color: #fff3cd;          /* Fondo \u00e1mbar claro */\n"
+"        border-radius: 4px;                 /* Esquinas redondeadas menores */\n"
+"        border: 1px solid #ffeaa7;          /* Borde \u00e1mbar */\n"
+"        margin-top: 5px;                    /* Separaci\u00f3n superior */")
+
+        self.horizontalLayout.addWidget(self.calibrarBt)
+
         self.iniciarBt = QPushButton(self.botones)
         self.iniciarBt.setObjectName(u"iniciarBt")
         self.iniciarBt.setStyleSheet(u"QPushButton {\n"
@@ -184,7 +197,7 @@ class Ui_brightness(object):
 "    color: rgb(0, 80, 0);                      /* Texto a\u00fan m\u00e1s profundo */\n"
 "}")
 
-        self.gridLayout_3.addWidget(self.iniciarBt, 0, 0, 1, 2)
+        self.horizontalLayout.addWidget(self.iniciarBt)
 
 
         self.gridLayout_4.addWidget(self.botones, 1, 0, 1, 1)
@@ -256,8 +269,9 @@ class Ui_brightness(object):
         self.descripcion.setText(QCoreApplication.translate("brightness", u"<html><head/><body><p align=\"center\"><span style=\" font-size:10pt; font-style:italic;\">Monitorea lectura anal\u00f3gica del sensor de fotorresistencia para su caracterizaci\u00f3n.</span></p></body></html>", None))
         self.Info.setTitle(QCoreApplication.translate("brightness", u"Info", None))
         self.controles.setTitle(QCoreApplication.translate("brightness", u"Controles", None))
+        self.calibrarBt.setText(QCoreApplication.translate("brightness", u"No Calibrado", None))
         self.iniciarBt.setText(QCoreApplication.translate("brightness", u"Iniciar Monitoreo", None))
-        self.nota.setText(QCoreApplication.translate("brightness", u"<html><head/><body><p align=\"justify\"><span style=\" font-size:9pt;\">\ud83d\udca1 </span><span style=\" font-size:9pt; font-weight:700;\">Nota:</span><span style=\" font-size:9pt;\"> Aseg\u00farate de conectar los <br/>componentes correctamente antes de <br/>iniciar el monitoreo.</span></p><p align=\"justify\"><span style=\" font-size:9pt;\">Selecciona uno de los tipo de <br/>sensor de Gases y luego<br/>siga con la experiencia de <br/>monitoreo convencional.</span></p></body></html>", None))
+        self.nota.setText(QCoreApplication.translate("brightness", u"<html><head/><body><p align=\"justify\"><span style=\" font-size:9pt;\">\U0001f4a1 </span><span style=\" font-size:9pt; font-weight:700;\">Nota:</span><span style=\" font-size:9pt;\"> Aseg\U000000farate de conectar los <br/>componentes correctamente antes de <br/>iniciar el monitoreo.</span></p><p align=\"justify\"><span style=\" font-size:9pt;\">Selecciona uno de los tipo de <br/>sensor de Gases y luego<br/>siga con la experiencia de <br/>monitoreo convencional.</span></p></body></html>", None))
         self.LecturaLDRDt.setText(QCoreApplication.translate("brightness", u"--", None))
         self.LDRLabel.setText(QCoreApplication.translate("brightness", u"LDR", None))
         self.LecturaLabel.setText(QCoreApplication.translate("brightness", u"Lectura", None))

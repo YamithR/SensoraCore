@@ -51,9 +51,12 @@ class OpticalSpeedThread(QThread):
                             rpm_l = float(kv.get('RPM_L', '0'))
                             rpm_r = float(kv.get('RPM_R', '0'))
                             spd = int(float(kv.get('SPEED', '0')))
+                            pulses_l = kv.get('PULSES_L', '?')
+                            pulses_r = kv.get('PULSES_R', '?')
+                            print(f"[PARSE] L={rpm_l:.1f}rpm ({pulses_l}p), R={rpm_r:.1f}rpm ({pulses_r}p), SPD={spd}%")
                             self.data.emit(rpm_l, rpm_r, spd)
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            print(f"[PARSE ERROR] Line: '{line}' | Error: {e}")
                 except socket.timeout:
                     continue
                 except Exception as e:
@@ -163,12 +166,17 @@ class OpticalSpeedLogic(QWidget):
         self.stop()
 
     def _on_data(self, rpm_l: float, rpm_r: float, speed: int):
+        # Formatear RPM: redondear a 1 decimal, pero si es < 0.5 mostrar como 0.0
+        rpm_l_display = 0.0 if rpm_l < 0.5 else rpm_l
+        rpm_r_display = 0.0 if rpm_r < 0.5 else rpm_r
+        
         if hasattr(self.ui, 'RPMizquierdaDt'):
-            self.ui.RPMizquierdaDt.setText(f"{rpm_l:.0f}")
+            self.ui.RPMizquierdaDt.setText(f"{rpm_l_display:.1f}")
         if hasattr(self.ui, 'RPMderechaDt'):
-            self.ui.RPMderechaDt.setText(f"{rpm_r:.0f}")
+            self.ui.RPMderechaDt.setText(f"{rpm_r_display:.1f}")
         self._speed = max(-100, min(100, int(speed)))
         self._update_speed_label()
+        print(f"[DEBUG] RPM_L={rpm_l:.1f}, RPM_R={rpm_r:.1f}, SPEED={speed}")
 
     def _on_status(self, msg: str):
         print(f"[OPT] {msg}")

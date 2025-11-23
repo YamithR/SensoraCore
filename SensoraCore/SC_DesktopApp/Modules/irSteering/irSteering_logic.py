@@ -50,15 +50,20 @@ class IrSteeringThread(QThread):
                                 if ':' in p:
                                     k, v = p.split(':', 1)
                                     kv[k.strip().upper()] = v.strip()
-                            bits = kv.get('SENS', kv.get('IR', '00000'))
-                            err = float(kv.get('ERR', '0'))
-                            out_l = int(float(kv.get('OUT_L', '0')))
-                            out_r = int(float(kv.get('OUT_R', '0')))
-                            base = int(float(kv.get('SPEED', '0')))
+                            
+                            # El firmware envía: SENSORS, ERROR, LEFT, RIGHT, RPM_L, RPM_R
+                            bits = kv.get('SENSORS', kv.get('SENS', kv.get('IR', '00000')))
+                            err = float(kv.get('ERROR', kv.get('ERR', '0')))
+                            out_l = int(float(kv.get('LEFT', kv.get('OUT_L', '0'))))
+                            out_r = int(float(kv.get('RIGHT', kv.get('OUT_R', '0'))))
+                            base = int(float(kv.get('SPEED', kv.get('BASE', '0'))))
                             rpm_l = float(kv.get('RPM_L', '0'))
                             rpm_r = float(kv.get('RPM_R', '0'))
+                            
+                            print(f"[IR DEBUG] bits={bits}, err={err:.2f}, L={out_l}, R={out_r}, rpm_l={rpm_l:.1f}, rpm_r={rpm_r:.1f}")
                             self.data.emit(bits, err, out_l, out_r, base, rpm_l, rpm_r)
-                        except Exception:
+                        except Exception as e:
+                            print(f"[IR PARSE ERROR] Line: '{line}' | Error: {e}")
                             pass
                 except socket.timeout:
                     continue
@@ -101,17 +106,24 @@ class IrSteeringThread(QThread):
     def set_base(self, percent: int):
         try:
             if self.sock and self._running:
-                cmd = f"SET_BASE:{percent}\n".encode()
+                # El firmware espera: SET_BASE_SPEED:valor
+                cmd = f"SET_BASE_SPEED:{percent}\n".encode()
                 self.sock.sendall(cmd)
-        except Exception:
+                print(f"[IR CMD] Enviado: SET_BASE_SPEED:{percent}")
+        except Exception as e:
+            print(f"[IR CMD ERROR] set_base: {e}")
             pass
 
     def set_pid(self, kp: float, ki: float, kd: float):
         try:
             if self.sock and self._running:
-                cmd = f"SET_PID:Kp={kp:.3f},Ki={ki:.3f},Kd={kd:.3f}\n".encode()
-                self.sock.sendall(cmd)
-        except Exception:
+                # El firmware espera comandos separados: SET_KP:, SET_KI:, SET_KD:
+                self.sock.sendall(f"SET_KP:{kp:.3f}\n".encode())
+                self.sock.sendall(f"SET_KI:{ki:.3f}\n".encode())
+                self.sock.sendall(f"SET_KD:{kd:.3f}\n".encode())
+                print(f"[IR CMD] Enviado PID: Kp={kp:.3f}, Ki={ki:.3f}, Kd={kd:.3f}")
+        except Exception as e:
+            print(f"[IR CMD ERROR] set_pid: {e}")
             pass
 
 
@@ -294,7 +306,7 @@ class IrSteeringLogic(QWidget):
         print(f"[IR] {msg}")
 
     def _on_data(self, bits: str, err: float, out_l: int, out_r: int, base: int, rpm_l: float, rpm_r: float):
-        # Actualizar etiquetas de sensores (1 activo = verde, 0 = gris)
+        # Actualizar etiquetas de sensores (1 activo = verde con checkmark, 0 = gris con círculo)
         lbls = [getattr(self.ui, f"SensorIR{i}", None) for i in range(1, 6)]
         bits = (bits or "00000").strip()
         if len(bits) != 5:
@@ -304,9 +316,28 @@ class IrSteeringLogic(QWidget):
             if not lbl:
                 continue
             if ch == '1':
-                lbl.setStyleSheet("background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; font-weight: bold; padding: 8px;")
+                # Sensor detecta línea: fondo verde con icono ✓
+                lbl.setStyleSheet(
+                    "background-color: #d4edda; "
+                    "color: #155724; "
+                    "border: 2px solid #28a745; "
+                    "border-radius: 4px; "
+                    "font-weight: bold; "
+                    "padding: 8px; "
+                    "margin-top: 5px;"
+                )
+                lbl.setText('<html><head/><body><p align="center"><span style="font-size:24pt; font-weight:bold;">🔺</span></p></body></html>')
             else:
-                lbl.setStyleSheet("background-color: #ffffff; color: #333333; border: 1px solid #e0e0e0; padding: 8px;")
+                # Sensor no detecta: fondo blanco/gris con círculo vacío
+                lbl.setStyleSheet(
+                    "background-color: #f8f9fa; "
+                    "color: #6c757d; "
+                    "border: 1px solid #dee2e6; "
+                    "border-radius: 4px; "
+                    "padding: 8px; "
+                    "margin-top: 5px;"
+                )
+                lbl.setText('<html><head/><body><p align="center"><span style="font-size:24pt; font-weight:400;">○</span></p></body></html>')
 
         # Mostrar salidas como porcentaje en campos de RPM reutilizados
         if hasattr(self.ui, 'RPMizquierdaDt'):

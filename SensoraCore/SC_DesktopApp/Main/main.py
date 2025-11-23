@@ -2336,8 +2336,14 @@ class ESP32Client:
                 s.settimeout(3)
                 s.connect((self.esp32_ip, self.port))
                 s.sendall(command.encode())
-                data = s.recv(1024)
-                return data.decode()
+                # Recibir hasta encontrar newline o timeout
+                data = b''
+                while b'\n' not in data:
+                    chunk = s.recv(1024)
+                    if not chunk:
+                        break
+                    data += chunk
+                return data.decode().strip()
         except Exception as e:
             return f"ERROR: {e}"
 

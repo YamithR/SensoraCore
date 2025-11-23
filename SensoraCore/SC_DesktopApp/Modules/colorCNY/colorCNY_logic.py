@@ -79,15 +79,16 @@ class _CnyThread(QObject):
                         line = line.strip()
                         if not line:
                             continue
-                        # SENSOR:CNY70,ADC:<n>,VOLT:<v>
+                        # CNY_RAW:<n>,VOLTAGE:<v>,REFLECTIVITY:<pct>,SURFACE:<type>
                         try:
                             kv: Dict[str, str] = {}
                             for part in line.replace(";", ",").split(","):
                                 if ":" in part:
                                     k, v = part.split(":", 1)
                                     kv[k.strip().upper()] = v.strip()
-                            adc = int(float(kv.get("ADC", "0")))
-                            volt = float(kv.get("VOLT", str((adc/4095.0)*3.3)))
+                            # Soportar ambos formatos
+                            adc = int(float(kv.get("CNY_RAW", kv.get("ADC", "0"))))
+                            volt = float(kv.get("VOLTAGE", kv.get("VOLT", str((adc/4095.0)*3.3))))
                             self.sig_sample.emit(adc, volt, time.time())
                         except Exception:
                             pass

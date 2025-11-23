@@ -39,7 +39,7 @@ def _save_calib(d: Dict[str, dict]) -> None:
 
 # ===== Hilo TCP =====
 class GasThread(QThread):
-    data = Signal(str, int, float)  # name, adc, volt
+    data = Signal(str, int, float, object, object)  # name, adc, volt, Rs, ppm_fw
     status = Signal(str)
 
     def __init__(self, esp32_ip: str, port: int, sensor: str, period_ms: int = 500):
@@ -64,11 +64,9 @@ class GasThread(QThread):
             if "GAS_REGULATION_OK" not in resp:
                 self.status.emit("ESP32 no acepto modo GAS_REGULATION")
                 return
-            # set sensor
-            self._send(f"GR_SET:{self.sensor}\n")
-            # start
-            self._send(f"GR_START:{self.period_ms}\n")
-            self.status.emit("Monitoreo de gas iniciado")
+            # Enviar comando de sensor al firmware
+            self._send(f"SENSOR:{self.sensor}\n")
+            self.status.emit(f"Monitoreo de gas iniciado: sensor {self.sensor}")
             self.sock.settimeout(2)
             buf = ""
             while self._running:
@@ -82,7 +80,7 @@ class GasThread(QThread):
                         line = line.strip()
                         if not line:
                             continue
-                        # Esperado: SENSOR:MQ2,ADC:2048,VOLT:1.65
+                        # Esperado: SENSOR:MQ2,RAW:2048,VOLTAGE:1.65,RS:5000.0,PPM:450.5
                         try:
                             parts = [p.strip() for p in line.replace(";", ",").split(",")]
                             kv = {}
@@ -91,15 +89,23 @@ class GasThread(QThread):
                                     k, v = p.split(":", 1)
                                     kv[k.strip().upper()] = v.strip()
                             name = kv.get("SENSOR", self.sensor)
-                            adc_s = kv.get("ADC")
-                            volt_s = kv.get("VOLT")
+                            # Firmware envía RAW, pero aceptar también ADC por compatibilidad
+                            adc_s = kv.get("RAW") or kv.get("ADC")
+                            volt_s = kv.get("VOLT") or kv.get("VOLTAGE")
+                            rs_s = kv.get("RS")
+                            ppm_s = kv.get("PPM")
+                            
                             adc = int(float(adc_s)) if adc_s is not None else 0
                             if volt_s is not None:
                                 volt = float(volt_s)
                             else:
                                 # fallback si firmware no manda VOLT
                                 volt = (adc / 4095.0) * 3.3
-                            self.data.emit(name, adc, volt)
+                            
+                            rs = float(rs_s) if rs_s is not None else None
+                            ppm_fw = float(ppm_s) if ppm_s is not None else None
+                            
+                            self.data.emit(name, adc, volt, rs, ppm_fw)
                         except Exception:
                             pass
                 except socket.timeout:
@@ -142,7 +148,7 @@ class GasThread(QThread):
 
     def switch_sensor(self, name: str):
         self.sensor = name
-        self._send(f"GR_SET:{self.sensor}\n")
+        self._send(f"SENSOR:{self.sensor}\n")
 
     def _send(self, txt: str):
         try:
@@ -299,7 +305,7 @@ class GasRegulationLogic(QWidget):
             pass
 
     # ---- Datos entrantes ----
-    def _on_data(self, name: str, adc: int, volt: float):
+    def _on_data(self, name: str, adc: int, volt: float, rs: Optional[float], ppm_fw: Optional[float]):
         t = time.time() - getattr(self, '_t0', time.time())
         self._times.append(t)
 
@@ -307,24 +313,34 @@ class GasRegulationLogic(QWidget):
         if name.upper() == 'MQ2':
             if hasattr(self.ui, 'LecturaMQ2Dt'):
                 self.ui.LecturaMQ2Dt.setText(str(adc))
+            if hasattr(self.ui, 'voltMQ2Dt'):
+                self.ui.voltMQ2Dt.setText(f"{volt:.3f}V")
+            if hasattr(self.ui, 'rsMQ2Dt'):
+                self.ui.rsMQ2Dt.setText(f"{rs:.1f}Ω" if rs else "-")
         elif name.upper() == 'MQ3':
             if hasattr(self.ui, 'LecturaMQ3Dt'):
                 self.ui.LecturaMQ3Dt.setText(str(adc))
+            if hasattr(self.ui, 'voltMQ3Dt'):
+                self.ui.voltMQ3Dt.setText(f"{volt:.3f}V")
+            if hasattr(self.ui, 'rsMQ3Dt'):
+                self.ui.rsMQ3Dt.setText(f"{rs:.1f}Ω" if rs else "-")
 
-        # Calcular PPM si hay calibración
-        ppm = self._compute_ppm(name.upper(), adc, volt)
+        # Calcular PPM local si hay calibración, sino usar del firmware
+        ppm = self._compute_ppm(name.upper(), adc, volt, rs)
+        ppm_display = ppm if ppm == ppm else (ppm_fw if ppm_fw else float('nan'))
+        
         if name.upper() == 'MQ2':
             if hasattr(self.ui, 'ppmMQ2Dt'):
-                self.ui.ppmMQ2Dt.setText(f"{ppm:.2f}" if ppm == ppm else "-")
+                self.ui.ppmMQ2Dt.setText(f"{ppm_fw:.2f}" if ppm_fw else "-")
             if hasattr(self.ui, 'ppmMQ2DtCalibrado'):
                 self.ui.ppmMQ2DtCalibrado.setText(f"{ppm:.2f}" if ppm == ppm else "-")
-            self._ppm_mq2.append(ppm if ppm == ppm else 0.0)
+            self._ppm_mq2.append(ppm_display if ppm_display == ppm_display else 0.0)
         elif name.upper() == 'MQ3':
             if hasattr(self.ui, 'ppmMQ3Dt'):
-                self.ui.ppmMQ3Dt.setText(f"{ppm:.2f}" if ppm == ppm else "-")
+                self.ui.ppmMQ3Dt.setText(f"{ppm_fw:.2f}" if ppm_fw else "-")
             if hasattr(self.ui, 'ppmMQ3DtCalibrado'):
                 self.ui.ppmMQ3DtCalibrado.setText(f"{ppm:.2f}" if ppm == ppm else "-")
-            self._ppm_mq3.append(ppm if ppm == ppm else 0.0)
+            self._ppm_mq3.append(ppm_display if ppm_display == ppm_display else 0.0)
 
         # Registrar para exportación
         self._data_rows.append({
@@ -332,7 +348,8 @@ class GasRegulationLogic(QWidget):
             'sensor': name,
             'adc': adc,
             'volt': volt,
-            'ppm': ppm if ppm == ppm else None,
+            'rs': rs,
+            'ppm': ppm_display if ppm_display == ppm_display else None,
         })
 
         # Actualizar plot
@@ -350,12 +367,18 @@ class GasRegulationLogic(QWidget):
             b=(float(c['b']) if 'b' in c else None),
         )
 
-    def _compute_ppm(self, sensor: str, adc: int, volt: float) -> float:
+    def _compute_ppm(self, sensor: str, adc: int, volt: float, rs: Optional[float] = None) -> float:
         try:
             cal = self._apply_cal(sensor)
             RL = cal.RL if cal.RL else 10000.0
-            Vcc = 3.3
-            Rs = RL * (Vcc - volt) / max(1e-6, volt)
+            
+            # Usar Rs del firmware si está disponible, sino calcular
+            if rs is None:
+                Vcc = 5.0  # Actualizado a 5V según configuración real
+                Rs = RL * (Vcc - volt) / max(1e-6, volt)
+            else:
+                Rs = rs
+            
             if not cal.Ro or not cal.m is not None or not cal.b is not None or Rs <= 0:
                 return float('nan')
             ratio = Rs / cal.Ro
@@ -376,48 +399,235 @@ class GasRegulationLogic(QWidget):
         except Exception:
             pass
 
-    # ---- Calibración en app ----
+    # ---- Calibración asistida mejorada ----
     def _calibrate_flow(self):
+        """
+        Proceso de calibración asistida paso a paso:
+        1. Seleccionar sensor a calibrar
+        2. Opción A: Calibración rápida R0 (solo aire limpio)
+        3. Opción B: Calibración avanzada (múltiples puntos para curva)
+        """
         try:
-            from PySide6.QtWidgets import QInputDialog
-            # Paso 1: Ro (Ω) en aire limpio
-            # Tomar pista de últimos valores si existen
-            last_ro = 10000.0
-            ro_val, ok = QInputDialog.getDouble(self, "Calibración (Ro)", "Ro (Ω) en aire limpio:", float(last_ro), 1.0, 1e9, 0)
+            from PySide6.QtWidgets import QInputDialog, QMessageBox
+            
+            # Paso 1: Seleccionar sensor
+            sensor, ok = QInputDialog.getItem(
+                self, 
+                "Calibración - Paso 1/4",
+                "Seleccione el sensor a calibrar:",
+                ["MQ2 (Humo/LPG/Metano)", "MQ3 (Alcohol)"],
+                0, False
+            )
             if not ok:
                 return
-            # Paso 2: puntos para m, b en log-log
-            n, ok = QInputDialog.getInt(self, "Puntos de calibración", "Cantidad de puntos (>=2):", 2, 2, 10, 1)
+            
+            sensor_name = "MQ2" if "MQ2" in sensor else "MQ3"
+            
+            # Paso 2: Tipo de calibración
+            calib_type, ok = QInputDialog.getItem(
+                self,
+                "Calibración - Paso 2/4",
+                f"Tipo de calibración para {sensor_name}:",
+                [
+                    "Rápida (solo R0 en aire limpio)",
+                    "Avanzada (curva completa con múltiples puntos)"
+                ],
+                0, False
+            )
             if not ok:
-                # guarda solo Ro
-                cur = self._calib.get(self.current_sensor, {})
-                cur.update({'Ro': ro_val})
-                self._calib[self.current_sensor] = cur
+                return
+            
+            is_quick = "Rápida" in calib_type
+            
+            # Paso 3: Instrucciones
+            if is_quick:
+                msg_text = (
+                    f"CALIBRACIÓN RÁPIDA - {sensor_name}\n\n"
+                    "Pasos:\n"
+                    "1. Coloque el sensor en AIRE LIMPIO\n"
+                    "2. Espere 2-3 minutos de estabilización\n"
+                    "3. El sistema leerá el valor Rs actual\n"
+                    "4. Este Rs será guardado como R0\n\n"
+                    "IMPORTANTE: El aire debe estar libre de\n"
+                    "contaminantes (humo, alcohol, gases).\n\n"
+                    "¿Continuar?"
+                )
+            else:
+                msg_text = (
+                    f"CALIBRACIÓN AVANZADA - {sensor_name}\n\n"
+                    "Necesitará:\n"
+                    "- Aire limpio para R0\n"
+                    "- 2-3 concentraciones conocidas de gas\n"
+                    "- Sensor de referencia o estándar certificado\n\n"
+                    "Esto generará una curva característica\n"
+                    "personalizada para su sensor específico.\n\n"
+                    "¿Continuar?"
+                )
+            
+            reply = QMessageBox.question(
+                self,
+                "Calibración - Paso 3/4",
+                msg_text,
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply != QMessageBox.Yes:
+                return
+            
+            # Paso 4a: Calibración rápida R0
+            if is_quick:
+                QMessageBox.information(
+                    self,
+                    "Calibración - Paso 4/4",
+                    f"Asegúrese de que {sensor_name} está en aire limpio\n"
+                    "y presione OK cuando esté listo."
+                )
+                
+                # Solicitar Rs actual al firmware
+                if self.thread and self.thread.isRunning():
+                    # Leer valor actual de Rs desde la UI o solicitar al firmware
+                    current_rs, ok = QInputDialog.getDouble(
+                        self,
+                        "Valor actual",
+                        f"Rs actual de {sensor_name} en aire limpio (Ω):\n"
+                        "(Ver valor Rs en la pantalla del monitor)",
+                        10000.0 if sensor_name == "MQ2" else 60000.0,
+                        1.0, 1e9, 2
+                    )
+                    if not ok:
+                        return
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Error",
+                        "Debe estar monitoreando el sensor para calibrar.\n"
+                        "Inicie el monitoreo primero."
+                    )
+                    return
+                
+                # Guardar R0
+                cur = self._calib.get(sensor_name, {})
+                cur.update({
+                    'RL': 10000.0,
+                    'Ro': current_rs
+                })
+                self._calib[sensor_name] = cur
                 _save_calib(self._calib)
+                
+                # Enviar al firmware
+                if self.thread and self.thread.sock:
+                    try:
+                        cmd = f"CALIB_R0:{sensor_name}:{current_rs}\n"
+                        self.thread.sock.sendall(cmd.encode())
+                    except Exception:
+                        pass
+                
                 self._refresh_cal_status()
-                return
-
-            xs: List[float] = []
-            ys: List[float] = []
-            for i in range(n):
-                # Pedir Rs actual y ppm de referencia
-                rs, ok1 = QInputDialog.getDouble(self, f"Punto {i+1}/{n}", "Rs actual (Ω):", 10000.0, 1.0, 1e12, 0)
-                if not ok1:
+                QMessageBox.information(
+                    self,
+                    "Calibración completada",
+                    f"{sensor_name} calibrado correctamente\n\n"
+                    f"R0 = {current_rs:.2f} Ω\n\n"
+                    "El sensor ahora usará este valor como referencia."
+                )
+            
+            # Paso 4b: Calibración avanzada con curva
+            else:
+                # Primero obtener R0
+                QMessageBox.information(
+                    self,
+                    "Punto 1: Aire limpio",
+                    "Primero mediremos R0 en aire limpio.\n"
+                    "Asegúrese de que el sensor esté en\n"
+                    "ambiente sin contaminantes."
+                )
+                
+                r0_val, ok = QInputDialog.getDouble(
+                    self,
+                    "R0 - Aire limpio",
+                    f"Rs de {sensor_name} en aire limpio (Ω):",
+                    10000.0 if sensor_name == "MQ2" else 60000.0,
+                    1.0, 1e9, 2
+                )
+                if not ok:
                     return
-                ppm_ref, ok2 = QInputDialog.getDouble(self, f"Punto {i+1}/{n}", "PPM de referencia:", 100.0, 0.0, 1e9, 2)
-                if not ok2:
+                
+                # Solicitar puntos de calibración
+                n, ok = QInputDialog.getInt(
+                    self,
+                    "Puntos de calibración",
+                    "Número de puntos con concentración conocida\n"
+                    "(mínimo 2, recomendado 3-5):",
+                    3, 2, 10, 1
+                )
+                if not ok:
                     return
-                xs.append(math.log10(max(1e-12, rs / ro_val)))
-                ys.append(math.log10(max(1e-12, ppm_ref)))
-
-            # Ajuste lineal
-            m, b = self._linreg(xs, ys)
-            self._calib[self.current_sensor] = {'RL': 10000.0, 'Ro': ro_val, 'm': m, 'b': b}
-            _save_calib(self._calib)
-            self._refresh_cal_status()
-            QMessageBox.information(self, "Calibración", f"Guardado: log10(PPM) = {m:.4f}*log10(Rs/Ro) + {b:.4f}")
+                
+                xs: List[float] = []
+                ys: List[float] = []
+                
+                for i in range(n):
+                    msg = (
+                        f"PUNTO {i+1} de {n}\n\n"
+                        "1. Exponga el sensor a concentración conocida\n"
+                        "2. Espere estabilización (2-3 min)\n"
+                        "3. Anote Rs actual y PPM de referencia"
+                    )
+                    QMessageBox.information(self, f"Punto {i+1}/{n}", msg)
+                    
+                    rs_i, ok1 = QInputDialog.getDouble(
+                        self,
+                        f"Punto {i+1}/{n} - Rs",
+                        "Rs actual del sensor (Ω):",
+                        10000.0, 1.0, 1e12, 2
+                    )
+                    if not ok1:
+                        return
+                    
+                    ppm_ref, ok2 = QInputDialog.getDouble(
+                        self,
+                        f"Punto {i+1}/{n} - PPM",
+                        "Concentración de referencia (PPM):",
+                        100.0, 0.1, 1e9, 2
+                    )
+                    if not ok2:
+                        return
+                    
+                    xs.append(math.log10(max(1e-12, rs_i / r0_val)))
+                    ys.append(math.log10(max(1e-12, ppm_ref)))
+                
+                # Regresión lineal
+                m, b = self._linreg(xs, ys)
+                
+                # Guardar calibración completa
+                self._calib[sensor_name] = {
+                    'RL': 10000.0,
+                    'Ro': r0_val,
+                    'm': m,
+                    'b': b
+                }
+                _save_calib(self._calib)
+                
+                # Enviar R0 al firmware
+                if self.thread and self.thread.sock:
+                    try:
+                        cmd = f"CALIB_R0:{sensor_name}:{r0_val}\n"
+                        self.thread.sock.sendall(cmd.encode())
+                    except Exception:
+                        pass
+                
+                self._refresh_cal_status()
+                
+                QMessageBox.information(
+                    self,
+                    "Calibración completada",
+                    f"{sensor_name} calibrado con curva personalizada\n\n"
+                    f"R0 = {r0_val:.2f} Ω\n"
+                    f"Ecuación: log10(PPM) = {m:.4f}*log10(Rs/R0) + {b:.4f}\n\n"
+                    f"Puntos usados: {n}"
+                )
+        
         except Exception as e:
-            QMessageBox.critical(self, "Calibración", f"Error al calibrar: {e}")
+            QMessageBox.critical(self, "Error de calibración", f"Error: {e}")
 
     def _linreg(self, xs: List[float], ys: List[float]):
         n = len(xs)
