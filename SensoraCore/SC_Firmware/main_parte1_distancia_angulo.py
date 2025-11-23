@@ -68,8 +68,13 @@ def oled_status(mode="Esperando..."):
         oled.text("SensoraCore P1", 0, 0)
         oled.text("Dist & Angulo", 0, 13)
         oled.text("-" * 16, 0, 26)
-        oled.text(f"Modo:", 0, 39)
-        oled.text(mode[:16], 0, 52)
+        if mode == "Esperando...":
+            ip = sta.ifconfig()[0]
+            oled.text(f"IP: {ip}", 0, 39)
+            oled.text("Esperando...", 0, 52)
+        else:
+            oled.text(f"Modo:", 0, 39)
+            oled.text(mode[:16], 0, 52)
         oled.show()
     except Exception:
         pass
