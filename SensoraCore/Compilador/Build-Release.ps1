@@ -71,17 +71,17 @@ if (-not $pythonExe) {
     $venvPython = Join-Path $venvPath 'Scripts\python.exe'
     if (-not (Test-Path $venvPython)) {
         Write-Info 'Creando entorno virtual local para compilación...'
-        & py -3 -m venv $venvPath
+        & python -m venv $venvPath
         $createdLocalVenv = $true
     }
     if (Test-Path $venvPython) { $pythonExe = $venvPython }
 }
-if (-not $pythonExe) { Write-Err 'No se encontró Python. Asegúrate de tener py -3 o un .venv válido.'; exit 1 }
+if (-not $pythonExe) { Write-Err 'No se encontró Python. Asegúrate de tener python o un .venv válido.'; exit 1 }
 
 # Instalar dependencias para build
 $reqFile = Join-Path $repoRoot 'Docs\requirements.txt'
 & $pythonExe -m pip install --upgrade pip wheel setuptools | Out-Null
-# Siempre asegurar PyInstaller en el intérprete seleccionado
+# Siempre asegurar PyInstaller y sus hooks en el intérprete seleccionado
 & $pythonExe -m pip install --upgrade pyinstaller pyinstaller-hooks-contrib | Out-Null
 # Solo instalar requirements si usamos un venv local recién creado (para no pisar el venv del proyecto)
 if ($createdLocalVenv -and (Test-Path $reqFile)) {
