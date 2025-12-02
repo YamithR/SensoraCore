@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SensoraCore - Sistema de Monitoreo de Sensores WiFi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #d8d8d8;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1236px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            display: flex;
+            min-height: 758px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Panel Lateral */
+        .lateral-panel {
+            width: 350px;
+            min-width: 350px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .title-section {
+            text-align: center;
+        }
+
+        .title-section h1 {
+            font-size: 24pt;
+            font-weight: 700;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .title-section p {
+            font-size: 12pt;
+            color: #969696;
+        }
+
+        /* Configuración */
+        .config-section {
+            border: 2px solid #b1b1b1;
+            border-radius: 5px;
+            padding: 10px;
+            position: relative;
+            margin-top: 15px;
+        }
+
+        .config-section::before {
+            content: 'Configuración de Conexión';
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background-color: #ffffff;
+            padding: 0 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #666666;
+        }
+
+        .ip-section {
+            border: 2px solid #b1b1b1;
+            border-radius: 5px;
+            padding: 10px;
+            position: relative;
+            margin: 20px 0 15px;
+        }
+
+        .ip-section::before {
+            content: 'IP del ESP32:';
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background-color: #ffffff;
+            padding: 2px 5px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #666666;
+        }
+
+        .ip-input-container {
+            display: flex;
+            gap: 5px;
+        }
+
+        .ip-input {
+            flex: 1;
+            height: 40px;
+            padding: 0 10px;
+            border: 1px solid #b1b1b1;
+            border-radius: 4px;
+            font-size: 18px;
+            color: #b1b1b1;
+        }
+
+        .terminal-btn {
+            width: 40px;
+            height: 40px;
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .terminal-btn:hover {
+            background-color: #007bff;
+        }
+
+        .connect-btn {
+            width: 100%;
+            height: 50px;
+            background-color: rgba(0, 255, 0, 0.2);
+            border: 2px solid #b1b1b1;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #000000;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .connect-btn:hover {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+
+        .connect-btn:active {
+            background-color: #00ff7f;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .status {
+            flex: 1;
+            padding: 12px;
+            background-color: #ffd2d3;
+            color: #860f11;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14pt;
+            font-weight: bold;
+        }
+
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .reset-btn {
+            width: 55px;
+            height: 55px;
+            background-color: transparent;
+            border: none;
+            font-size: 40px;
+            cursor: pointer;
+        }
+
+        /* Lista de Sensores */
+        .sensor-list {
+            border: 2px solid #b1b1b1;
+            border-radius: 5px;
+            padding: 10px;
+            position: relative;
+            margin-top: 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .sensor-list::before {
+            content: 'Sensores Disponibles';
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background-color: #ffffff;
+            padding: 0 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #666666;
+        }
+
+        .sensor-scroll {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .sensor-item {
+            padding: 10px;
+            border-top: 1px solid #dedede;
+            border-bottom: 1px solid #dedede;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .sensor-item:hover {
+            background-color: rgba(0, 123, 255, 0.2);
+        }
+
+        .sensor-item h3 {
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #000000;
+        }
+
+        .sensor-item p {
+            font-size: 12px;
+            color: #666666;
+        }
+
+        /* Separador */
+        .separator {
+            width: 2px;
+            background-color: #b1b1b1;
+        }
+
+        /* Panel Principal */
+        .main-panel {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Pantalla de Bienvenida */
+        .welcome-screen {
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .welcome-icon {
+            font-size: 72pt;
+            margin-bottom: 20px;
+        }
+
+        .welcome-text {
+            font-size: 11pt;
+            color: #b1b1b1;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .welcome-info {
+            background-color: rgba(0, 123, 255, 0.2);
+            border: 1px solid rgba(0, 170, 255, 0.5);
+            border-radius: 5px;
+            padding: 15px;
+            font-size: 11pt;
+            color: #666666;
+            line-height: 1.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .lateral-panel {
+                width: 100%;
+            }
+
+            .separator {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Panel Lateral -->
+        <div class="lateral-panel">
+            <!-- Título -->
+            <div class="title-section">
+                <h1>SensoraCore</h1>
+                <p>Sistema de Monitoreo de Sensores WiFi</p>
+            </div>
+
+            <!-- Configuración -->
+            <div class="config-section">
+                <!-- IP del ESP32 -->
+                <div class="ip-section">
+                    <div class="ip-input-container">
+                        <input type="text" class="ip-input" placeholder="Ejemplo: 192.168.1.100">
+                        <button class="terminal-btn">_</button>
+                    </div>
+                </div>
+
+                <!-- Botón Conectar -->
+                <button class="connect-btn">🔌 Conectar a ESP32</button>
+
+                <!-- Status y Reset -->
+                <div class="status-container">
+                    <div class="status">
+                        🔴 Desconectado
+                    </div>
+                    <button class="reset-btn">🔻</button>
+                </div>
+            </div>
+
+            <!-- Lista de Sensores -->
+            <div class="sensor-list">
+                <div class="sensor-scroll">
+                    <div class="sensor-item">
+                        <h3>SIMPLE ANGLE</h3>
+                        <p>Potenciometro como sensor de angulo</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>ANGLE ARM</h3>
+                        <p>Potenciometros como simulacion de Brazo</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>INFRARED</h3>
+                        <p>Sensor de proximidad con Infrarojos</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>CAPASITIVE</h3>
+                        <p>Sensor de proximidad con sensor Capasitivo</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>ULTRASONIC</h3>
+                        <p>Sensor de distancia con Ultrasonidos</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>OPTICAL SPEED</h3>
+                        <p>Control y monitoreo de Velocidad</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>IR STEERING</h3>
+                        <p>Direccion según infrarojos</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>THERMOREGULATION</h3>
+                        <p>Control y monitoreo de temperatura</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>GAS REGULATION</h3>
+                        <p>Control de flujo de aire y densidad de gases</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>BRIGHTNESS</h3>
+                        <p>Sensor de brillo</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>COLOR CNY</h3>
+                        <p>Color según infrarojos</p>
+                    </div>
+                    <div class="sensor-item">
+                        <h3>COLOR TCS</h3>
+                        <p>Color según TCS3200</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Separador -->
+        <div class="separator"></div>
+
+        <!-- Panel Principal -->
+        <div class="main-panel">
+            <!-- Pantalla de Bienvenida -->
+            <div class="welcome-screen">
+                <div class="welcome-icon">🔧</div>
+                <div class="welcome-text">
+                    <p>Conecta tu ESP32 y selecciona un sensor</p>
+                    <p>para comenzar a monitorear datos</p>
+                </div>
+                <div class="welcome-info">
+                    🗒️ Una vez conectado encontrarás el diagrama de conecxiones ESP32 en cada sensor y los controles de monitoreo
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Funcionalidad básica de interacción
+        document.querySelector('.connect-btn').addEventListener('click', function() {
+            const statusDiv = document.querySelector('.status');
+            const ipInput = document.querySelector('.ip-input');
+            
+            if (ipInput.value.trim() === '') {
+                alert('Por favor ingrese la IP del ESP32.');
+                return;
+            }
+
+            // Simulación de conexión
+            statusDiv.textContent = '🔄 Conectando...';
+            statusDiv.style.backgroundColor = '#cce5ff';
+            statusDiv.style.color = '#004085';
+
+            setTimeout(() => {
+                statusDiv.textContent = '✅ Conectado al ESP32';
+                statusDiv.classList.add('connected');
+            }, 2000);
+        });
+
+        // Reset
+        document.querySelector('.reset-btn').addEventListener('click', function() {
+            const statusDiv = document.querySelector('.status');
+            const ipInput = document.querySelector('.ip-input');
+            
+            statusDiv.textContent = '🔴 Desconectado';
+            statusDiv.classList.remove('connected');
+            statusDiv.style.backgroundColor = '#ffd2d3';
+            statusDiv.style.color = '#860f11';
+            ipInput.value = '';
+        });
+
+        // Click en sensores
+        document.querySelectorAll('.sensor-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const sensorName = this.querySelector('h3').textContent;
+                const mainPanel = document.querySelector('.main-panel');
+                
+                mainPanel.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <h2 style="color: #007bff; margin-bottom: 20px;">${sensorName}</h2>
+                        <p style="color: #666666; font-size: 16px;">
+                            ${this.querySelector('p').textContent}
+                        </p>
+                        <div style="margin-top: 40px; padding: 30px; border: 2px dashed #b1b1b1; border-radius: 10px;">
+                            <p style="color: #999999;">Panel de control del sensor</p>
+                            <p style="color: #999999; margin-top: 10px; font-size: 14px;">
+                                Aquí se mostrarían los controles y visualización de datos del sensor
+                            </p>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+
+        // Terminal
+        document.querySelector('.terminal-btn').addEventListener('click', function() {
+            alert('Funcionalidad de terminal de depuración');
+        });
+    </script>
+</body>
+</html>
