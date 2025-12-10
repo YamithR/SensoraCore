@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Horizontal - SensoraCore Deployments</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family:  'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background:  linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+            overflow-x: auto;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns:  repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius:  15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* TIMELINE HORIZONTAL */
+        .timeline-section {
+            padding: 60px 40px;
+            background: #f8f9fa;
+            overflow-x: auto;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 60px;
+            font-weight: 600;
+        }
+        
+        .timeline-horizontal {
+            position: relative;
+            min-width: 2400px;
+            padding: 40px 0;
+            margin: 0 auto;
+        }
+        
+        /* Línea principal horizontal */
+        .timeline-line {
+            position: absolute;
+            top: 50%;
+            left: 3%;
+            right: 3%;
+            height:  6px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Contenedor de items */
+        .timeline-items {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 3%;
+        }
+        
+        /* Item individual */
+        .timeline-item-h {
+            position: relative;
+            width: 11%;
+            text-align: center;
+        }
+        
+        /* Marcador circular */
+        .timeline-marker-h {
+            position: relative;
+            width: 30px;
+            height: 30px;
+            margin: 0 auto 20px;
+            background: white;
+            border:  6px solid #667eea;
+            border-radius: 50%;
+            box-shadow: 0 0 0 6px rgba(102, 126, 234, 0.2);
+            z-index: 2;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .timeline-item-h:hover .timeline-marker-h {
+            transform: scale(1.3);
+            border-color: #764ba2;
+            box-shadow: 0 0 0 10px rgba(118, 75, 162, 0.3);
+        }
+        
+        /* Marcador especial para versiones beta */
+        .timeline-item-h.beta .timeline-marker-h {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 0 0 6px rgba(245, 87, 108, 0.2);
+        }
+        
+        .timeline-item-h.beta:hover .timeline-marker-h {
+            border-color: #f5576c;
+            box-shadow: 0 0 0 10px rgba(245, 87, 108, 0.3);
+        }
+        
+        /* Marcador especial para versión estrella */
+        .timeline-item-h.star .timeline-marker-h {
+            border-color:  #ffd700;
+            background: #ffd700;
+            box-shadow: 0 0 0 6px rgba(255, 215, 0, 0.3);
+        }
+        
+        .timeline-item-h.star .timeline-marker-h::after {
+            content: '⭐';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform:  translateX(-50%);
+            font-size: 1.5em;
+        }
+        
+        /* Línea vertical conectora */
+        .timeline-connector {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 60px;
+            background: linear-gradient(180deg, #667eea 0%, transparent 100%);
+        }
+        
+        .timeline-item-h:nth-child(even) .timeline-connector {
+            top: auto;
+            bottom:15px;
+            background:linear-gradient(0deg, #667eea 0%, transparent 100%);
+        }
+        
+        /* Contenido del card */
+        .timeline-content-h {
+            background: white;
+            padding: 20px;
+            border-radius:  15px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            min-height: 280px;
+            transition: all 0.3s ease;
+            margin-top: 80px;
+        }
+        
+        .timeline-item-h:nth-child(even) .timeline-content-h {
+            margin-top: 0;
+            margin-bottom: 80px;
+        }
+        
+        .timeline-item-h:hover .timeline-content-h {
+            transform: translateY(-10px);
+            box-shadow:  0 12px 25px rgba(0,0,0,0.15);
+        }
+        
+        .version-badge-h {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius:  20px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            font-size:  1em;
+            white-space: nowrap;
+        }
+        
+        .beta-badge-h {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .star-badge-h {
+            background:  linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+        }
+        
+        .date-h {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        
+        .description-h {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        
+        .highlights-h {
+            text-align: left;
+            margin-top: 12px;
+        }
+        
+        .highlights-h ul {
+            list-style: none;
+            padding:  0;
+        }
+        
+        .highlights-h li {
+            padding: 4px 0;
+            color: #555;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+        
+        .highlights-h li::before {
+            content: '✓ ';
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        /* Charts Section */
+        .chart-container {
+            padding: 40px;
+            margin: 20px 0;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-bottom: 40px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .chart-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        /* Leyenda de fases */
+        .phases-legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom:  40px;
+            flex-wrap: wrap;
+        }
+        
+        .phase-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .phase-color {
+            width: 20px;
+            height: 20px;
+            border-radius:  50%;
+        }
+        
+        .phase-alpha { background: #667eea; }
+        .phase-beta { background: #f5576c; }
+        .phase-star { background: #ffd700; }
+        
+        /* Scroll indicator */
+        .scroll-hint {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-style: italic;
+        }
+        
+        @media (max-width: 1024px) {
+            .timeline-horizontal {
+                min-width: 1800px;
+            }
+            
+            .scroll-hint {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 Timeline de Deployments - SensoraCore</h1>
+            <p>Sistema de Monitoreo de Sensores WiFi ESP32 + PySide6</p>
+            <p style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">Mayo 2025 - Noviembre 2025</p>
+        </div>
+        
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">8</div>
+                <div class="stat-label">Total Releases</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">6</div>
+                <div class="stat-label">Meses Desarrollo</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">5</div>
+                <div class="stat-label">Sensores</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">Beta 2.0</div>
+                <div class="stat-label">Versión Actual</div>
+            </div>
+        </div>
+        
+        <!-- Timeline Horizontal Section -->
+        <div class="timeline-section">
+            <h2 class="section-title">🕐 Timeline Horizontal de Releases</h2>
+            
+            <!-- Leyenda de Fases -->
+            <div class="phases-legend">
+                <div class="phase-item">
+                    <div class="phase-color phase-alpha"></div>
+                    <span>Versiones Alpha</span>
+                </div>
+                <div class="phase-item">
+                    <div class="phase-color phase-star"></div>
+                    <span>Versión Estrella (Estable)</span>
+                </div>
+                <div class="phase-item">
+                    <div class="phase-color phase-beta"></div>
+                    <span>Versiones Beta</span>
+                </div>
+            </div>
+            
+            <div class="scroll-hint">👈 Desliza horizontalmente para ver todo el timeline 👉</div>
+            
+            <div class="timeline-horizontal">
+                <div class="timeline-line"></div>
+                
+                <div class="timeline-items">
+                    <!-- Item 1: Alpha 0.1 -->
+                    <div class="timeline-item-h">
+                        <div class="timeline-marker-h"></div>
+                        <div class="timeline-connector"></div>
+                        <div class="timeline-content-h">
+                            <span class="version-badge-h">Alpha 0.1</span>
+                            <div class="date-h">📅 Mayo 25, 2025<br>05:54 UTC</div>
+                            <div class="description-h">Primera Versión Funcional</div>
+                            <div class="highlights-h">
+                                <ul>
+                                    <li>Conexión WiFi</li>
+                                    <li>Sensor Ángulo</li>
+                                    <li>Interfaz 2 paneles</li>
+                                    <li>Export Excel</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Item 2: Alpha 0.2.0 -->
+                    <div class="timeline-item-h">
+                        <div class="timeline-connector"></div>
+                        <div class="timeline-content-h">
+                            <span class="version-badge-h">Alpha 0.2.0</span>
+                            <div class="date-h">📅 Mayo 25, 2025<br>21:25 UTC</div>
+                            <div class="description-h">Sistema Híbrido</div>
+                            <div class="highlights-h">
+                                <ul>
+                                    <li>Digital/Analógico</li>
+                                    <li>Sensor Ultrasónico</li>
+                                    <li>Brazo robótico</li>
+                                    <li>IR y capacitivos</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="timeline-marker-h"></div>
+                    </div>
+                    
+                    <!-- Item 3: Alpha 0.2.1 -->
+                    <div class="timeline-item-h">
+                        <div class="timeline-marker-h"></div>
+                        <div class="timeline-connector"></div>
+                        <div class="timeline-content-h">
+                            <span class="version-badge-h">Alpha 0.2.1</span>
+                            <div class="date-h">📅 Mayo 25, 2025<br>22:52 UTC</div>
+                            <div class="description-h">Corrección Visual</div>
+                            <div class="highlights-h">
+                                <ul>
+                                    <li>Errores visuales</li>
+                                    <li>Mejoras UI</li>
+                                    <li>3 screenshots</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Item 4: Alpha 0.2.2 -->
+                    <div class="timeline-item-h">
+                        <div class="timeline-connector"></div>
+                        <div class="timeline-content-h">
+                            <span class="version-badge-h">Alpha 0.2.2</span>
+                            <div class="date-h">📅 Mayo 26, 2025<br>02:05 UTC</div>
+                            <div class="description-h">Corrección Plotter</div>
+                            <div class="highlights-h">
+                                <ul>
+                                    <li>Visualización datos</li>
+                                    <li>Módulos mejorados</li>
+                                    <li>Plotter parcial</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="timeline-marker-h"></div>
+                    </div>
+                    
+                    <!-- Item 5: Alpha 0.2.3 - STAR -->
+                    <div class="timeline-item-h star">
+                        <div class="timeline-marker-h"></div>
+                        <div class="timeline-connector"></div>
+                        <div class="timeline-content-h">
+                            <span class="version-badge-h star-badge-h">Alpha 0.2.3 ⭐</span>
+                            <div class="date-h">📅 Mayo 29, 2025<br>10:11 UTC</div>
+                            <div class="description-h">Versión Estable! </div>
+                            <div class="highlights-h">
+                                <ul>
+                                    <li>✅ Completamente funcional</li>
+                                    <li>5 sensores</li>
+                                    <li>Sin errores</li>
+                                    <li>Lista educación</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Item 6: Alpha 0.2.4 -->
+                    <div class="timeline-item-h">
+                        <div class="timeline-connector"></div>
+                        <div class="timeline-content-h">
+                            <span class="version-badge-h">Alpha 0.2.4</span>
+                            <div class="date-h">📅 Junio 23, 2025<br>16:56 UTC</div>
+                            <div class="description-h">Pre-Rework</div>
+                            <div class="highlights-h">
+                                <ul>
+                                    <li>Versión intermedia</li>
+                                    <li>Pre-refactorización</li>
+                                    <li>Preparación Beta</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="timeline-marker-h"></div>
+                    </div>
+                    
+                    <!-- Item 7: Beta 1.0 -->
+                    <div class="timeline-item-h beta">
+                        <div class="timeline-marker-h"></div>
+                        <div class="timeline-connector"></div>
+                        <div class="timeline-content-h">
+                            <span class="version-badge-h beta-badge-h">Beta 1.0 🎉</span>
+                            <div class="date-h">📅 Agosto 25, 2025<br>20:20 UTC</div>
+                            <div class="description-h">Primera Beta! </div>
+                            <div class="highlights-h">
+                                <ul>
+                                    <li>Salto a Beta</li>
+                                    <li>Sistema completo</li>
+                                    <li>3 meses refinamiento</li>
+                                    <li>Uso preliminar</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Item 8: Beta 2.0 -->
+                    <div class="timeline-item-h beta">
+                        <div class="timeline-connector"></div>
+                        <div class="timeline-content-h">
+                            <span class="version-badge-h beta-badge-h">Beta 2.0 🔥</span>
+                            <div class="date-h">📅 Nov 23, 2025<br>21:20 UTC</div>
+                            <div class="description-h">Versión Actual</div>
+                            <div class="highlights-h">
+                                <ul>
+                                    <li>Latest release</li>
+                                    <li>Mejoras sobre 1.0</li>
+                                    <li>Testing extensivo</li>
+                                    <li>Hace 16 días</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="timeline-marker-h"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <div class="chart-title">📈 Progreso del Proyecto (0-100%)</div>
+                <canvas id="progressChart"></canvas>
+            </div>
+            
+            <div class="chart-wrapper">
+                <div class="chart-title">📊 Releases por Mes</div>
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>📊 SensoraCore Timeline Dashboard - Vista Horizontal</p>
+            <p style="margin-top: 10px; opacity: 0.8;">
+                Generado el 2025-12-10 | Repository: YamithR/SensoraCore
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Chart 1: Progreso del Proyecto
+        const ctx1 = document.getElementById('progressChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: ['Alpha 0.1', 'Alpha 0.2.0', 'Alpha 0.2.1', 'Alpha 0.2.2', 'Alpha 0.2.3', 'Alpha 0.2.4', 'Beta 1.0', 'Beta 2.0'],
+                datasets: [{
+                    label: 'Progreso del Proyecto',
+                    data:  [10, 25, 30, 35, 50, 60, 85, 95],
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension:  0.4,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: [
+                        '#667eea', '#667eea', '#667eea', '#667eea', 
+                        '#ffd700', '#667eea', '#f5576c', '#f5576c'
+                    ],
+                    pointBorderColor:  '#fff',
+                    pointBorderWidth: 3
+                }]
+            },
+            options: {
+                responsive:  true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 15,
+                        titleFont: {
+                            size: 14
+                        },
+                        bodyFont: {
+                            size: 13
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            },
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font:  {
+                                size: 11
+                            },
+                            maxRotation: 45,
+                            minRotation: 45
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Chart 2: Releases por Mes
+        const ctx2 = document.getElementById('monthlyChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['Mayo 2025', 'Junio 2025', 'Julio 2025', 'Agosto 2025', 'Sept-Oct 2025', 'Noviembre 2025'],
+                datasets: [{
+                    label:  'Número de Releases',
+                    data: [5, 1, 0, 1, 0, 1],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(118, 75, 162, 0.8)',
+                        'rgba(200, 200, 200, 0.3)',
+                        'rgba(240, 147, 251, 0.8)',
+                        'rgba(200, 200, 200, 0.3)',
+                        'rgba(245, 87, 108, 0.8)'
+                    ],
+                    borderColor:  [
+                        'rgba(102, 126, 234, 1)',
+                        'rgba(118, 75, 162, 1)',
+                        'rgba(200, 200, 200, 1)',
+                        'rgba(240, 147, 251, 1)',
+                        'rgba(200, 200, 200, 1)',
+                        'rgba(245, 87, 108, 1)'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 15,
+                        titleFont: {
+                            size: 14
+                        },
+                        bodyFont: {
+                            size: 13
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
