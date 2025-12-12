@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		John | Octubre 29, 2018
+Link:
+		https://grabcad.com/library/hc-sr04-ultrasonic-sensor-5

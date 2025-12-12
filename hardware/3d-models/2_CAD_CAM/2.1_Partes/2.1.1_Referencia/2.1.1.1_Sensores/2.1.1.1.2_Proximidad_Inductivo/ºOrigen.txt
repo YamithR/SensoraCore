@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Ashan Marambe | Mayo 5, 2017
+Link:
+		https://grabcad.com/library/inductive-proximity-sensor-3

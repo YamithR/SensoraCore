@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		 Josef Häberle | Marzo 8, 2021
+Link:
+		https://grabcad.com/library/esp32-terminal-adapter-1

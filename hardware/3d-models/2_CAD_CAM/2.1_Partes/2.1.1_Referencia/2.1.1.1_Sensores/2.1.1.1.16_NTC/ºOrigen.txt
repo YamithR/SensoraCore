@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Вячеслав Шестаков | Septiembre17, 2018
+Link:
+		https://grabcad.com/library/temperature-sensor-module-arduino-ky-013-1

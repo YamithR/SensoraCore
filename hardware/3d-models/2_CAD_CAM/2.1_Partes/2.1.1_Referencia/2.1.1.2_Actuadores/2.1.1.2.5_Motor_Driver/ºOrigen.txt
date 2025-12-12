@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Taehwan Kim | Agosto 13, 2024
+Link:
+		https://grabcad.com/library/h-bridge-l298n-1

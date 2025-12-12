@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Mart Berghs| Junio 11, 2022
+Link:
+		https://grabcad.com/library/module-max6675-k-1

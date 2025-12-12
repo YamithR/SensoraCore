@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Thorsten Mühlke  | Septiembre 2, 2022
+Link:
+		https://grabcad.com/library/jst-ph-serie-crimp-connectors-1

@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Omar Abdelhamied | Agosto 11, 2019
+Link:
+		https://grabcad.com/library/line-follower-sensor-1

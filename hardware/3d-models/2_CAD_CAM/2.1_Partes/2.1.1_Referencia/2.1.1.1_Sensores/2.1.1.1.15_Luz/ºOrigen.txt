@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Amer Thiab | Enero 28, 2021
+Link:
+		https://grabcad.com/library/light-sensor-ldr-1

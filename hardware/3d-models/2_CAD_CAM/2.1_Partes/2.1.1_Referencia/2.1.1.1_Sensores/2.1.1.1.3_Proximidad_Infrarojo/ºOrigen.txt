@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Martinus Bagus Wicaksono| Abril 23, 2021
+Link:
+		https://grabcad.com/library/proximity-infrared-obstacle-switch-sensor-e18-d80nk-photoelectric-ir-arduino-1

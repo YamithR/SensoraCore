@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Achim Pieters | Diciembre 11, 2019
+Link:
+		https://grabcad.com/library/optical-speed-sensor-1

@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		Jason Febbraro |  8, 2024
+Link:
+		https://grabcad.com/library/weewooday-0-96-inch-oled-module-12864-128x64-driver-iic-i2c-serial-self-luminous-display-board-1

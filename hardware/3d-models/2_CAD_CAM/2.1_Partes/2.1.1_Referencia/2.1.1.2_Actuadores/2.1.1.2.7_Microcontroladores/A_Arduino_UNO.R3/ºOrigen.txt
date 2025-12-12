@@ -1,0 +1,6 @@
+Repositorio: 
+		GrabCAD_COMMUNITY
+Autor:
+		shahram fazell | Noviembre 6, 2024
+Link:
+		https://grabcad.com/library/arduino-uno-63
