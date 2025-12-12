@@ -404,7 +404,8 @@
             <li><a href="#caracteristicas">Características</a></li>
             <li><a href="#quickstart">Inicio Rápido</a></li>
             <li><a href="#sensores">Sensores</a></li>
-            <li><a href="#manuales">Manuales de Usuario</a></li>
+            <li><a href="#manuales-software">Manuales de Software</a></li>
+            <li><a href="#manuales-usuario">Manuales de Usuario</a></li>
             <li><a href="#certificados">Certificados DNDA</a></li>
                 <li><a href="#timeline">Timeline</a></li>
             <li><a href="#documentacion">Documentación</a></li>
@@ -419,7 +420,8 @@
             <p style="font-size: 1.2em; margin-bottom: 0;">Conecta tu ESP32, selecciona un sensor y visualiza datos en tiempo real</p>
             <div class="cta-buttons">
                 <a href="#quickstart" class="cta-btn">Inicio Rápido</a>
-                <a href="#manuales" class="cta-btn secondary">Descargar Manuales</a>
+                <a href="#manuales-software" class="cta-btn secondary">Manuales de Software</a>
+                <a href="#manuales-usuario" class="cta-btn secondary">Manuales de Usuario</a>
                 <a href="#certificados" class="cta-btn secondary">Certificados DNDA</a>
                 <a href="Web-Index/documentacion_codigo.html" class="cta-btn secondary">Documentación de Código</a>
             </div>
@@ -611,14 +613,14 @@
             </div>
         </section>
 
-        <!-- Manuales de Usuario -->
-        <section id="manuales" class="section">
-            <h2>📚 Manuales de Usuario</h2>
-            <p>Descarga los manuales detallados de cada sensor para conocer conexiones, configuración y uso:</p>
+        <!-- Manuales de Software -->
+        <section id="manuales-software" class="section">
+            <h2>💻 Manuales de Software</h2>
+            <p>Manuales técnicos del software de cada módulo con explicaciones de código, arquitectura y funcionalidades:</p>
             
             <div class="info-box">
-                <strong>📖 Formato:</strong> Los manuales están en formato DOCX (Microsoft Word) y contienen 
-                instrucciones paso a paso, diagramas de conexión, configuración de software y ejemplos de uso.
+                <strong>📖 Formato:</strong> Los manuales de software están en formato DOCX (Microsoft Word) y contienen 
+                documentación técnica del código, arquitectura de módulos, protocolos de comunicación y guías de desarrollo.
             </div>
             
             <div class="manuals-grid">
@@ -746,6 +748,156 @@
                         <p>Manual de lectura ESP32</p>
                     </div>
                     <a href="SensoraCore/Docs/Registros_de_SW/Registro De Software/14. SENSORA_ESP_READING/SENSORA_ESP_READING_userManual.docx" class="download-btn" download title="Descargar manual">⬇</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Manuales de Usuario y Prácticas -->
+        <section id="manuales-usuario" class="section">
+            <h2>📖 Manuales de Usuario y Prácticas de Laboratorio</h2>
+            <p>Documentación completa para usuarios finales con manuales de operación y prácticas guiadas de laboratorio:</p>
+            
+            <div class="info-box">
+                <strong>📚 Contenido:</strong> Cada sensor cuenta con dos documentos:
+                <ul style="margin-top: 10px;">
+                    <li><strong>Manual de Usuario (Serie A):</strong> Guía de operación, conexiones hardware, configuración y uso básico</li>
+                    <li><strong>Práctica de Laboratorio (Serie B):</strong> Ejercicios prácticos, experimentos guiados y actividades didácticas</li>
+                </ul>
+            </div>
+            
+            <h3 style="margin-top: 30px;">📘 Documentación por Sensor</h3>
+            
+            <div class="manuals-grid">
+                <!-- Simple Angle -->
+                <div class="manual-card">
+                    <div class="manual-icon">📐</div>
+                    <div class="manual-info">
+                        <h4>Ángulo Simple</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A1_MANUAL_SIMPLE_ANGLE.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B1_PRACTICA_SIMPLE_ANGLE.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Angle Arm -->
+                <div class="manual-card">
+                    <div class="manual-icon">🦾</div>
+                    <div class="manual-info">
+                        <h4>Brazo Angulado</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A2_MANUAL_ANGLE_ARM.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B2_PRACTICA_ANGLE_ARM.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Infrared -->
+                <div class="manual-card">
+                    <div class="manual-icon">🔴</div>
+                    <div class="manual-info">
+                        <h4>Infrarrojo</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A3_MANUAL_INFRARED.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B3_PRACTICA_INFRARED.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Capacitive -->
+                <div class="manual-card">
+                    <div class="manual-icon">👆</div>
+                    <div class="manual-info">
+                        <h4>Capacitivo</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A4_MANUAL_CAPACITIVE.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B4_PRACTICA_CAPACITIVE.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Ultrasonic -->
+                <div class="manual-card">
+                    <div class="manual-icon">📡</div>
+                    <div class="manual-info">
+                        <h4>Ultrasónico</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A5_MANUAL_ULTRASONIC.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B5_PRACTICA_ULTRASONIC.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Optical Speed -->
+                <div class="manual-card">
+                    <div class="manual-icon">💨</div>
+                    <div class="manual-info">
+                        <h4>Velocidad Óptica</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A6_MANUAL_OPTICAL_SPEED.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B6_PRACTICA_OPTICAL_SPEED.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- IR Steering -->
+                <div class="manual-card">
+                    <div class="manual-icon">🎮</div>
+                    <div class="manual-info">
+                        <h4>Dirección IR</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A7_MANUAL_IR_STEERING.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B7_PRACTICA_IR_STEERING.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Thermoregulation -->
+                <div class="manual-card">
+                    <div class="manual-icon">🌡️</div>
+                    <div class="manual-info">
+                        <h4>Termorregulación</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A8_MANUAL_THERMOREGULATION.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B8_PRACTICA_THERMOREGULATION.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Gas Regulation -->
+                <div class="manual-card">
+                    <div class="manual-icon">💨</div>
+                    <div class="manual-info">
+                        <h4>Regulación de Gases</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A9_MANUAL_GAS_REGULATION.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B9_PRACTICA_GAS_REGULATION.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Brightness -->
+                <div class="manual-card">
+                    <div class="manual-icon">💡</div>
+                    <div class="manual-info">
+                        <h4>Brillo</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A10_MANUAL_BRIGHTNESS.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B10_PRACTICA_BRIGHTNESS.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Color CNY -->
+                <div class="manual-card">
+                    <div class="manual-icon">🎨</div>
+                    <div class="manual-info">
+                        <h4>Color CNY</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A11_MANUAL_COLOR_CNY.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B11_PRACTICA_COLOR_CNY.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
+                </div>
+
+                <!-- Color TCS -->
+                <div class="manual-card">
+                    <div class="manual-icon">🌈</div>
+                    <div class="manual-info">
+                        <h4>Color TCS</h4>
+                        <p>Manual y Práctica</p>
+                    </div>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Manuales/A12_MANUAL_COLOR_TCS.docx" class="download-btn" title="Descargar Manual">📄</a>
+                    <a href="SensoraCore/Docs/SensoraCore_Documentacion/Practicas/B12_PRACTICA_COLOR_TCS.docx" class="download-btn" title="Descargar Práctica" style="margin-left: 10px;">🔬</a>
                 </div>
             </div>
         </section>
